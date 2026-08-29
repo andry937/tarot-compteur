@@ -1,16 +1,17 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
+import type { WindowStorage } from "../src/lib/window-storage";
 
 /**
  * Reproduit l'API window.storage (get/set/delete/list) utilisée par l'app,
  * y compris le comportement documenté : get() lève sur une clé absente.
  */
-function creerFauxStorage() {
-  const magasin = new Map();
+function creerFauxStorage(): WindowStorage {
+  const magasin = new Map<string, string>();
   return {
     async get(key) {
       if (!magasin.has(key)) throw new Error(`clé introuvable: ${key}`);
-      return { key, value: magasin.get(key), shared: false };
+      return { key, value: magasin.get(key)!, shared: false };
     },
     async set(key, value) {
       magasin.set(key, value);
