@@ -4,7 +4,8 @@ import {
   melangerAtouts,
   calculer,
   resumerDonnees,
-} from "../src/regles.js";
+} from "../src/utils/regles";
+import type { Donne } from "../src/utils/regles";
 import {
   normaliser,
   resoudreFiche,
@@ -12,7 +13,8 @@ import {
   trouverFicheParNom,
   resoudreOuCreerFiches,
   ontDejaJoueEnsemble,
-} from "../src/identite.js";
+} from "../src/utils/identite";
+import type { Fiche } from "../src/utils/identite";
 
 /* ------------------------------------------------------------------ */
 /*  tableDeLaDonne — rotation                                          */
@@ -66,7 +68,7 @@ describe("melangerAtouts", () => {
 /*  calculer — moteur de score                                         */
 /* ------------------------------------------------------------------ */
 
-const donneBase = {
+const donneBase: Omit<Donne, "points"> = {
   table: [0, 1, 2, 3],
   preneur: 0,
   appele: null,
@@ -85,7 +87,7 @@ describe("calculer — contrat simple à 4", () => {
     expect(res.ecart).toBe(9);
     expect(res.base).toBe((25 + 9) * 2); // 68
     expect(res.scores).toEqual([204, -68, -68, -68]);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
     expect(res.defenseurs).toEqual([1, 2, 3]);
   });
 
@@ -95,7 +97,7 @@ describe("calculer — contrat simple à 4", () => {
     expect(res.ecart).toBe(11);
     expect(res.base).toBe(-(25 + 11) * 2); // -72
     expect(res.scores).toEqual([-216, 72, 72, 72]);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
   });
 
   it("petit au bout à l'attaque ajoute 10×mult au camp du preneur", () => {
@@ -130,7 +132,7 @@ describe("calculer — table à 5 avec appelé", () => {
     expect(res.scores[3]).toBe(-res.base);
     expect(res.scores[4]).toBe(-res.base);
     expect(res.defenseurs).toEqual([2, 3, 4]);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
   });
 
   it("sans appelé désigné, le preneur assume seul (pas de split)", () => {
@@ -149,45 +151,45 @@ describe("calculer — table à 5 avec appelé", () => {
 
 describe("calculer — misère (Tarot-Bière)", () => {
   it("misère valide : chaque autre joueur paie 10, quel que soit son camp", () => {
-    const d = {
+    const d: Donne = {
       ...donneBase,
       points: 60,
-      miseres: [{ joueur: 2, type: "atout", aTort: false }],
+      miseres: [{ id: "m1", joueur: 2, type: "atout", aTort: false }],
     };
     const res = calculer(d, 4);
     // base=68 -> sans misère: [204,-68,-68,-68]
     expect(res.scores).toEqual([194, -78, -38, -78]);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
   });
 
   it("misère annoncée à tort : le paiement s'inverse", () => {
-    const d = {
+    const d: Donne = {
       ...donneBase,
       points: 60,
-      miseres: [{ joueur: 2, type: "atout", aTort: true }],
+      miseres: [{ id: "m1", joueur: 2, type: "atout", aTort: true }],
     };
     const res = calculer(d, 4);
     expect(res.scores).toEqual([214, -58, -98, -58]);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
   });
 
   it("plusieurs misères se cumulent sans casser la somme nulle", () => {
-    const d = {
+    const d: Donne = {
       ...donneBase,
       points: 60,
       miseres: [
-        { joueur: 1, type: "atout", aTort: false },
-        { joueur: 3, type: "tete", aTort: true },
+        { id: "m1", joueur: 1, type: "atout", aTort: false },
+        { id: "m2", joueur: 3, type: "tete", aTort: true },
       ],
     };
     const res = calculer(d, 4);
-    expect(res.scores.reduce((a, b) => a + b, 0)).toBe(0);
+    expect(res.scores.reduce((a, b) => (a as number) + (b as number), 0)).toBe(0);
   });
 
   it("une misère pour un joueur absent de la table est ignorée", () => {
     const sansMisere = calculer({ ...donneBase, points: 60 }, 4);
     const avecMisereHorsTable = calculer(
-      { ...donneBase, points: 60, miseres: [{ joueur: 9, type: "atout", aTort: false }] },
+      { ...donneBase, points: 60, miseres: [{ id: "m1", joueur: 9, type: "atout", aTort: false }] },
       4
     );
     expect(avecMisereHorsTable.scores).toEqual(sansMisere.scores);
@@ -196,7 +198,7 @@ describe("calculer — misère (Tarot-Bière)", () => {
 
 describe("resumerDonnees", () => {
   it("cumule les totaux et compte les donnes jouées par joueur, en ignorant les repos", () => {
-    const donnes = [
+    const donnes: Donne[] = [
       { ...donneBase, table: [0, 1, 2], preneur: 0, points: 60 },
       { ...donneBase, table: [1, 2, 3], preneur: 1, points: 60 },
     ];
@@ -221,10 +223,16 @@ describe("normaliser", () => {
 });
 
 describe("résolution de fiche et fusion", () => {
-  const roster = [
-    { id: "a", nom: "Andry", actif: true, redirigeVers: null },
-    { id: "b", nom: "Bob", actif: false, redirigeVers: "a" },
-    { id: "c", nom: "Chaîne cassée", actif: false, redirigeVers: "zzz-inexistant" },
+  const roster: Fiche[] = [
+    { id: "a", nom: "Andry", creee: "2026-01-01T00:00:00.000Z", actif: true, redirigeVers: null },
+    { id: "b", nom: "Bob", creee: "2026-01-01T00:00:00.000Z", actif: false, redirigeVers: "a" },
+    {
+      id: "c",
+      nom: "Chaîne cassée",
+      creee: "2026-01-01T00:00:00.000Z",
+      actif: false,
+      redirigeVers: "zzz-inexistant",
+    },
   ];
 
   it("résout directement une fiche active", () => {

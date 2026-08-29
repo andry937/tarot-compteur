@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import App from "../src/App.jsx";
+import App from "../src/App";
+import type { Fiche } from "../src/utils/identite";
 
 function renderApp() {
   return render(
@@ -21,8 +22,8 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
     await u.type(screen.getByPlaceholderText("Joueur 2"), "Fara");
     await u.type(screen.getByPlaceholderText("Joueur 3"), "Lian");
 
-    const siegeAndry = screen.getByDisplayValue("Andry").closest(".t-champ-nom");
-    const siegeLian = screen.getByDisplayValue("Lian").closest(".t-champ-nom");
+    const siegeAndry = screen.getByDisplayValue("Andry").closest(".t-champ-nom") as HTMLElement;
+    const siegeLian = screen.getByDisplayValue("Lian").closest(".t-champ-nom") as HTMLElement;
 
     fireEvent.dragStart(siegeAndry);
     fireEvent.dragOver(siegeLian);
@@ -37,12 +38,12 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
 });
 
 /** Pré-remplit le registre et l'historique directement dans le faux storage. */
-function preseeder({ roster = [], historique = [] } = {}) {
-  window.storage.__seed("tarot:joueurs:v2", roster);
-  window.storage.__seed("tarot:historique", historique);
+function preseeder({ roster = [], historique = [] }: { roster?: Fiche[]; historique?: unknown[] } = {}) {
+  window.storage.__seed!("tarot:joueurs:v2", roster);
+  window.storage.__seed!("tarot:historique", historique);
 }
 
-const fiche = (id, nom, extra = {}) => ({
+const fiche = (id: string, nom: string, extra: Partial<Fiche> = {}): Fiche => ({
   id,
   nom,
   creee: "2026-01-01T00:00:00.000Z",
@@ -83,7 +84,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(3\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneBob = screen.getByText("Bob").closest(".t-roster-row");
+    const ligneBob = screen.getByText("Bob").closest(".t-roster-row") as HTMLElement;
     await u.click(within(ligneBob).getByText("Renommer"));
     const champ = screen.getByDisplayValue("Bob");
     await u.clear(champ);
@@ -105,7 +106,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneAndry = screen.getByText("Andry").closest(".t-roster-row");
+    const ligneAndry = screen.getByText("Andry").closest(".t-roster-row") as HTMLElement;
     await u.click(within(ligneAndry).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Bob" }));
 
@@ -127,7 +128,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneBob = screen.getByText("Bob").closest(".t-roster-row");
+    const ligneBob = screen.getByText("Bob").closest(".t-roster-row") as HTMLElement;
     await u.click(within(ligneBob).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Andry" }));
 
