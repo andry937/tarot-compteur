@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Routes, Route, Link, useNavigate } from "react-router-dom";
 import { CONTRATS, calculer, resumerDonnees, tableDeLaDonne, fmt } from "./regles.js";
 import { normaliser, resoudreNom, resoudreOuCreerFiches } from "./identite.js";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, cleArchive } from "./stockage.js";
@@ -12,6 +13,7 @@ const nomsParDefaut = (n) =>
   Array.from({ length: n }, (_, i) => (i === 0 ? "Andry" : ""));
 
 export default function App() {
+  const navigate = useNavigate();
   const [pret, setPret] = useState(false);
   const [partie, setPartie] = useState(null);
   const [tirage, setTirage] = useState(null);
@@ -25,8 +27,6 @@ export default function App() {
   const [nomsSetup, setNomsSetup] = useState(nomsParDefaut(5));
   const [roster, setRoster] = useState([]);
   const [focusIndex, setFocusIndex] = useState(null);
-  const [vueHistorique, setVueHistorique] = useState(false);
-  const [vueConfig, setVueConfig] = useState(false);
   const [historiqueIndex, setHistoriqueIndex] = useState([]);
   const [annulations, setAnnulations] = useState([]);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
@@ -111,23 +111,7 @@ export default function App() {
       </div>
     );
 
-  /* ---------- Configuration du trombinoscope ---------- */
-  if (vueConfig) {
-    return (
-      <Configuration
-        roster={roster}
-        historiqueIndex={historiqueIndex}
-        onFermer={() => setVueConfig(false)}
-        onRoster={persisterRoster}
-      />
-    );
-  }
-
-  /* ---------- Historique ---------- */
-  if (vueHistorique) {
-    return <Historique index={historiqueIndex} roster={roster} onRetour={() => setVueHistorique(false)} />;
-  }
-
+  const ecranPartie = () => {
   /* ---------- Tirage du donneur ---------- */
   if (!partie && tirage) {
     return (
@@ -172,12 +156,12 @@ export default function App() {
             <h1 className="t-title">Feuille de marque</h1>
           </div>
           <div className="t-head-actions">
-            <button className="t-ghost" onClick={() => setVueConfig(true)}>
+            <Link className="t-ghost" to="/joueurs">
               Joueurs{roster.filter((r) => r.actif).length > 0 ? ` (${roster.filter((r) => r.actif).length})` : ""}
-            </button>
-            <button className="t-ghost" onClick={() => setVueHistorique(true)}>
+            </Link>
+            <Link className="t-ghost" to="/historique">
               Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
-            </button>
+            </Link>
           </div>
         </div>
         <div className="t-setup">
@@ -383,9 +367,9 @@ export default function App() {
           <h1 className="t-title">Feuille de marque</h1>
         </div>
         <div className="t-head-actions">
-          <button className="t-ghost" onClick={() => setVueHistorique(true)}>
+          <Link className="t-ghost" to="/historique">
             Historique
-          </button>
+          </Link>
           <button className="t-ghost" onClick={nouvellePartie}>
             {confirmer ? "Confirmer ?" : "Nouvelle"}
           </button>
@@ -662,6 +646,32 @@ export default function App() {
         />
       )}
     </div>
+  );
+  };
+
+  return (
+    <Routes>
+      <Route
+        path="/joueurs"
+        element={
+          <Configuration
+            roster={roster}
+            historiqueIndex={historiqueIndex}
+            onFermer={() => navigate("/")}
+            onRoster={persisterRoster}
+          />
+        }
+      />
+      <Route
+        path="/historique"
+        element={<Historique index={historiqueIndex} roster={roster} onRetour={() => navigate("/")} />}
+      />
+      <Route
+        path="/historique/:id"
+        element={<Historique index={historiqueIndex} roster={roster} onRetour={() => navigate("/")} />}
+      />
+      <Route path="/*" element={ecranPartie()} />
+    </Routes>
   );
 }
 
