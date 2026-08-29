@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Routes, Route, Link, useNavigate } from "react-router-dom";
+import { Routes, Route, Link, Navigate, useNavigate } from "react-router-dom";
 import { CONTRATS, calculer, resumerDonnees, tableDeLaDonne, fmt } from "./regles.js";
 import { normaliser, resoudreNom, resoudreOuCreerFiches } from "./identite.js";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, cleArchive } from "./stockage.js";
@@ -111,30 +111,30 @@ export default function App() {
       </div>
     );
 
-  const ecranPartie = () => {
-  /* ---------- Tirage du donneur ---------- */
-  if (!partie && tirage) {
-    return (
-      <Tirage
-        joueurs={tirage.joueurs}
-        onRetour={() => setTirage(null)}
-        onValider={(depart) => {
-          setPartie({
-            joueursId: tirage.joueursId,
-            joueursNomFige: tirage.joueurs,
-            parDonne: tirage.parDonne,
-            depart,
-          });
-          setDonnes([]);
-          setAnnulations([]);
-          setTirage(null);
-        }}
-      />
-    );
-  }
+  const ecranTirage = () => (
+    <Tirage
+      joueurs={tirage.joueurs}
+      onRetour={() => {
+        setTirage(null);
+        navigate("/");
+      }}
+      onValider={(depart) => {
+        setPartie({
+          joueursId: tirage.joueursId,
+          joueursNomFige: tirage.joueurs,
+          parDonne: tirage.parDonne,
+          depart,
+        });
+        setDonnes([]);
+        setAnnulations([]);
+        setTirage(null);
+        navigate("/partie");
+      }}
+    />
+  );
 
   /* ---------- Composition de la table ---------- */
-  if (!partie) {
+  const ecranSetup = () => {
     const majNb = (delta) => {
       const n = Math.min(12, Math.max(3, nbSetup + delta));
       setNbSetup(n);
@@ -290,6 +290,7 @@ export default function App() {
                 onClick={async () => {
                   const ids = await majRoster(nomsTrim);
                   setTirage({ joueurs: nomsTrim, joueursId: ids, parDonne: parDonneSetup });
+                  navigate("/tirage");
                 }}
               >
                 {libelle}
@@ -299,10 +300,11 @@ export default function App() {
         </div>
       </div>
     );
-  }
+  };
 
   /* ---------- Feuille ---------- */
-  const parDonne = partie.parDonne;
+  const ecranFeuille = () => {
+    const parDonne = partie.parDonne;
   const rotation = nbTotal > parDonne;
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, partie.depart || 0);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
@@ -346,6 +348,7 @@ export default function App() {
     setAnnulations([]);
     setOuverte(null);
     setConfirmer(false);
+    navigate("/");
   };
 
   const classement = joueurs
@@ -670,7 +673,13 @@ export default function App() {
         path="/historique/:id"
         element={<Historique index={historiqueIndex} roster={roster} onRetour={() => navigate("/")} />}
       />
-      <Route path="/*" element={ecranPartie()} />
+      <Route
+        path="/tirage"
+        element={tirage && !partie ? ecranTirage() : <Navigate to={partie ? "/partie" : "/"} replace />}
+      />
+      <Route path="/partie" element={partie ? ecranFeuille() : <Navigate to="/" replace />} />
+      <Route path="/" element={partie ? <Navigate to="/partie" replace /> : ecranSetup()} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
