@@ -1,11 +1,23 @@
 import { useState } from "react";
-import { ROMAINS, melangerAtouts, nomAtout } from "../regles.js";
-import { CSS } from "../styles.js";
+import { ROMAINS, melangerAtouts, nomAtout } from "../utils/regles";
+import type { Atout } from "../utils/regles";
+import { CSS } from "../styles/styles";
 
-export default function Tirage({ joueurs, onValider, onRetour }) {
-  const [paquet, setPaquet] = useState(melangerAtouts);
-  const [tires, setTires] = useState([]);
-  const [excuse, setExcuse] = useState(null);
+interface Tire {
+  joueur: number;
+  carte: number;
+}
+
+interface TirageProps {
+  joueurs: string[];
+  onValider: (depart: number) => void;
+  onRetour: () => void;
+}
+
+export default function Tirage({ joueurs, onValider, onRetour }: TirageProps) {
+  const [paquet, setPaquet] = useState<Atout[]>(melangerAtouts);
+  const [tires, setTires] = useState<Tire[]>([]);
+  const [excuse, setExcuse] = useState<string | null>(null);
   const [manuel, setManuel] = useState(false);
   const [choix, setChoix] = useState(0);
 
@@ -14,11 +26,11 @@ export default function Tirage({ joueurs, onValider, onRetour }) {
   const plusFaible = fini
     ? tires.reduce((a, b) => (b.carte < a.carte ? b : a)).joueur
     : null;
-  const entame = fini ? (plusFaible + 1) % joueurs.length : null;
+  const entame = fini ? ((plusFaible as number) + 1) % joueurs.length : null;
 
   const tirer = () => {
     const reste = [...paquet];
-    const carte = reste.shift();
+    const carte = reste.shift() as Atout;
     setPaquet(reste);
     if (carte === "excuse") {
       setExcuse(joueurs[suivant]);
@@ -94,7 +106,7 @@ export default function Tirage({ joueurs, onValider, onRetour }) {
             {fini && (
               <div className="t-resultat">
                 <p>
-                  {joueurs[plusFaible]} distribue, {joueurs[entame]} entame.
+                  {joueurs[plusFaible as number]} distribue, {joueurs[entame as number]} entame.
                 </p>
                 <span>
                   Le donneur avance ensuite d'une place à chaque donne, dans l'ordre de la table.
@@ -115,7 +127,7 @@ export default function Tirage({ joueurs, onValider, onRetour }) {
             Ouvrir la feuille
           </button>
         ) : fini ? (
-          <button className="t-cta" onClick={() => onValider(plusFaible)}>
+          <button className="t-cta" onClick={() => onValider(plusFaible as number)}>
             Ouvrir la feuille
           </button>
         ) : (
@@ -127,4 +139,3 @@ export default function Tirage({ joueurs, onValider, onRetour }) {
     </div>
   );
 }
-
