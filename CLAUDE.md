@@ -31,10 +31,12 @@ src/
   identite.js              registre des joueurs (identités stables, fusion) — pur, sans React
   stockage.js               clés de persistance centralisées
   styles.js                 CSS partagé (template string, injecté via <style>{CSS}</style>)
-  App.jsx                   composant racine : état, routing entre écrans, effets de persistance
+  App.jsx                   composant racine : état partagé, effets de persistance, routes
   composants/
+    CompositionTable.jsx     écran de composition de la table (route /)
+    Feuille.jsx               écran de la feuille de score en cours (route /partie)
     Saisie.jsx               formulaire modal de saisie d'une donne
-    Tirage.jsx                tirage du donneur (aléatoire ou désignation manuelle)
+    Tirage.jsx                tirage du donneur (aléatoire ou désignation manuelle, route /tirage)
     Historique.jsx            liste des parties closes + ouverture d'une archive
     ArchiveFeuille.jsx        feuille en lecture seule d'une partie archivée
     Configuration.jsx         écran de gestion du trombinoscope
