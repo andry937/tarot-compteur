@@ -1,12 +1,21 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import App from "../src/App.jsx";
+
+function renderApp() {
+  return render(
+    <MemoryRouter>
+      <App />
+    </MemoryRouter>
+  );
+}
 
 describe("Réordonnancement des sièges par glisser-déposer", () => {
   it("échange deux joueurs quand on dépose l'un sur l'autre", async () => {
     const u = userEvent.setup();
-    render(<App />);
+    renderApp();
     await screen.findByText("Feuille de marque");
 
     await u.type(screen.getByPlaceholderText("Joueur 2"), "Fara");
@@ -54,10 +63,10 @@ describe("Écran de configuration du trombinoscope", () => {
       ],
     });
     const u = userEvent.setup();
-    render(<App />);
+    renderApp();
     await screen.findByText("Feuille de marque");
 
-    await u.click(screen.getByRole("button", { name: /Joueurs \(5\)/ }));
+    await u.click(screen.getByRole("link", { name: /Joueurs \(5\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const noms = [...document.querySelectorAll(".t-roster-nom span")].map((el) => el.textContent);
@@ -69,9 +78,9 @@ describe("Écran de configuration du trombinoscope", () => {
       roster: [fiche("a", "Andry"), fiche("b", "Bob"), fiche("m", "Marc")],
     });
     const u = userEvent.setup();
-    render(<App />);
+    renderApp();
     await screen.findByText("Feuille de marque");
-    await u.click(screen.getByRole("button", { name: /Joueurs \(3\)/ }));
+    await u.click(screen.getByRole("link", { name: /Joueurs \(3\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneBob = screen.getByText("Bob").closest(".t-roster-row");
@@ -91,9 +100,9 @@ describe("Écran de configuration du trombinoscope", () => {
       historique: [{ id: "p1", joueursId: ["a", "b"], joueurs: ["Andry", "Bob"] }],
     });
     const u = userEvent.setup();
-    render(<App />);
+    renderApp();
     await screen.findByText("Feuille de marque");
-    await u.click(screen.getByRole("button", { name: /Joueurs \(2\)/ }));
+    await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneAndry = screen.getByText("Andry").closest(".t-roster-row");
@@ -113,9 +122,9 @@ describe("Écran de configuration du trombinoscope", () => {
       historique: [], // aucune partie encore : jamais joué ensemble
     });
     const u = userEvent.setup();
-    render(<App />);
+    renderApp();
     await screen.findByText("Feuille de marque");
-    await u.click(screen.getByRole("button", { name: /Joueurs \(2\)/ }));
+    await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneBob = screen.getByText("Bob").closest(".t-roster-row");

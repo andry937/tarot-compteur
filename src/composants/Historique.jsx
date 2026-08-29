@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "../stockage.js";
 import { CSS } from "../styles.js";
 import ArchiveFeuille from "./ArchiveFeuille.jsx";
 
 export default function Historique({ index, roster, onRetour }) {
-  const [id, setId] = useState(null);
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [record, setRecord] = useState(null);
   const [chargement, setChargement] = useState(false);
 
@@ -38,7 +40,7 @@ export default function Historique({ index, roster, onRetour }) {
             <div className="t-eyebrow">{resume ? fmtDate(resume.date) : "Archive"}</div>
             <h1 className="t-title">Partie close</h1>
           </div>
-          <button className="t-ghost" onClick={() => setId(null)}>
+          <button className="t-ghost" onClick={() => navigate("/historique")}>
             Retour
           </button>
         </div>
@@ -74,7 +76,7 @@ export default function Historique({ index, roster, onRetour }) {
             .map((nom, i) => ({ nom, pts: p.totaux ? p.totaux[i] : 0 }))
             .sort((a, b) => b.pts - a.pts)[0];
           return (
-            <button key={p.id} className="t-archive-row" onClick={() => setId(p.id)}>
+            <button key={p.id} className="t-archive-row" onClick={() => navigate(`/historique/${p.id}`)}>
               <div>
                 <span className="t-archive-date">{fmtDate(p.date)}</span>
                 <span className="t-archive-joueurs">{(p.joueurs || []).join(", ")}</span>
