@@ -1,8 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CONTRATS, calculer, tableDeLaDonne, fmt } from "../regles.js";
-import { CSS } from "../styles.js";
-import Saisie from "./Saisie.jsx";
+import { CONTRATS, calculer, tableDeLaDonne, fmt } from "../utils/regles";
+import type { Donne } from "../utils/regles";
+import type { Annulation } from "../types";
+import { CSS } from "../styles/styles";
+import Saisie from "../components/Saisie";
+
+interface FeuilleProps {
+  joueurs: string[];
+  nbTotal: number;
+  parDonne: number;
+  depart: number;
+  donnes: Donne[];
+  annulations: Annulation[];
+  totaux: number[];
+  jouees: number[];
+  cumuls: number[][];
+  onAjouterDonne: (d: Donne) => void;
+  onEffacerDonne: (i: number) => void;
+  onAjouterAnnulation: (a: Annulation) => void;
+  onNouvellePartie: () => void;
+}
 
 export default function Feuille({
   joueurs,
@@ -18,13 +36,13 @@ export default function Feuille({
   onEffacerDonne,
   onAjouterAnnulation,
   onNouvellePartie,
-}) {
+}: FeuilleProps) {
   const [cumule, setCumule] = useState(true);
-  const [ouverte, setOuverte] = useState(null);
+  const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState(false);
   const [confirmer, setConfirmer] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
-  const [joueurPetitSec, setJoueurPetitSec] = useState(null);
+  const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
   const rotation = nbTotal > parDonne;
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
@@ -124,7 +142,7 @@ export default function Feuille({
                     avantDonne: donnes.length,
                     table: prochaine,
                     donneur: prochaine[0],
-                    joueur: joueurPetitSec,
+                    joueur: joueurPetitSec as number,
                     date: new Date().toISOString(),
                   });
                   setPetitSecOuvert(false);
@@ -184,10 +202,10 @@ export default function Feuille({
                           key={i}
                           className="t-cell"
                           data-repos={joue ? 0 : 1}
-                          data-neg={joue && (cumule ? cumuls[r][i] : res.scores[i]) < 0 ? 1 : 0}
+                          data-neg={joue && (cumule ? cumuls[r][i] : (res.scores[i] as number)) < 0 ? 1 : 0}
                           data-preneur={d.preneur === i ? 1 : 0}
                         >
-                          {cumule ? cumuls[r][i] : joue ? fmt(res.scores[i]) : "·"}
+                          {cumule ? cumuls[r][i] : joue ? fmt(res.scores[i] as number) : "·"}
                         </td>
                       );
                     })}
@@ -208,13 +226,13 @@ export default function Feuille({
           </table>
         </div>
 
-        {detail && (
+        {detail && d0 && (
           <div className="t-detail">
             <div className="t-detail-line">
-              Donne {ouverte + 1} — {joueurs[d0.preneur]} ·{" "}
-              {CONTRATS.find((c) => c.id === d0.contrat).nom} · {d0.bouts} bout
+              Donne {(ouverte as number) + 1} — {joueurs[d0.preneur]} ·{" "}
+              {CONTRATS.find((c) => c.id === d0.contrat)!.nom} · {d0.bouts} bout
               {d0.bouts > 1 ? "s" : ""} · {d0.points} pts
-              {detail.avecAppele ? ` · appelé ${joueurs[d0.appele]}` : ""}
+              {detail.avecAppele ? ` · appelé ${joueurs[d0.appele as number]}` : ""}
             </div>
             <div className="t-detail-line">
               {detail.reussi ? "Contrat réussi de" : "Chute de"} {detail.ecart} pt
@@ -244,7 +262,7 @@ export default function Feuille({
             <button
               className="t-del"
               onClick={() => {
-                onEffacerDonne(ouverte);
+                onEffacerDonne(ouverte as number);
                 setOuverte(null);
               }}
             >

@@ -1,13 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { cleArchive } from "../stockage.js";
-import { CSS } from "../styles.js";
-import ArchiveFeuille from "./ArchiveFeuille.jsx";
+import { cleArchive } from "../lib/stockage";
+import type { Fiche } from "../utils/identite";
+import type { HistoriqueEntree, ArchiveRecord } from "../types";
+import { CSS } from "../styles/styles";
+import ArchiveFeuille from "../components/ArchiveFeuille";
 
-export default function Historique({ index, roster, onRetour }) {
+interface HistoriqueProps {
+  index: HistoriqueEntree[];
+  roster: Fiche[];
+  onRetour: () => void;
+}
+
+export default function Historique({ index, roster, onRetour }: HistoriqueProps) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [record, setRecord] = useState(null);
+  const [record, setRecord] = useState<ArchiveRecord | null>(null);
   const [chargement, setChargement] = useState(false);
 
   useEffect(() => {
@@ -27,7 +35,7 @@ export default function Historique({ index, roster, onRetour }) {
     })();
   }, [id]);
 
-  const fmtDate = (iso) =>
+  const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
   if (id) {
@@ -103,4 +111,3 @@ export default function Historique({ index, roster, onRetour }) {
     </div>
   );
 }
-

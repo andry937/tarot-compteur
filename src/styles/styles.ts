@@ -1,5 +1,5 @@
 /** Styles partagés par tous les écrans de l'application. */
-export const CSS = `
+export const CSS: string = `
 @import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,700&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 .tarot {
