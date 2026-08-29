@@ -13,47 +13,61 @@ fichier remplace le besoin de la relire.
 
 ```bash
 npm install
+npm run dev            # serveur de dev Vite
+npm run typecheck       # tsc -b --noEmit
 npm test              # suite complète (43 tests, doit passer à 100%)
 npm run test:watch
+npm run build           # tsc -b && vite build
 ```
-
-Pas de serveur de dev configuré (le projet n'a jamais tourné hors de
-l'environnement artifacts + de la suite de tests). Si l'objectif devient de
-le faire tourner en vrai dans un navigateur, il manque un point d'entrée
-Vite classique (`index.html` + `main.jsx` qui monte `<App />`) — c'est la
-première chose à ajouter.
 
 ## Architecture
 
+Projet TypeScript (React + Vite). Structure inspirée d'un squelette Vite
+conventionnel, adaptée au contenu réel du projet (pas de dossiers vides
+pour des besoins absents — voir Conventions) :
+
 ```
+public/                    vide pour l'instant (pas de favicon/robots.txt/sitemap)
+
 src/
-  regles.js               règles du tarot + moteur de score — pur, sans React
-  identite.js              registre des joueurs (identités stables, fusion) — pur, sans React
-  stockage.js               clés de persistance centralisées
-  styles.js                 CSS partagé (template string, injecté via <style>{CSS}</style>)
-  App.jsx                   composant racine : état partagé, effets de persistance, routes
-  composants/
-    CompositionTable.jsx     écran de composition de la table (route /)
-    Feuille.jsx               écran de la feuille de score en cours (route /partie)
-    Saisie.jsx               formulaire modal de saisie d'une donne
-    Tirage.jsx                tirage du donneur (aléatoire ou désignation manuelle, route /tirage)
-    Historique.jsx            liste des parties closes + ouverture d'une archive
-    ArchiveFeuille.jsx        feuille en lecture seule d'une partie archivée
-    Configuration.jsx         écran de gestion du trombinoscope
+  vite-env.d.ts             référence des types du client Vite
+  types.ts                  types d'état partagés entre écrans (Partie, TirageEnCours, …)
+  utils/
+    regles.ts               règles du tarot + moteur de score — pur, sans React
+    identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
+  lib/
+    stockage.ts               clés de persistance centralisées (encapsule window.storage)
+    window-storage.d.ts        typage global de l'API window.storage
+  styles/
+    styles.ts                 CSS partagé (template string unique, injecté via <style>{CSS}</style>)
+  router/
+    AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel)
+  pages/                     un écran par route
+    CompositionTable.tsx      composition de la table (route /)
+    Tirage.tsx                 tirage du donneur (route /tirage)
+    Feuille.tsx                 feuille de score en cours (route /partie)
+    Configuration.tsx          gestion du trombinoscope (route /joueurs)
+    Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
+  components/                pièces rendues à l'intérieur d'un écran, jamais routées
+    Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
+    ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
+  App.tsx                     composant racine : état partagé, effets de persistance
+  main.tsx                    monte <App /> dans <BrowserRouter>
 
 tests/
-  setup.js                   faux window.storage en mémoire + jest-dom
-  rules.test.js               unitaires : regles.js + identite.js (33 tests)
-  app.game.test.jsx           intégration : parcours complet d'une partie (5 tests)
-  app.config.test.jsx         intégration : drag&drop + écran Joueurs (5 tests)
+  setup.ts                   faux window.storage en mémoire + jest-dom
+  rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
+  app.game.test.tsx           intégration : parcours complet d'une partie (5 tests)
+  app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
 
-**Règle de dépendance** : `regles.js` et `identite.js` n'importent jamais
-React ni les autres modules — c'est ce qui les rend testables sans monter de
-composant. Un écran importe `CSS` depuis `styles.js` seulement s'il injecte
-lui-même une balise `<style>` (voir « Piège connu » plus bas) ; `Saisie.jsx`
-et `ArchiveFeuille.jsx` n'en ont pas besoin car ils s'affichent toujours à
-l'intérieur d'un écran qui l'a déjà fait.
+**Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
+n'importent jamais React ni les autres modules — c'est ce qui les rend
+testables sans monter de composant. Un écran importe `CSS` depuis
+`styles/styles.ts` seulement s'il injecte lui-même une balise `<style>`
+(voir « Piège connu » plus bas) ; `Saisie.tsx` et `ArchiveFeuille.tsx` n'en
+ont pas besoin car ils s'affichent toujours à l'intérieur d'un écran qui
+l'a déjà fait.
 
 ## Piège connu (déjà corrigé une fois, peut se reproduire)
 
@@ -161,12 +175,21 @@ donnes minimum avant classement, et le traitement des formats mixtes
 
 ## Conventions
 
+- Les noms de dossiers structurels (`pages`, `components`, `utils`, `lib`,
+  `styles`, `router`, `types`) sont du vocabulaire technique anglais
+  standard d'un projet Vite — la règle « tout est en français » ci-dessous
+  porte sur les identifiants métier, les commentaires et le texte affiché,
+  pas sur cette arborescence.
 - Tout est en français : noms de variables, commentaires, texte affiché.
-- CSS-in-JS via template string unique (`styles.js`), pas de fichier
+- TypeScript partout (`.ts`/`.tsx`), `strict` activé. Types partagés entre
+  écrans dans `src/types.ts` ; types propres au moteur de score ou au
+  registre des joueurs co-localisés dans `utils/regles.ts`/`utils/identite.ts`.
+- CSS-in-JS via template string unique (`styles/styles.ts`), pas de fichier
   `.css` séparé — cohérent avec le fonctionnement en artifact d'origine.
 - Pas de librairie de composants ni de state manager : `useState`/`useEffect`
   bruts. La navigation entre écrans passe par `react-router-dom`
-  (`BrowserRouter` monté dans `main.jsx`), une route par écran :
+  (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies
+  dans `router/AppRoutes.tsx` :
   `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`
   (feuille de score), `/joueurs` (configuration du trombinoscope),
   `/historique` et `/historique/:id` (liste et détail d'une archive).
@@ -178,3 +201,4 @@ donnes minimum avant classement, et le traitement des formats mixtes
   (`vercel.json`).
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
   `get()` lève sur une clé absente, c'est le cas normal au premier lancement.
+  Typé dans `lib/window-storage.d.ts`.

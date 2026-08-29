@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { render, screen, within, fireEvent } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import userEvent, { type UserEvent } from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import App from "../src/App.jsx";
+import App from "../src/App";
 
 /** Amène l'app jusqu'à l'écran de composition de la table, prêt à saisir les noms. */
-async function ouvrirSetup() {
+async function ouvrirSetup(): Promise<UserEvent> {
   const utilisateur = userEvent.setup();
   render(
     <MemoryRouter>
@@ -17,7 +17,7 @@ async function ouvrirSetup() {
 }
 
 /** Remplit les 4 sièges vides (le 1er, "Andry", est déjà rempli) avec les noms donnés. */
-async function remplirSieges(utilisateur, noms) {
+async function remplirSieges(utilisateur: UserEvent, noms: string[]) {
   for (let i = 0; i < noms.length; i++) {
     const champ = screen.getByPlaceholderText(`Joueur ${i + 2}`);
     await utilisateur.type(champ, noms[i]);
@@ -25,7 +25,7 @@ async function remplirSieges(utilisateur, noms) {
 }
 
 /** Valide le setup, passe le tirage en désignation manuelle sur le 1er joueur, ouvre la feuille. */
-async function lancerPartieJusquaLaFeuille(utilisateur) {
+async function lancerPartieJusquaLaFeuille(utilisateur: UserEvent) {
   await utilisateur.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
   await screen.findByText(/Désigner à la main/);
   await utilisateur.click(screen.getByText("Désigner à la main"));
@@ -120,13 +120,13 @@ describe("Parcours d'une partie de bout en bout", () => {
     await screen.findByRole("link", { name: /Historique \(1\)/ });
     await u.click(screen.getByRole("link", { name: /Historique \(1\)/ }));
 
-    const ligne = document.querySelector(".t-archive-row");
+    const ligne = document.querySelector(".t-archive-row") as HTMLElement;
     await u.click(ligne);
 
     await screen.findByText("Classement final");
     const lignesClassement = document.querySelectorAll(".t-cl-row");
     expect(lignesClassement).toHaveLength(5);
-    const premiere = within(lignesClassement[0]);
+    const premiere = within(lignesClassement[0] as HTMLElement);
     expect(premiere.getByText("Andry")).toBeInTheDocument();
     expect(premiere.getByText("200")).toBeInTheDocument();
   }, 15000);

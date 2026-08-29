@@ -8,4 +8,4 @@ export const CLE_ROSTER = "tarot:joueurs:v2";
 export const CLE_HISTORIQUE = "tarot:historique";
 
 /** Clé de l'archive complète d'une partie close, par identifiant. */
-export const cleArchive = (id) => `tarot:archive:${id}`;
+export const cleArchive = (id: string): string => `tarot:archive:${id}`;

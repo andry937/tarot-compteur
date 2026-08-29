@@ -1,40 +1,51 @@
 import { useState } from "react";
-import { CONTRATS, SEUILS, POIGNEES, CHELEMS, calculer } from "../regles.js";
+import { CONTRATS, SEUILS, POIGNEES, CHELEMS, calculer } from "../utils/regles";
+import type { Donne, Misere, PetitAuBout } from "../utils/regles";
 
-export default function Saisie({ joueurs, parDonne, tableProposee, total, numero, onFermer, onValider }) {
-  const [table, setTable] = useState(tableProposee);
+interface SaisieProps {
+  joueurs: string[];
+  parDonne: number;
+  tableProposee: number[];
+  total: number;
+  numero: number;
+  onFermer: () => void;
+  onValider: (d: Donne) => void;
+}
+
+export default function Saisie({ joueurs, parDonne, tableProposee, total, numero, onFermer, onValider }: SaisieProps) {
+  const [table, setTable] = useState<number[]>(tableProposee);
   const [donneur, setDonneur] = useState(tableProposee[0]);
   const [preneur, setPreneur] = useState(tableProposee[0]);
-  const [appele, setAppele] = useState(null);
+  const [appele, setAppele] = useState<number | null>(null);
   const [contrat, setContrat] = useState("garde");
-  const [bouts, setBouts] = useState(1);
+  const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(1);
   const [points, setPoints] = useState(51);
-  const [petitAuBout, setPetitAuBout] = useState("aucun");
+  const [petitAuBout, setPetitAuBout] = useState<PetitAuBout>("aucun");
   const [poignee, setPoignee] = useState("aucune");
   const [chelem, setChelem] = useState("aucun");
-  const [miseres, setMiseres] = useState([]);
+  const [miseres, setMiseres] = useState<Misere[]>([]);
 
   const complete = table.length === parDonne && table.includes(preneur);
-  const donne = {
+  const donne: Donne = {
     table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignee, chelem,
     miseres,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
   const res = calculer(donne, joueurs.length);
   const seuil = SEUILS[bouts];
-  const cadrer = (v) => Math.min(91, Math.max(0, Math.round(v * 2) / 2));
+  const cadrer = (v: number) => Math.min(91, Math.max(0, Math.round(v * 2) / 2));
 
   const ajouterMisere = () =>
     setMiseres((m) => [
       ...m,
       { id: `${Date.now()}-${m.length}`, joueur: table[0], type: "atout", aTort: false },
     ]);
-  const majMisere = (idx, patch) =>
+  const majMisere = (idx: number, patch: Partial<Misere>) =>
     setMiseres((m) => m.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
-  const retirerMisere = (idx) => setMiseres((m) => m.filter((_, i) => i !== idx));
+  const retirerMisere = (idx: number) => setMiseres((m) => m.filter((_, i) => i !== idx));
 
   // On conserve l'ordre du tour de table, en partant du donneur.
-  const basculer = (i) => {
+  const basculer = (i: number) => {
     const brut = table.includes(i) ? table.filter((x) => x !== i) : [...table, i];
     const pivot = brut.includes(donneur) ? donneur : (brut[0] ?? 0);
     const suivant = [...brut].sort(
@@ -166,7 +177,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
         <div className="t-field">
           <span className="t-label">Bouts du preneur</span>
           <div className="t-chips">
-            {[0, 1, 2, 3].map((b) => (
+            {([0, 1, 2, 3] as const).map((b) => (
               <button
                 key={b}
                 className="t-chip"
@@ -230,7 +241,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                 key={o.id}
                 className="t-chip"
                 data-on={petitAuBout === o.id ? 1 : 0}
-                onClick={() => setPetitAuBout(o.id)}
+                onClick={() => setPetitAuBout(o.id as PetitAuBout)}
               >
                 {o.nom}
               </button>
@@ -292,10 +303,12 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                 ))}
               </div>
               <div className="t-chips" style={{ marginTop: 7 }}>
-                {[
-                  { id: "atout", nom: "Pas d'atout" },
-                  { id: "tete", nom: "Pas de tête" },
-                ].map((o) => (
+                {(
+                  [
+                    { id: "atout", nom: "Pas d'atout" },
+                    { id: "tete", nom: "Pas de tête" },
+                  ] as const
+                ).map((o) => (
                   <button
                     key={o.id}
                     className="t-chip"
@@ -329,23 +342,23 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
               <div className="t-preview-line">
                 <span>{joueurs[preneur]}</span>
                 <b>
-                  {res.scores[preneur] > 0 ? "+" : ""}
+                  {(res.scores[preneur] as number) > 0 ? "+" : ""}
                   {res.scores[preneur]}
                 </b>
               </div>
               {res.avecAppele && (
                 <div className="t-preview-line">
-                  <span>{joueurs[appele]} (appelé)</span>
+                  <span>{joueurs[appele as number]} (appelé)</span>
                   <b>
-                    {res.scores[appele] > 0 ? "+" : ""}
-                    {res.scores[appele]}
+                    {(res.scores[appele as number] as number) > 0 ? "+" : ""}
+                    {res.scores[appele as number]}
                   </b>
                 </div>
               )}
               <div className="t-preview-line">
                 <span>Chaque défenseur</span>
                 <b>
-                  {res.scores[res.defenseurs[0]] > 0 ? "+" : ""}
+                  {(res.scores[res.defenseurs[0]] as number) > 0 ? "+" : ""}
                   {res.scores[res.defenseurs[0]]}
                 </b>
               </div>
@@ -366,4 +379,3 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
     </div>
   );
 }
-

@@ -1,37 +1,46 @@
 import { useState } from "react";
-import { resoudreNom, ontDejaJoueEnsemble } from "../identite.js";
-import { CSS } from "../styles.js";
+import { resoudreNom, ontDejaJoueEnsemble } from "../utils/identite";
+import type { Fiche } from "../utils/identite";
+import type { HistoriqueEntree } from "../types";
+import { CSS } from "../styles/styles";
 
-export default function Configuration({ roster, historiqueIndex, onFermer, onRoster }) {
-  const [renommage, setRenommage] = useState(null);
+interface ConfigurationProps {
+  roster: Fiche[];
+  historiqueIndex: HistoriqueEntree[];
+  onFermer: () => void;
+  onRoster: (suivant: Fiche[]) => void;
+}
+
+export default function Configuration({ roster, historiqueIndex, onFermer, onRoster }: ConfigurationProps) {
+  const [renommage, setRenommage] = useState<string | null>(null);
   const [texteRenommage, setTexteRenommage] = useState("");
-  const [fusionDepuis, setFusionDepuis] = useState(null);
-  const [erreurFusion, setErreurFusion] = useState(null);
+  const [fusionDepuis, setFusionDepuis] = useState<string | null>(null);
+  const [erreurFusion, setErreurFusion] = useState<string | null>(null);
   const [voirDesactives, setVoirDesactives] = useState(false);
 
-  const comptes = {};
+  const comptes: Record<string, number> = {};
   historiqueIndex.forEach((h) => {
     (h.joueursId || []).forEach((id) => {
       comptes[id] = (comptes[id] || 0) + 1;
     });
   });
 
-  const parNom = (a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" });
+  const parNom = (a: Fiche, b: Fiche) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" });
   const actifs = roster.filter((r) => r.actif).sort(parNom);
   const desactives = roster.filter((r) => !r.actif).sort(parNom);
 
-  const renommer = (id, nomBrut) => {
+  const renommer = (id: string, nomBrut: string) => {
     const nom = nomBrut.trim();
     if (!nom) return;
     onRoster(roster.map((r) => (r.id === id ? { ...r, nom } : r)));
     setRenommage(null);
   };
 
-  const basculerActif = (id) => {
+  const basculerActif = (id: string) => {
     onRoster(roster.map((r) => (r.id === id ? { ...r, actif: !r.actif } : r)));
   };
 
-  const fusionner = (idSource, idCible) => {
+  const fusionner = (idSource: string, idCible: string) => {
     if (ontDejaJoueEnsemble(idSource, idCible, historiqueIndex)) {
       setErreurFusion("Ces deux joueurs ont déjà joué à la même table — fusion refusée.");
       return;
@@ -192,4 +201,3 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
     </div>
   );
 }
-
