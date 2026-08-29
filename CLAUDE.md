@@ -31,10 +31,12 @@ src/
   identite.js              registre des joueurs (identités stables, fusion) — pur, sans React
   stockage.js               clés de persistance centralisées
   styles.js                 CSS partagé (template string, injecté via <style>{CSS}</style>)
-  App.jsx                   composant racine : état, routing entre écrans, effets de persistance
+  App.jsx                   composant racine : état partagé, effets de persistance, routes
   composants/
+    CompositionTable.jsx     écran de composition de la table (route /)
+    Feuille.jsx               écran de la feuille de score en cours (route /partie)
     Saisie.jsx               formulaire modal de saisie d'une donne
-    Tirage.jsx                tirage du donneur (aléatoire ou désignation manuelle)
+    Tirage.jsx                tirage du donneur (aléatoire ou désignation manuelle, route /tirage)
     Historique.jsx            liste des parties closes + ouverture d'une archive
     ArchiveFeuille.jsx        feuille en lecture seule d'une partie archivée
     Configuration.jsx         écran de gestion du trombinoscope
@@ -164,11 +166,15 @@ donnes minimum avant classement, et le traitement des formats mixtes
   `.css` séparé — cohérent avec le fonctionnement en artifact d'origine.
 - Pas de librairie de composants ni de state manager : `useState`/`useEffect`
   bruts. La navigation entre écrans passe par `react-router-dom`
-  (`BrowserRouter` monté dans `main.jsx`) : `/` pour la partie en cours
-  (composition de la table, tirage, feuille — ces étapes séquentielles
-  restent gérées par l'état local, pas par des routes), `/joueurs` pour la
-  configuration du trombinoscope, `/historique` et `/historique/:id` pour
-  la liste et le détail d'une archive. Le déploiement statique (Vercel)
-  nécessite un fallback SPA vers `index.html` (`vercel.json`).
+  (`BrowserRouter` monté dans `main.jsx`), une route par écran :
+  `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`
+  (feuille de score), `/joueurs` (configuration du trombinoscope),
+  `/historique` et `/historique/:id` (liste et détail d'une archive).
+  `/tirage` et `/partie` gardent chacune leur état (`tirage`, `partie`) :
+  si l'état attendu est absent (ex. rechargement direct sans partie
+  persistée), la route redirige vers `/` plutôt que planter — `tirage`
+  n'est d'ailleurs jamais persisté, seule `partie` l'est. Le déploiement
+  statique (Vercel) nécessite un fallback SPA vers `index.html`
+  (`vercel.json`).
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
   `get()` lève sur une clé absente, c'est le cas normal au premier lancement.
