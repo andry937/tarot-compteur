@@ -163,7 +163,12 @@ donnes minimum avant classement, et le traitement des formats mixtes
 - CSS-in-JS via template string unique (`styles.js`), pas de fichier
   `.css` séparé — cohérent avec le fonctionnement en artifact d'origine.
 - Pas de librairie de composants ni de state manager : `useState`/`useEffect`
-  bruts, un seul composant racine qui route entre écrans via des booléens
-  d'état (`vueHistorique`, `vueConfig`, etc.), pas de routeur.
+  bruts. La navigation entre écrans passe par `react-router-dom`
+  (`BrowserRouter` monté dans `main.jsx`) : `/` pour la partie en cours
+  (composition de la table, tirage, feuille — ces étapes séquentielles
+  restent gérées par l'état local, pas par des routes), `/joueurs` pour la
+  configuration du trombinoscope, `/historique` et `/historique/:id` pour
+  la liste et le détail d'une archive. Le déploiement statique (Vercel)
+  nécessite un fallback SPA vers `index.html` (`vercel.json`).
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
   `get()` lève sur une clé absente, c'est le cas normal au premier lancement.
