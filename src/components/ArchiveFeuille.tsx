@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { CONTRATS, calculer, resumerDonnees, fmt } from "../regles.js";
-import { resoudreNom } from "../identite.js";
+import { CONTRATS, calculer, resumerDonnees, fmt } from "../utils/regles";
+import { resoudreNom } from "../utils/identite";
+import type { Fiche } from "../utils/identite";
+import type { ArchiveRecord } from "../types";
 
-export default function ArchiveFeuille({ record, roster }) {
+interface ArchiveFeuilleProps {
+  record: ArchiveRecord & { joueurs?: string[] };
+  roster: Fiche[];
+}
+
+export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) {
   const joueursId = record.joueursId || [];
   const joueurs = joueursId.length
     ? joueursId.map((id, i) => resoudreNom(id, roster || [], (record.joueursNomFige || [])[i]))
@@ -10,7 +17,7 @@ export default function ArchiveFeuille({ record, roster }) {
   const nbTotal = joueurs.length;
   const donnes = record.donnes || [];
   const annulations = record.annulations || [];
-  const [ouverte, setOuverte] = useState(null);
+  const [ouverte, setOuverte] = useState<number | null>(null);
   const [cumule, setCumule] = useState(true);
 
   const { totaux, jouees, cumuls } = resumerDonnees(donnes, nbTotal);
@@ -68,10 +75,10 @@ export default function ArchiveFeuille({ record, roster }) {
                           key={i}
                           className="t-cell"
                           data-repos={joue ? 0 : 1}
-                          data-neg={joue && (cumule ? cumuls[r][i] : res.scores[i]) < 0 ? 1 : 0}
+                          data-neg={joue && (cumule ? cumuls[r][i] : (res.scores[i] as number)) < 0 ? 1 : 0}
                           data-preneur={d.preneur === i ? 1 : 0}
                         >
-                          {cumule ? cumuls[r][i] : joue ? fmt(res.scores[i]) : "·"}
+                          {cumule ? cumuls[r][i] : joue ? fmt(res.scores[i] as number) : "·"}
                         </td>
                       );
                     })}
@@ -82,13 +89,13 @@ export default function ArchiveFeuille({ record, roster }) {
           </table>
         </div>
 
-        {detail && (
+        {detail && d0 && (
           <div className="t-detail">
             <div className="t-detail-line">
-              Donne {ouverte + 1} — {joueurs[d0.preneur]} ·{" "}
-              {CONTRATS.find((c) => c.id === d0.contrat).nom} · {d0.bouts} bout
+              Donne {(ouverte as number) + 1} — {joueurs[d0.preneur]} ·{" "}
+              {CONTRATS.find((c) => c.id === d0.contrat)!.nom} · {d0.bouts} bout
               {d0.bouts > 1 ? "s" : ""} · {d0.points} pts
-              {detail.avecAppele ? ` · appelé ${joueurs[d0.appele]}` : ""}
+              {detail.avecAppele ? ` · appelé ${joueurs[d0.appele as number]}` : ""}
             </div>
             <div className="t-detail-line">
               {detail.reussi ? "Contrat réussi de" : "Chute de"} {detail.ecart} pt
@@ -150,4 +157,3 @@ export default function ArchiveFeuille({ record, roster }) {
     </>
   );
 }
-

@@ -1,18 +1,27 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { normaliser } from "../identite.js";
-import { CSS } from "../styles.js";
+import { normaliser } from "../utils/identite";
+import type { Fiche } from "../utils/identite";
+import type { HistoriqueEntree } from "../types";
+import { CSS } from "../styles/styles";
 
-const nomsParDefaut = (n) => Array.from({ length: n }, (_, i) => (i === 0 ? "Andry" : ""));
+const nomsParDefaut = (n: number): string[] =>
+  Array.from({ length: n }, (_, i) => (i === 0 ? "Andry" : ""));
 
-export default function CompositionTable({ roster, historiqueIndex, onValider }) {
+interface CompositionTableProps {
+  roster: Fiche[];
+  historiqueIndex: HistoriqueEntree[];
+  onValider: (noms: string[], parDonne: number) => void;
+}
+
+export default function CompositionTable({ roster, historiqueIndex, onValider }: CompositionTableProps) {
   const [nbSetup, setNbSetup] = useState(5);
   const [parDonneSetup, setParDonneSetup] = useState(5);
-  const [nomsSetup, setNomsSetup] = useState(nomsParDefaut(5));
-  const [focusIndex, setFocusIndex] = useState(null);
-  const [dragIndex, setDragIndex] = useState(null);
+  const [nomsSetup, setNomsSetup] = useState<string[]>(nomsParDefaut(5));
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
-  const majNb = (delta) => {
+  const majNb = (delta: number) => {
     const n = Math.min(12, Math.max(3, nbSetup + delta));
     setNbSetup(n);
     setNomsSetup((noms) =>
