@@ -20,7 +20,7 @@ export default function App() {
   const [annulations, setAnnulations] = useState<Annulation[]>([]);
 
   useEffect(() => {
-    (async () => {
+    const chargerPartie = async () => {
       try {
         const r = await window.storage.get(CLE_PARTIE);
         const p = JSON.parse(r.value);
@@ -35,22 +35,31 @@ export default function App() {
           setAnnulations(p.annulations || []);
         }
       } catch (e) {
-        /* première ouverture : rien d'enregistré */
+        /* première ouverture, rien d'enregistré, ou stockage indisponible */
       }
+    };
+    const chargerRoster = async () => {
       try {
         const rj = await window.storage.get(CLE_ROSTER);
         setRoster(JSON.parse(rj.value));
       } catch (e) {
-        /* pas encore de trombinoscope */
+        /* pas encore de trombinoscope, ou stockage indisponible */
       }
+    };
+    const chargerHistorique = async () => {
       try {
         const rh = await window.storage.get(CLE_HISTORIQUE);
         setHistoriqueIndex(JSON.parse(rh.value));
       } catch (e) {
-        /* pas encore d'historique */
+        /* pas encore d'historique, ou stockage indisponible */
       }
+    };
+
+    // En parallèle : un stockage lent ou mal configuré ne doit bloquer
+    // l'affichage que d'un délai, pas de trois mis bout à bout.
+    Promise.all([chargerPartie(), chargerRoster(), chargerHistorique()]).finally(() => {
       setPret(true);
-    })();
+    });
   }, []);
 
   useEffect(() => {
