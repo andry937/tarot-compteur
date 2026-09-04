@@ -6,7 +6,7 @@ import { calculerStatsJoueur } from "../utils/stats";
 import type { PartieAnalysee, Role, StatsJoueur } from "../utils/stats";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
-import { fmt } from "../utils/regles";
+import { fmt, NOM_ROI } from "../utils/regles";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
 
 interface FicheJoueurProps {
@@ -19,13 +19,6 @@ const LABEL_ROLE: Record<Role, string> = {
   appele: "Appelé",
   defense: "Défense",
   repos: "Repos",
-};
-
-const NOM_ROI: Record<string, string> = {
-  coeur: "Cœur",
-  carreau: "Carreau",
-  trefle: "Trèfle",
-  pique: "Pique",
 };
 
 const fmtDate = (iso: string) =>
