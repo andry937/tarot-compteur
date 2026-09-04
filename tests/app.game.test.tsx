@@ -57,6 +57,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await lancerPartieJusquaLaFeuille(u);
 
     await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
     // Valeurs par défaut de la saisie : garde, seuil 51, points 51 -> réussi, écart 0, base 50
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
@@ -72,6 +73,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await lancerPartieJusquaLaFeuille(u);
 
     await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
     await u.click(screen.getByText("+ Ajouter une misère"));
 
     // Le joueur par défaut de la nouvelle entrée est le 1er de la table (Andry) ;
@@ -110,6 +112,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await lancerPartieJusquaLaFeuille(u);
 
     await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
     // "Nouvelle" -> confirmation -> clôture
