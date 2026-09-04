@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (63 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (64 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -45,7 +45,8 @@ src/
   utils/
     regles.ts               règles du tarot + moteur de score — pur, sans React
     identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
-    stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans React
+    stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans
+                              React ; expose aussi `trajectoire` (axe personnel dense pour le graphique)
     elo.ts                     classement général Elo, recalculé à la volée depuis les archives — pur, sans React
     statsPartie.ts              statistiques sur les donnes d'une seule partie (roi/joueur appelé,
                                 réussites/chutes, mains appelées) — pur, sans React
@@ -71,6 +72,9 @@ src/
                                 ArchiveFeuille.tsx (archive) — évite de dupliquer le tableau
     StatsPartie.tsx             panneau de stats sur les donnes d'une partie, partagé par les
                                 mêmes deux écrans — distinct de la fiche joueur cumulée
+    GraphiqueComparatif.tsx     vue comparative (Recharts) : tous les joueurs d'une partie
+                                superposés sur l'axe de ses donnes, partagé par les mêmes deux écrans
+    GraphiquePersonnel.tsx      fiche joueur : axe personnel dense (Recharts), dans FicheJoueur.tsx
     Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
   App.tsx                     composant racine : état partagé, effets de persistance
@@ -79,7 +83,7 @@ src/
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
-  stats.test.ts                unitaires : utils/stats.ts (7 tests)
+  stats.test.ts                unitaires : utils/stats.ts (8 tests)
   elo.test.ts                  unitaires : utils/elo.ts (7 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (7 tests)
@@ -214,9 +218,39 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
 lecture seule, suppression d'une partie archivée, classement général Elo,
-statistiques sur les donnes d'une partie, écran de configuration du
-trombinoscope, glisser-déposer pour réordonner les sièges, persistance
-Firestore, refonte visuelle Tailwind (responsive), suite de tests complète.
+statistiques sur les donnes d'une partie, graphiques de progression, écran
+de configuration du trombinoscope, glisser-déposer pour réordonner les
+sièges, persistance Firestore, refonte visuelle Tailwind (responsive),
+suite de tests complète. **Toutes les issues initialement listées sont
+closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
+l'instant.
+
+**Graphiques de progression** (issue #11, `components/GraphiqueComparatif.tsx`
+et `components/GraphiquePersonnel.tsx`, librairie **Recharts** — choix
+explicite de l'utilisateur plutôt que du SVG à la main prévu à l'origine,
+seule exception à la convention « pas de librairie de composants ») : deux
+vues distinctes, comme demandé —
+- **Vue comparative** (`GraphiqueComparatif.tsx`, affichée dans `Feuille.tsx`
+  et `ArchiveFeuille.tsx`, juste après `StatsPartie`) : tous les joueurs
+  d'une partie superposés sur l'axe de ses donnes globales. Les plateaux
+  pour un joueur au repos pendant une rotation ne demandent aucun
+  traitement particulier : la source (`resumerDonnees(donnes, nbTotal).cumuls`,
+  déjà utilisée par `ScoreGrid`) porte déjà le cumul inchangé d'une donne à
+  l'autre quand le joueur ne joue pas, donc la ligne dessine un plateau
+  naturellement.
+- **Fiche joueur** (`GraphiquePersonnel.tsx`, dans `FicheJoueur.tsx`) : axe
+  personnel dense — uniquement les donnes réellement jouées par ce joueur,
+  toutes parties confondues, dans l'ordre chronologique. Nécessite un champ
+  `trajectoire` supplémentaire sur `StatsJoueur` (`utils/stats.ts`),
+  calculé par une passe **séparée** du reste de `calculerStatsJoueur` : les
+  parties y sont triées par date (`new Date(a.date) - new Date(b.date)`)
+  avant d'être parcourues, alors que la boucle principale (qui alimente
+  `stats.parties`, affiché le plus récent en premier) garde volontairement
+  l'ordre reçu en entrée — les deux ordres sont testés explicitement dans
+  `stats.test.ts` pour que cette distinction ne régresse pas silencieusement.
+  `detailPourJoueur(d, idx, nbTotal)` (rôle + points + réussite pour un
+  joueur sur une donne, ou `null` s'il est au repos) factorise ce que les
+  deux passes ont en commun.
 
 **Statistiques sur les donnes d'une partie** (issue #8, `utils/statsPartie.ts`,
 écran `StatsPartie.tsx`, affiché dans `Feuille.tsx` et `ArchiveFeuille.tsx`)
@@ -311,12 +345,6 @@ classique ne s'applique pas directement) —
   de fiches — `calculerClassementElo` résout chaque identifiant de siège
   via `resoudreFiche` avant d'appliquer les deltas).
 
-**Pas encore fait** (issues GitHub ouvertes sur le dépôt) :
-- Graphique de progression en SVG à la main (pas de librairie de charts
-  disponible dans l'environnement d'origine) : vue comparative sur l'axe
-  des donnes globales (plateaux visibles pour les joueurs au repos, assumé)
-  + fiche joueur sur son axe personnel dense
-
 ## Conventions
 
 - Les noms de dossiers structurels (`pages`, `components`, `utils`, `lib`,
@@ -348,7 +376,14 @@ classique ne s'applique pas directement) —
   ou un `<div>` englobant pour la mise en page (ex. `flex-1`) plutôt qu'un
   override en conflit.
 - Pas de librairie de composants ni de state manager : `useState`/`useEffect`
-  bruts. La navigation entre écrans passe par `react-router-dom`
+  bruts. Exception délibérée : **Recharts** pour les graphiques de
+  progression (issue #11, choix explicite de l'utilisateur plutôt que du
+  SVG dessiné à la main) — `GraphiqueComparatif.tsx`/`GraphiquePersonnel.tsx`
+  restylent ses composants (`stroke`/`contentStyle`/…) pour coller au thème
+  sombre plutôt que d'utiliser un thème Recharts par défaut. Fonctionne
+  sans polyfill sous jsdom (les tests d'intégration qui montent `Feuille`
+  passent tel quel, `ResponsiveContainer` ne plante pas).
+  La navigation entre écrans passe par `react-router-dom`
   (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies
   dans `router/AppRoutes.tsx` :
   `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`

@@ -8,6 +8,7 @@ import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
 import { fmt, NOM_ROI } from "../utils/regles";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
+import GraphiquePersonnel from "../components/GraphiquePersonnel";
 
 interface FicheJoueurProps {
   roster: Fiche[];
@@ -116,6 +117,8 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
           <Section title="Points totaux">
             <RankRow nom={`Cumul sur ${stats.donneesJouees} donnes`} valeur={fmt(stats.pointsTotaux)} negatif={stats.pointsTotaux < 0} />
           </Section>
+
+          <GraphiquePersonnel trajectoire={stats.trajectoire} />
 
           <Section title="Par rôle">
             {(["preneur", "appele", "defense"] as Role[]).map((role) => {
