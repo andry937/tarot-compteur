@@ -1,10 +1,14 @@
 # Feuille de marque — Tarot à la française
 
 Application React de comptage de points pour le tarot à la française, jouée
-en soirée avec rotation des joueurs. Pas de backend : persistance via
-`window.storage` (API clé-valeur async fournie par l'environnement Claude
-artifacts — `get`/`set`/`delete`/`list`, `get` lève une erreur sur une clé
-absente plutôt que de renvoyer `null`).
+en soirée avec rotation des joueurs. Pas de backend applicatif : persistance
+via Firestore (Firebase), exposée au reste du code à travers l'interface
+clé-valeur asynchrone `window.storage` (`get`/`set`/`delete`/`list`, `get`
+lève une erreur sur une clé absente plutôt que de renvoyer `null`) —
+c'était l'API native de l'environnement Claude artifacts d'origine ;
+`lib/firestoreStorage.ts` la réimplémente par-dessus Firestore et la branche
+sur `window.storage` au démarrage (`main.tsx`), donc `App.tsx`,
+`Historique.tsx`, etc. n'ont pas changé.
 
 Toute la conversation qui a produit ce projet est résumée ci-dessous ; ce
 fichier remplace le besoin de la relire.
@@ -12,10 +16,11 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 ```bash
+cp .env.example .env    # renseigner la config Firebase (voir Persistance/Firebase)
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (43 tests, doit passer à 100%)
+npm test              # suite complète (43 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -38,6 +43,8 @@ src/
   lib/
     stockage.ts               clés de persistance centralisées (encapsule window.storage)
     window-storage.d.ts        typage global de l'API window.storage
+    firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*)
+    firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage
   styles/
     styles.ts                 CSS partagé (template string unique, injecté via <style>{CSS}</style>)
   router/
@@ -92,6 +99,43 @@ qui se résout par accident vers un global du navigateur/jsdom). Un script
 de vérification croisée (usage vs import, par symbole exporté connu) a été
 utilisé pour ce diagnostic ; le refaire après tout nouveau découpage de
 fichier est plus fiable qu'une relecture manuelle.
+
+## Persistance (Firebase)
+
+Firestore stocke chaque clé `window.storage` comme un document de la
+collection `tarotStorage` (l'ID de document = la clé, ex.
+`tarot:partie:v4`), avec la valeur JSON dans un champ `value`. Mise en
+place unique (console Firebase, ne peut pas être automatisée depuis ce
+dépôt) :
+
+1. Créer un projet sur https://console.firebase.google.com (offre
+   gratuite « Spark »).
+2. Build > Firestore Database > Créer une base (mode production, choisir
+   une région).
+3. Paramètres du projet > Vos applications > ajouter une app Web (icône
+   `</>`) pour obtenir l'objet de config (`apiKey`, `authDomain`,
+   `projectId`, …) — ces valeurs ne sont pas secrètes, mais vont dans
+   `.env` (jamais commité) pour changer de projet entre le poste de dev
+   et Vercel sans toucher au code. Voir `.env.example`.
+4. Règles Firestore (Firestore Database > Règles) — l'app n'a pas de
+   compte utilisateur, donc pas d'auth possible côté règles ; à défaut,
+   limiter l'accès à la seule collection utilisée :
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /tarotStorage/{document} {
+         allow read, write: if true;
+       }
+     }
+   }
+   ```
+   Ces règles restent ouvertes en lecture/écriture (pas d'authentification
+   dans l'app) : acceptable pour un outil de comptage entre amis sans
+   donnée sensible, mais à savoir — n'importe qui connaissant la config du
+   projet peut lire/écrire cette collection.
+5. Sur Vercel : Project Settings > Environment Variables, renseigner les
+   mêmes `VITE_FIREBASE_*` que dans `.env.example`.
 
 ## Modèle de données
 
@@ -200,5 +244,7 @@ donnes minimum avant classement, et le traitement des formats mixtes
   statique (Vercel) nécessite un fallback SPA vers `index.html`
   (`vercel.json`).
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
-  `get()` lève sur une clé absente, c'est le cas normal au premier lancement.
-  Typé dans `lib/window-storage.d.ts`.
+  `get()` lève sur une clé absente, c'est le cas normal au premier lancement
+  (et Firestore peut aussi lever sur une erreur réseau). Typé dans
+  `lib/window-storage.d.ts`, implémenté par `lib/firestoreStorage.ts`,
+  branché dans `main.tsx` avant le premier rendu.
