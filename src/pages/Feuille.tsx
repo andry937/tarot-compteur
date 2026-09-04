@@ -19,6 +19,7 @@ interface FeuilleProps {
   jouees: number[];
   cumuls: number[][];
   onAjouterDonne: (d: Donne) => void;
+  onModifierDonne: (i: number, d: Donne) => void;
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
   onNouvellePartie: () => void;
@@ -35,6 +36,7 @@ export default function Feuille({
   totaux,
   jouees,
   onAjouterDonne,
+  onModifierDonne,
   onEffacerDonne,
   onAjouterAnnulation,
   onNouvellePartie,
@@ -42,7 +44,7 @@ export default function Feuille({
 }: FeuilleProps) {
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
-  const [saisie, setSaisie] = useState(false);
+  const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
   const [confirmer, setConfirmer] = useState(false);
   const [confirmerQuitter, setConfirmerQuitter] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
@@ -174,16 +176,25 @@ export default function Feuille({
           </div>
         }
         detailExtra={
-          <button
-            type="button"
-            className="mt-2.5 rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
-            onClick={() => {
-              onEffacerDonne(ouverte as number);
-              setOuverte(null);
-            }}
-          >
-            Effacer cette donne
-          </button>
+          <div className="mt-2.5 flex gap-2">
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+              onClick={() => setSaisie({ index: ouverte })}
+            >
+              Modifier cette donne
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
+              onClick={() => {
+                onEffacerDonne(ouverte as number);
+                setOuverte(null);
+              }}
+            >
+              Effacer cette donne
+            </button>
+          </div>
         }
       />
 
@@ -239,20 +250,25 @@ export default function Feuille({
       </details>
 
       <Bar>
-        <Cta onClick={() => setSaisie(true)}>Noter la donne {donnes.length + 1}</Cta>
+        <Cta onClick={() => setSaisie({ index: null })}>Noter la donne {donnes.length + 1}</Cta>
       </Bar>
 
       {saisie && (
         <Saisie
           joueurs={joueurs}
           parDonne={parDonne}
-          tableProposee={prochaine}
+          tableProposee={saisie.index !== null ? donnes[saisie.index].table : prochaine}
           total={nbTotal}
-          numero={donnes.length + 1}
-          onFermer={() => setSaisie(false)}
+          numero={saisie.index !== null ? saisie.index + 1 : donnes.length + 1}
+          donneInitiale={saisie.index !== null ? donnes[saisie.index] : undefined}
+          onFermer={() => setSaisie(null)}
           onValider={(d) => {
-            onAjouterDonne(d);
-            setSaisie(false);
+            if (saisie.index !== null) {
+              onModifierDonne(saisie.index, d);
+            } else {
+              onAjouterDonne(d);
+            }
+            setSaisie(null);
           }}
         />
       )}

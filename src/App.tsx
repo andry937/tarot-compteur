@@ -194,6 +194,7 @@ export default function App() {
         navigate("/");
       }}
       onAjouterDonne={(d) => setDonnes((ds) => [...ds, d])}
+      onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
       onAjouterAnnulation={(a) => setAnnulations((arr) => [...arr, a])}
       onNouvellePartie={nouvellePartie}

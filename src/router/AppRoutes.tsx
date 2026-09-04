@@ -29,6 +29,7 @@ export interface AppRoutesProps {
   onValiderTirage: (depart: number) => void;
   onRetourTirage: () => void;
   onAjouterDonne: (d: Donne) => void;
+  onModifierDonne: (i: number, d: Donne) => void;
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
   onNouvellePartie: () => void;
@@ -55,6 +56,7 @@ export default function AppRoutes({
   onValiderTirage,
   onRetourTirage,
   onAjouterDonne,
+  onModifierDonne,
   onEffacerDonne,
   onAjouterAnnulation,
   onNouvellePartie,
@@ -129,6 +131,7 @@ export default function AppRoutes({
               jouees={jouees}
               cumuls={cumuls}
               onAjouterDonne={onAjouterDonne}
+              onModifierDonne={onModifierDonne}
               onEffacerDonne={onEffacerDonne}
               onAjouterAnnulation={onAjouterAnnulation}
               onNouvellePartie={onNouvellePartie}
