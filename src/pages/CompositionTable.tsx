@@ -48,6 +48,9 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
           <Link className="t-ghost" to="/historique">
             Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
           </Link>
+          <Link className="t-ghost" to="/classement">
+            Classement
+          </Link>
         </div>
       </div>
       <div className="t-setup">

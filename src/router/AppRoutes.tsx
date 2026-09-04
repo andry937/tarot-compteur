@@ -8,6 +8,7 @@ import Configuration from "../pages/Configuration";
 import CompositionTable from "../pages/CompositionTable";
 import Feuille from "../pages/Feuille";
 import FicheJoueur from "../pages/FicheJoueur";
+import Classement from "../pages/Classement";
 
 export interface AppRoutesProps {
   partie: Partie | null;
@@ -76,6 +77,10 @@ export default function AppRoutes({
       <Route
         path="/joueurs/:id"
         element={<FicheJoueur roster={roster} historiqueIndex={historiqueIndex} />}
+      />
+      <Route
+        path="/classement"
+        element={<Classement roster={roster} historiqueIndex={historiqueIndex} />}
       />
       <Route
         path="/historique"
