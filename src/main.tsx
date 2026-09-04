@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { creerStorageFirestore } from "./lib/firestoreStorage";
+import "./index.css";
 
 window.storage = creerStorageFirestore();
 
