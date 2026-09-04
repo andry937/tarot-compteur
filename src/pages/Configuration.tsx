@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree } from "../types";
@@ -140,6 +141,9 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
                   </small>
                 </div>
                 <div className="t-roster-actions">
+                  <Link className="t-lien" style={{ margin: 0 }} to={`/joueurs/${f.id}`}>
+                    Stats
+                  </Link>
                   <button
                     className="t-lien"
                     style={{ margin: 0 }}
