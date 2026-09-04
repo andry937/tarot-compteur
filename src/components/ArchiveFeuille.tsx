@@ -6,6 +6,7 @@ import type { ArchiveRecord } from "../types";
 import { Section, RankRow } from "./ui";
 import ScoreGrid from "./ScoreGrid";
 import StatsPartie from "./StatsPartie";
+import GraphiqueComparatif from "./GraphiqueComparatif";
 
 interface ArchiveFeuilleProps {
   record: ArchiveRecord & { joueurs?: string[] };
@@ -41,6 +42,7 @@ export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) 
       />
 
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
+      <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
       <Section title="Classement final">
         {classement.map((c, r) => (
