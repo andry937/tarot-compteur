@@ -99,6 +99,19 @@ export default function App() {
     return ids;
   };
 
+  /** Vide l'état de la partie en cours et sa persistance, sans archivage. */
+  const reinitialiserPartie = async () => {
+    try {
+      await window.storage.delete(CLE_PARTIE);
+    } catch (e) {
+      /* rien à supprimer */
+    }
+    setPartie(null);
+    setDonnes([]);
+    setAnnulations([]);
+    navigate("/");
+  };
+
   const nouvellePartie = async () => {
     if (donnes.length > 0 && partie) {
       const id = `${Date.now()}`;
@@ -123,15 +136,22 @@ export default function App() {
         console.error("Archivage impossible", e);
       }
     }
+    await reinitialiserPartie();
+  };
+
+  /** Quitte la partie en cours sans l'archiver dans l'historique. */
+  const quitterPartie = () => reinitialiserPartie();
+
+  const supprimerPartie = async (id: string) => {
     try {
-      await window.storage.delete(CLE_PARTIE);
+      await window.storage.delete(cleArchive(id));
+      const suivant = historiqueIndex.filter((h) => h.id !== id);
+      await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
+      setHistoriqueIndex(suivant);
     } catch (e) {
-      /* rien à supprimer */
+      console.error("Suppression de l'archive impossible", e);
     }
-    setPartie(null);
-    setDonnes([]);
-    setAnnulations([]);
-    navigate("/");
+    navigate("/historique");
   };
 
   if (!pret)
@@ -183,6 +203,8 @@ export default function App() {
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
       onAjouterAnnulation={(a) => setAnnulations((arr) => [...arr, a])}
       onNouvellePartie={nouvellePartie}
+      onQuitterPartie={quitterPartie}
+      onSupprimerPartie={supprimerPartie}
     />
   );
 }
