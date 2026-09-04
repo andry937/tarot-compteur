@@ -4,6 +4,7 @@ import type { Donne } from "../utils/regles";
 import type { Annulation } from "../types";
 import Saisie from "../components/Saisie";
 import ScoreGrid from "../components/ScoreGrid";
+import StatsPartie from "../components/StatsPartie";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
 interface FeuilleProps {
@@ -184,6 +185,8 @@ export default function Feuille({
           </button>
         }
       />
+
+      <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
       {rotation && donnes.length > 0 && (
         <Section title="Classement">

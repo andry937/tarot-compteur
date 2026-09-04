@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (60 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (63 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -47,6 +47,8 @@ src/
     identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
     stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans React
     elo.ts                     classement général Elo, recalculé à la volée depuis les archives — pur, sans React
+    statsPartie.ts              statistiques sur les donnes d'une seule partie (roi/joueur appelé,
+                                réussites/chutes, mains appelées) — pur, sans React
   lib/
     stockage.ts               clés de persistance centralisées (encapsule window.storage)
     window-storage.d.ts        typage global de l'API window.storage
@@ -67,6 +69,8 @@ src/
                                 Chip, Cta, Field, Label, Section, RankRow, ArchiveRow, Lien, …)
     ScoreGrid.tsx               grille de score partagée par Feuille.tsx (partie en cours) et
                                 ArchiveFeuille.tsx (archive) — évite de dupliquer le tableau
+    StatsPartie.tsx             panneau de stats sur les donnes d'une partie, partagé par les
+                                mêmes deux écrans — distinct de la fiche joueur cumulée
     Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
   App.tsx                     composant racine : état partagé, effets de persistance
@@ -77,6 +81,7 @@ tests/
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
   stats.test.ts                unitaires : utils/stats.ts (7 tests)
   elo.test.ts                  unitaires : utils/elo.ts (7 tests)
+  statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (7 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
@@ -209,9 +214,25 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
 lecture seule, suppression d'une partie archivée, classement général Elo,
-écran de configuration du trombinoscope, glisser-déposer pour réordonner
-les sièges, persistance Firestore, refonte visuelle Tailwind (responsive),
-suite de tests complète.
+statistiques sur les donnes d'une partie, écran de configuration du
+trombinoscope, glisser-déposer pour réordonner les sièges, persistance
+Firestore, refonte visuelle Tailwind (responsive), suite de tests complète.
+
+**Statistiques sur les donnes d'une partie** (issue #8, `utils/statsPartie.ts`,
+écran `StatsPartie.tsx`, affiché dans `Feuille.tsx` et `ArchiveFeuille.tsx`)
+: distinct de la fiche joueur cumulée (`stats.ts`/`FicheJoueur.tsx`, qui
+résout les fusions et agrège sur tout l'historique) — ici on travaille sur
+la seule liste `donnes` d'**une** partie, avec les noms de sièges de cette
+partie, sans identité ni historique à résoudre. Affiche : contrats
+réussis/chutés, mains avec appelé vs. preneur seul (uniquement comptées
+pour les donnes jouées à 5 — `res.table.length === 5`, comme dans
+`calculer()`), fréquence par roi appelé et par joueur appelé. Les deux
+questions ouvertes de l'issue étaient déjà tranchées par des décisions
+antérieures : le modèle `Donne` a déjà `roiAppele` précis (issue #9), et le
+calcul est à la volée depuis `donnes`, sans agrégat stocké (même
+philosophie que `stats.ts`/`elo.ts`). `NOM_ROI` (libellés des couleurs)
+centralisé dans `utils/regles.ts`, réutilisé par `Saisie.tsx`,
+`FicheJoueur.tsx` et `StatsPartie.tsx` plutôt que dupliqué trois fois.
 
 **Refonte visuelle Tailwind** : remplacement complet de l'ancien CSS-in-JS
 (un unique gros template string, non responsive — la grille de score
@@ -291,9 +312,6 @@ classique ne s'applique pas directement) —
   via `resoudreFiche` avant d'appliquer les deltas).
 
 **Pas encore fait** (issues GitHub ouvertes sur le dépôt) :
-- Statistiques sur les donnes d'une partie en cours (roi appelé, taux de
-  victoire/défaite, mains appelées) — panneau dans `Feuille.tsx`/`ArchiveFeuille.tsx`,
-  distinct de la fiche joueur cumulée
 - Graphique de progression en SVG à la main (pas de librairie de charts
   disponible dans l'environnement d'origine) : vue comparative sur l'axe
   des donnes globales (plateaux visibles pour les joueurs au repos, assumé)

@@ -5,6 +5,7 @@ import type { Fiche } from "../utils/identite";
 import type { ArchiveRecord } from "../types";
 import { Section, RankRow } from "./ui";
 import ScoreGrid from "./ScoreGrid";
+import StatsPartie from "./StatsPartie";
 
 interface ArchiveFeuilleProps {
   record: ArchiveRecord & { joueurs?: string[] };
@@ -38,6 +39,8 @@ export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) 
         ouverte={ouverte}
         onOuvrir={setOuverte}
       />
+
+      <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
       <Section title="Classement final">
         {classement.map((c, r) => (

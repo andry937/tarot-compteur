@@ -25,6 +25,13 @@ export type PetitAuBout = "aucun" | "attaque" | "defense";
 
 export type Roi = "coeur" | "carreau" | "trefle" | "pique";
 
+export const NOM_ROI: Record<Roi, string> = {
+  coeur: "Cœur",
+  carreau: "Carreau",
+  trefle: "Trèfle",
+  pique: "Pique",
+};
+
 export interface Misere {
   id: string;
   joueur: number;
