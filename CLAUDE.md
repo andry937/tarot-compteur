@@ -41,6 +41,7 @@ src/
     regles.ts               règles du tarot + moteur de score — pur, sans React
     identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
     stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans React
+    elo.ts                     classement général Elo, recalculé à la volée depuis les archives — pur, sans React
   lib/
     stockage.ts               clés de persistance centralisées (encapsule window.storage)
     window-storage.d.ts        typage global de l'API window.storage
@@ -57,6 +58,7 @@ src/
     Configuration.tsx          gestion du trombinoscope (route /joueurs)
     Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
     FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
+    Classement.tsx              classement général Elo (route /classement)
   components/                pièces rendues à l'intérieur d'un écran, jamais routées
     Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
@@ -67,6 +69,7 @@ tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
   stats.test.ts                unitaires : utils/stats.ts (7 tests)
+  elo.test.ts                  unitaires : utils/elo.ts (7 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (5 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
@@ -200,9 +203,9 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 **Fait** : registre à identités stables avec fusion, saisie complète d'une
 donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
-lecture seule, suppression d'une partie archivée, écran de configuration du
-trombinoscope, glisser-déposer pour réordonner les sièges, persistance
-Firestore, suite de tests complète.
+lecture seule, suppression d'une partie archivée, classement général Elo,
+écran de configuration du trombinoscope, glisser-déposer pour réordonner
+les sièges, persistance Firestore, suite de tests complète.
 
 **Suppression d'une partie archivée** (issue #7) : bouton « Supprimer »
 dans l'écran détail d'archive (`Historique.tsx`), pattern de confirmation
@@ -239,13 +242,31 @@ Affiche : points totaux, décomposition par rôle (nb + taux de victoire),
 contrats de prédilection, rois appelés, nombre de fois appelé,
 meilleure/pire donne, liste des parties avec renvoi vers l'archive.
 
+**Classement général Elo** (issue #10, `utils/elo.ts`, écran `Classement.tsx`,
+route `/classement`, lien depuis `CompositionTable.tsx`) : décisions prises
+en discussion avant développement (le tarot n'étant pas un jeu 1v1, l'Elo
+classique ne s'applique pas directement) —
+- un match par **donne** archivée, pas par partie complète (plus de
+  données, cohérent avec le calcul par-donne déjà fait dans `stats.ts`) ;
+- un seul Elo **global** par joueur, pas de distinction par rôle ;
+- match = attaque (preneur + appelé le cas échéant) contre défense,
+  résultat binaire (`res.reussi`, pas de pondération par marge de points) ;
+- plusieurs contre un (ex. 3 défenseurs contre 1 preneur) : espérance de
+  gain calculée sur la **moyenne** des Elo de chaque camp (formule Elo
+  standard), puis le même delta est appliqué à chaque membre du camp, sans
+  le diviser entre les membres ;
+- 1500 de départ, K-facteur 24 (valeurs Elo conventionnelles) ; pas de
+  traitement spécial pour les joueurs à faible historique ;
+- recalcul complet à chaque affichage en rejouant toutes les donnes
+  archivées par ordre chronologique (même philosophie que `stats.ts` : pas
+  d'agrégat stocké, donc pas de désynchronisation possible après une fusion
+  de fiches — `calculerClassementElo` résout chaque identifiant de siège
+  via `resoudreFiche` avant d'appliquer les deltas).
+
 **Pas encore fait** (issues GitHub ouvertes sur le dépôt) :
 - Statistiques sur les donnes d'une partie en cours (roi appelé, taux de
   victoire/défaite, mains appelées) — panneau dans `Feuille.tsx`/`ArchiveFeuille.tsx`,
   distinct de la fiche joueur cumulée
-- Classement général : système de classement Elo (remplace l'idée initiale
-  de classement par moyenne par donne jouée — le tarot n'étant pas un jeu
-  1v1, la modélisation du « match » Elo reste à trancher)
 - Graphique de progression en SVG à la main (pas de librairie de charts
   disponible dans l'environnement d'origine) : vue comparative sur l'axe
   des donnes globales (plateaux visibles pour les joueurs au repos, assumé)
@@ -271,7 +292,8 @@ meilleure/pire donne, liste des parties avec renvoi vers l'archive.
   `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`
   (feuille de score), `/joueurs` (configuration du trombinoscope),
   `/joueurs/:id` (fiche statistique d'un joueur), `/historique` et
-  `/historique/:id` (liste et détail d'une archive).
+  `/historique/:id` (liste et détail d'une archive), `/classement`
+  (classement général Elo).
   `/tirage` et `/partie` gardent chacune leur état (`tirage`, `partie`) :
   si l'état attendu est absent (ex. rechargement direct sans partie
   persistée), la route redirige vers `/` plutôt que planter — `tirage`
