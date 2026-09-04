@@ -177,9 +177,13 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
   (200/400/−200)
 - À 5 joueurs avec appelé : preneur = 2 parts, appelé = 1 part, défense = le
   reste. Le roi précis appelé (Cœur/Carreau/Trèfle/Pique) est enregistré
-  optionnellement (`roiAppele` sur la donne, saisi dans `Saisie.tsx`) pour
-  les statistiques par roi appelé — absent sur les donnes déjà archivées
-  avant son introduction.
+  (`roiAppele` sur la donne, saisi dans `Saisie.tsx`) pour les statistiques
+  par roi appelé — absent sur les donnes déjà archivées avant son
+  introduction. Obligatoire à 5 joueurs, y compris quand le preneur s'appelle
+  lui-même (joue seul) : en tarot le roi est annoncé aux enchères avant de
+  savoir qui le détient, donc le sélecteur « Roi appelé » est affiché et saisi
+  *avant* le sélecteur « Chez qui ? », et bloque « Inscrire la donne » tant
+  qu'il n'est pas choisi.
 - **Petit sec** (le seul atout d'un joueur est Le Petit, sans l'Excuse) :
   annoncé *avant* les enchères, annule la donne et la redonne (même
   donneur), aucun effet sur le score. Panneau dédié dans l'écran de la

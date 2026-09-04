@@ -33,7 +33,9 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
   const [chelem, setChelem] = useState("aucun");
   const [miseres, setMiseres] = useState<Misere[]>([]);
 
-  const complete = table.length === parDonne && table.includes(preneur);
+  const roiRequis = table.length === 5;
+  const complete =
+    table.length === parDonne && table.includes(preneur) && (!roiRequis || roiAppele !== null);
   const donne: Donne = {
     table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignee, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
@@ -62,10 +64,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
     setTable(suivant);
     if (!suivant.includes(donneur)) setDonneur(suivant[0] ?? 0);
     if (!suivant.includes(preneur)) setPreneur(suivant[0] ?? 0);
-    if (appele !== null && !suivant.includes(appele)) {
-      setAppele(null);
-      setRoiAppele(null);
-    }
+    if (appele !== null && !suivant.includes(appele)) setAppele(null);
   };
 
   return (
@@ -131,10 +130,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                 data-on={preneur === i ? 1 : 0}
                 onClick={() => {
                   setPreneur(i);
-                  if (appele === i) {
-                    setAppele(null);
-                    setRoiAppele(null);
-                  }
+                  if (appele === i) setAppele(null);
                 }}
               >
                 {joueurs[i]}
@@ -145,15 +141,30 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
 
         {table.length === 5 && (
           <div className="t-field">
-            <span className="t-label">Roi appelé chez</span>
+            <span className="t-label">Roi appelé</span>
+            <div className="t-chips">
+              {ROIS.map((r) => (
+                <button
+                  key={r.id}
+                  className="t-chip"
+                  data-on={roiAppele === r.id ? 1 : 0}
+                  onClick={() => setRoiAppele(r.id)}
+                >
+                  {r.nom}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {table.length === 5 && (
+          <div className="t-field">
+            <span className="t-label">Chez qui ?</span>
             <div className="t-chips">
               <button
                 className="t-chip"
                 data-on={appele === null ? 1 : 0}
-                onClick={() => {
-                  setAppele(null);
-                  setRoiAppele(null);
-                }}
+                onClick={() => setAppele(null)}
               >
                 Lui-même
                 <small>joue seul</small>
@@ -170,24 +181,6 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                     {joueurs[i]}
                   </button>
                 ))}
-            </div>
-          </div>
-        )}
-
-        {table.length === 5 && appele !== null && (
-          <div className="t-field">
-            <span className="t-label">Quel roi ?</span>
-            <div className="t-chips">
-              {ROIS.map((r) => (
-                <button
-                  key={r.id}
-                  className="t-chip"
-                  data-on={roiAppele === r.id ? 1 : 0}
-                  onClick={() => setRoiAppele(r.id)}
-                >
-                  {r.nom}
-                </button>
-              ))}
             </div>
           </div>
         )}
