@@ -54,6 +54,14 @@ export interface PartieResume {
   nbDonnes: number;
 }
 
+/** Un point de la trajectoire personnelle du joueur : axe dense (uniquement
+ * les donnes qu'il a réellement jouées, toutes parties confondues, dans
+ * l'ordre chronologique), cumul de points après cette donne. */
+export interface PointTrajectoire {
+  index: number;
+  cumul: number;
+}
+
 export interface StatsJoueur {
   partiesJouees: number;
   donneesJouees: number;
@@ -65,12 +73,29 @@ export interface StatsJoueur {
   meilleureDonne: DonneReference | null;
   pireDonne: DonneReference | null;
   parties: PartieResume[];
+  trajectoire: PointTrajectoire[];
 }
 
 const roleVide = (): StatsRole => ({ donnes: 0, victoires: 0 });
 
 const trierParFrequence = <K extends string>(compte: Map<K, number>) =>
   [...compte.entries()].sort((a, b) => b[1] - a[1]);
+
+interface DetailJoueur {
+  role: Role;
+  points: number;
+  reussi: boolean;
+}
+
+/** Détail d'une donne pour un joueur donné (par index de siège), ou `null`
+ * s'il était au repos — centralise le calcul réutilisé par l'agrégation
+ * principale et par la trajectoire chronologique. */
+function detailPourJoueur(d: Donne, idx: number, nbTotal: number): DetailJoueur | null {
+  const resultat = calculer(d, nbTotal);
+  const role = roleDe(d, resultat, idx);
+  if (role === "repos") return null;
+  return { role, points: resultat.scores[idx] as number, reussi: resultat.reussi };
+}
 
 /**
  * Calcule les statistiques cumulées d'un joueur (par son identifiant)
@@ -103,17 +128,16 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
     let pointsCettePartie = 0;
 
     partie.donnes.forEach((d, indexDonne) => {
-      const resultat = calculer(d, nbTotal);
-      const role = roleDe(d, resultat, idx);
-      if (role === "repos") return;
+      const detail = detailPourJoueur(d, idx, nbTotal);
+      if (!detail) return;
+      const { role, points, reussi } = detail;
 
       joueDansCettePartie = true;
       donneesJouees += 1;
-      const points = resultat.scores[idx] as number;
       pointsTotaux += points;
       pointsCettePartie += points;
 
-      const victoire = role === "defense" ? !resultat.reussi : resultat.reussi;
+      const victoire = role === "defense" ? !reussi : reussi;
       parRole[role].donnes += 1;
       if (victoire) parRole[role].victoires += 1;
 
@@ -139,6 +163,25 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
     }
   });
 
+  // Trajectoire : passe séparée, triée chronologiquement (contrairement à
+  // `partiesResume` ci-dessus qui garde l'ordre reçu en entrée).
+  const partiesTriees = [...parties].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+  const trajectoire: PointTrajectoire[] = [];
+  let cumul = 0;
+  partiesTriees.forEach((partie) => {
+    const idx = partie.joueursId.indexOf(joueurId);
+    if (idx === -1) return;
+    const nbTotal = partie.joueursId.length;
+    partie.donnes.forEach((d) => {
+      const detail = detailPourJoueur(d, idx, nbTotal);
+      if (!detail) return;
+      cumul += detail.points;
+      trajectoire.push({ index: trajectoire.length + 1, cumul });
+    });
+  });
+
   return {
     partiesJouees,
     donneesJouees,
@@ -150,5 +193,6 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
     meilleureDonne,
     pireDonne,
     parties: partiesResume,
+    trajectoire,
   };
 }
