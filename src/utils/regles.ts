@@ -23,6 +23,8 @@ export interface Chelem {
 
 export type PetitAuBout = "aucun" | "attaque" | "defense";
 
+export type Roi = "coeur" | "carreau" | "trefle" | "pique";
+
 export interface Misere {
   id: string;
   joueur: number;
@@ -42,6 +44,7 @@ export interface Donne {
   poignee: string;
   chelem: string;
   miseres: Misere[];
+  roiAppele?: Roi;
 }
 
 export interface ResultatDonne {

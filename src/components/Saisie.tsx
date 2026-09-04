@@ -1,6 +1,13 @@
 import { useState } from "react";
 import { CONTRATS, SEUILS, POIGNEES, CHELEMS, calculer } from "../utils/regles";
-import type { Donne, Misere, PetitAuBout } from "../utils/regles";
+import type { Donne, Misere, PetitAuBout, Roi } from "../utils/regles";
+
+const ROIS: { id: Roi; nom: string }[] = [
+  { id: "coeur", nom: "Cœur" },
+  { id: "carreau", nom: "Carreau" },
+  { id: "trefle", nom: "Trèfle" },
+  { id: "pique", nom: "Pique" },
+];
 
 interface SaisieProps {
   joueurs: string[];
@@ -17,6 +24,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
   const [donneur, setDonneur] = useState(tableProposee[0]);
   const [preneur, setPreneur] = useState(tableProposee[0]);
   const [appele, setAppele] = useState<number | null>(null);
+  const [roiAppele, setRoiAppele] = useState<Roi | null>(null);
   const [contrat, setContrat] = useState("garde");
   const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(1);
   const [points, setPoints] = useState(51);
@@ -28,7 +36,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
   const complete = table.length === parDonne && table.includes(preneur);
   const donne: Donne = {
     table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignee, chelem,
-    miseres,
+    miseres, roiAppele: roiAppele ?? undefined,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
   const res = calculer(donne, joueurs.length);
@@ -54,7 +62,10 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
     setTable(suivant);
     if (!suivant.includes(donneur)) setDonneur(suivant[0] ?? 0);
     if (!suivant.includes(preneur)) setPreneur(suivant[0] ?? 0);
-    if (appele !== null && !suivant.includes(appele)) setAppele(null);
+    if (appele !== null && !suivant.includes(appele)) {
+      setAppele(null);
+      setRoiAppele(null);
+    }
   };
 
   return (
@@ -120,7 +131,10 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                 data-on={preneur === i ? 1 : 0}
                 onClick={() => {
                   setPreneur(i);
-                  if (appele === i) setAppele(null);
+                  if (appele === i) {
+                    setAppele(null);
+                    setRoiAppele(null);
+                  }
                 }}
               >
                 {joueurs[i]}
@@ -136,7 +150,10 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
               <button
                 className="t-chip"
                 data-on={appele === null ? 1 : 0}
-                onClick={() => setAppele(null)}
+                onClick={() => {
+                  setAppele(null);
+                  setRoiAppele(null);
+                }}
               >
                 Lui-même
                 <small>joue seul</small>
@@ -153,6 +170,24 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
                     {joueurs[i]}
                   </button>
                 ))}
+            </div>
+          </div>
+        )}
+
+        {table.length === 5 && appele !== null && (
+          <div className="t-field">
+            <span className="t-label">Quel roi ?</span>
+            <div className="t-chips">
+              {ROIS.map((r) => (
+                <button
+                  key={r.id}
+                  className="t-chip"
+                  data-on={roiAppele === r.id ? 1 : 0}
+                  onClick={() => setRoiAppele(r.id)}
+                >
+                  {r.nom}
+                </button>
+              ))}
             </div>
           </div>
         )}
