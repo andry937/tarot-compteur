@@ -249,8 +249,17 @@ classique ne s'applique pas directement) —
 - un match par **donne** archivée, pas par partie complète (plus de
   données, cohérent avec le calcul par-donne déjà fait dans `stats.ts`) ;
 - un seul Elo **global** par joueur, pas de distinction par rôle ;
-- match = attaque (preneur + appelé le cas échéant) contre défense,
-  résultat binaire (`res.reussi`, pas de pondération par marge de points) ;
+- match = attaque (preneur + appelé le cas échéant) contre défense ;
+  résultat **continu**, pas binaire (affiné après un premier retour
+  utilisateur sur la PR #10) : dérivé du score brut signé de la donne
+  (`calculer().base`, qui intègre déjà le multiplicateur de contrat,
+  l'écart au seuil, la poignée, le petit au bout et le chelem) via une
+  fonction logistique (`resultatContinu` dans `elo.ts`, échelle 400 —
+  cohérente avec le dénominateur standard de la formule Elo). Une victoire
+  ric-rac ne vaut donc qu'un peu plus que 0.5, un contrat risqué (Garde
+  sans/contre) réussi largement — ou chuté lourdement — se rapproche de 1
+  (ou 0) : ça valorise l'audace des annonces et l'ampleur du résultat, pas
+  seulement le fait de réussir ou chuter ;
 - plusieurs contre un (ex. 3 défenseurs contre 1 preneur) : espérance de
   gain calculée sur la **moyenne** des Elo de chaque camp (formule Elo
   standard), puis le même delta est appliqué à chaque membre du camp, sans

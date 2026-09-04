@@ -25,6 +25,13 @@ const donneBase: Omit<Donne, "points"> = {
   miseres: [],
 };
 
+/** Réplique indépendamment la fonction logistique de src/utils/elo.ts pour
+ * calculer un résultat attendu à partir du score brut d'une donne (mêmes
+ * valeurs que `calculer().base` : garde = mult 2, seuil 51 pour 1 bout). */
+const reelAttendu = (base: number) => 1 / (1 + Math.pow(10, -base / 400));
+// points=60, bouts=1 (seuil 51) -> écart 9, réussi -> base = (25+9)*2 = 68
+const REEL_60_GARDE = reelAttendu(68);
+
 describe("calculerClassementElo", () => {
   it("applique le même delta (non divisé) à chaque défenseur quand le preneur gagne à 4", () => {
     const roster = ["a", "b", "c", "d"].map((id) => fiche(id, id.toUpperCase()));
@@ -38,8 +45,8 @@ describe("calculerClassementElo", () => {
     const classement = calculerClassementElo([partie], roster);
     const parId = Object.fromEntries(classement.map((c) => [c.id, c]));
 
-    // Elo de départ égal des deux côtés -> espérance 0.5 -> delta = K * 0.5
-    const delta = ELO_K * 0.5;
+    // Elo de départ égal des deux côtés -> espérance 0.5 -> delta = K * (réel - 0.5)
+    const delta = ELO_K * (REEL_60_GARDE - 0.5);
     expect(parId.a.elo).toBe(Math.round(ELO_DEPART + delta));
     expect(parId.b.elo).toBe(Math.round(ELO_DEPART - delta));
     expect(parId.c.elo).toBe(Math.round(ELO_DEPART - delta));
@@ -61,11 +68,33 @@ describe("calculerClassementElo", () => {
 
     const classement = calculerClassementElo([partie], roster);
     const parId = Object.fromEntries(classement.map((c) => [c.id, c]));
-    const delta = ELO_K * 0.5;
+    const delta = ELO_K * (REEL_60_GARDE - 0.5);
     // a (preneur) et b (appelé) montent tous les deux du même delta, camp attaque gagnant
     expect(parId.a.elo).toBe(Math.round(ELO_DEPART + delta));
     expect(parId.b.elo).toBe(Math.round(ELO_DEPART + delta));
     expect(parId.c.elo).toBe(Math.round(ELO_DEPART - delta));
+  });
+
+  it("un contrat risqué réussi largement pèse plus qu'une victoire ric-rac", () => {
+    const roster = ["a", "b", "c", "d"].map((id) => fiche(id, id.toUpperCase()));
+    const ricRac: PartieAnalysee = {
+      archiveId: "p1",
+      date: "2026-01-01T00:00:00.000Z",
+      joueursId: ["a", "b", "c", "d"],
+      donnes: [{ ...donneBase, contrat: "petite", preneur: 0, points: 51 }], // seuil 51, écart 0
+    };
+    const risque: PartieAnalysee = {
+      archiveId: "p2",
+      date: "2026-01-01T00:00:00.000Z",
+      joueursId: ["a", "b", "c", "d"],
+      donnes: [{ ...donneBase, contrat: "garde_contre", preneur: 0, points: 91 }], // mult 6, gros écart
+    };
+
+    const deltaRicRac = calculerClassementElo([ricRac], roster).find((c) => c.id === "a")!.elo - ELO_DEPART;
+    const deltaRisque = calculerClassementElo([risque], roster).find((c) => c.id === "a")!.elo - ELO_DEPART;
+
+    expect(deltaRicRac).toBeGreaterThan(0);
+    expect(deltaRisque).toBeGreaterThan(deltaRicRac);
   });
 
   it("chute du preneur : l'attaque perd, la défense gagne", () => {
@@ -103,12 +132,13 @@ describe("calculerClassementElo", () => {
     const classement = calculerClassementElo([partieRecente, partieAncienne], roster);
     const parId = Object.fromEntries(classement.map((c) => [c.id, c]));
 
-    // 1ère donne (ancienne) : ratings égaux -> delta = K*0.5
-    const eloApres1 = ELO_DEPART + ELO_K * 0.5;
+    // 1ère donne (ancienne) : ratings égaux -> delta = K*(réel-0.5)
+    const delta1 = ELO_K * (REEL_60_GARDE - 0.5);
+    const eloApres1 = ELO_DEPART + delta1;
     // 2e donne (récente) : a est désormais mieux noté que ses adversaires,
     // son espérance de gain augmente donc le delta de la 2e victoire diminue.
-    const espere2 = 1 / (1 + Math.pow(10, ((ELO_DEPART - ELO_K * 0.5) - eloApres1) / 400));
-    const delta2 = ELO_K * (1 - espere2);
+    const espere2 = 1 / (1 + Math.pow(10, ((ELO_DEPART - delta1) - eloApres1) / 400));
+    const delta2 = ELO_K * (REEL_60_GARDE - espere2);
     expect(parId.a.elo).toBe(Math.round(eloApres1 + delta2));
     expect(parId.a.matchs).toBe(2);
   });
@@ -146,7 +176,7 @@ describe("calculerClassementElo", () => {
     const cible = classement.find((c) => c.id === "a-new");
     expect(cible).toBeDefined();
     expect(cible!.nom).toBe("Nouveau nom");
-    expect(cible!.elo).toBe(Math.round(ELO_DEPART + ELO_K * 0.5));
+    expect(cible!.elo).toBe(Math.round(ELO_DEPART + ELO_K * (REEL_60_GARDE - 0.5)));
   });
 
   it("trie le classement par Elo décroissant", () => {
