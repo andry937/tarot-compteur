@@ -11,23 +11,33 @@ interface SaisieProps {
   tableProposee: number[];
   total: number;
   numero: number;
+  donneInitiale?: Donne;
   onFermer: () => void;
   onValider: (d: Donne) => void;
 }
 
-export default function Saisie({ joueurs, parDonne, tableProposee, total, numero, onFermer, onValider }: SaisieProps) {
-  const [table, setTable] = useState<number[]>(tableProposee);
-  const [donneur, setDonneur] = useState(tableProposee[0]);
-  const [preneur, setPreneur] = useState(tableProposee[0]);
-  const [appele, setAppele] = useState<number | null>(null);
-  const [roiAppele, setRoiAppele] = useState<Roi | null>(null);
-  const [contrat, setContrat] = useState("garde");
-  const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(1);
-  const [points, setPoints] = useState(51);
-  const [petitAuBout, setPetitAuBout] = useState<PetitAuBout>("aucun");
-  const [poignee, setPoignee] = useState("aucune");
-  const [chelem, setChelem] = useState("aucun");
-  const [miseres, setMiseres] = useState<Misere[]>([]);
+export default function Saisie({
+  joueurs,
+  parDonne,
+  tableProposee,
+  total,
+  numero,
+  donneInitiale,
+  onFermer,
+  onValider,
+}: SaisieProps) {
+  const [table, setTable] = useState<number[]>(donneInitiale?.table ?? tableProposee);
+  const [donneur, setDonneur] = useState(donneInitiale?.donneur ?? tableProposee[0]);
+  const [preneur, setPreneur] = useState(donneInitiale?.preneur ?? tableProposee[0]);
+  const [appele, setAppele] = useState<number | null>(donneInitiale?.appele ?? null);
+  const [roiAppele, setRoiAppele] = useState<Roi | null>(donneInitiale?.roiAppele ?? null);
+  const [contrat, setContrat] = useState(donneInitiale?.contrat ?? "garde");
+  const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(donneInitiale?.bouts ?? 1);
+  const [points, setPoints] = useState(donneInitiale?.points ?? 51);
+  const [petitAuBout, setPetitAuBout] = useState<PetitAuBout>(donneInitiale?.petitAuBout ?? "aucun");
+  const [poignee, setPoignee] = useState(donneInitiale?.poignee ?? "aucune");
+  const [chelem, setChelem] = useState(donneInitiale?.chelem ?? "aucun");
+  const [miseres, setMiseres] = useState<Misere[]>(donneInitiale?.miseres ?? []);
 
   const roiRequis = table.length === 5;
   const complete =
