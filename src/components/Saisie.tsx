@@ -199,7 +199,9 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
             </button>
             <div className="flex-1 text-center">
               <b className="font-serif text-4xl font-bold tracking-tight">{points}</b>
-              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">sur 91</span>
+              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                sur 91 · défense {91 - points}
+              </span>
             </div>
             <button
               type="button"
