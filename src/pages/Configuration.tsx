@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree } from "../types";
-import { CSS } from "../styles/styles";
+import { Page, Header, GhostButton, GhostLink, Label, Chip, Cta, Lien } from "../components/ui";
 
 interface ConfigurationProps {
   roster: Fiche[];
@@ -54,99 +54,87 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
   };
 
   return (
-    <div className="tarot">
-      <style>{CSS}</style>
-      <div className="t-head">
-        <div>
-          <div className="t-eyebrow">
-            {actifs.length} joueur{actifs.length > 1 ? "s" : ""}
-          </div>
-          <h1 className="t-title">Joueurs</h1>
-        </div>
-        <button className="t-ghost" onClick={onFermer}>
-          Retour
-        </button>
-      </div>
+    <Page>
+      <Header
+        eyebrow={`${actifs.length} joueur${actifs.length > 1 ? "s" : ""}`}
+        title="Joueurs"
+        actions={<GhostButton onClick={onFermer}>Retour</GhostButton>}
+      />
 
-      <div className="t-setup">
-        {actifs.length === 0 && (
-          <p className="t-intro">
-            Aucun joueur enregistré pour l'instant — les noms saisis lors d'une partie
-            apparaîtront ici.
-          </p>
-        )}
+      {actifs.length === 0 && (
+        <p className="mb-4 text-sm leading-relaxed text-slate-400">
+          Aucun joueur enregistré pour l'instant — les noms saisis lors d'une partie apparaîtront ici.
+        </p>
+      )}
 
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
         {actifs.map((f) => (
-          <div key={f.id} className="t-roster-row">
+          <div
+            key={f.id}
+            data-testid="roster-row"
+            className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800 py-3.5 last:border-0"
+          >
             {renommage === f.id ? (
-              <div className="t-roster-renommer">
+              <div className="w-full">
                 <input
-                  className="t-input"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-900/70 px-3.5 py-3 text-[15px] text-slate-100 focus:border-amber-400 focus:outline-none"
                   autoFocus
                   value={texteRenommage}
                   maxLength={12}
                   onChange={(e) => setTexteRenommage(e.target.value)}
                 />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  <button
-                    className="t-lien"
-                    style={{ margin: 0 }}
-                    onClick={() => setRenommage(null)}
-                  >
-                    Annuler
-                  </button>
-                  <button
-                    className="t-cta"
-                    style={{ flex: 1, padding: "9px" }}
-                    onClick={() => renommer(f.id, texteRenommage)}
-                  >
-                    Valider
-                  </button>
+                <div className="mt-2 flex items-center gap-2">
+                  <Lien onClick={() => setRenommage(null)}>Annuler</Lien>
+                  <div className="flex-1">
+                    <Cta compact onClick={() => renommer(f.id, texteRenommage)}>
+                      Valider
+                    </Cta>
+                  </div>
                 </div>
               </div>
             ) : fusionDepuis === f.id ? (
-              <div className="t-roster-fusion">
-                <span className="t-label">Fusionner {f.nom} dans…</span>
-                <div className="t-chips">
+              <div className="w-full">
+                <Label>Fusionner {f.nom} dans…</Label>
+                <div className="flex flex-wrap gap-2">
                   {actifs
                     .filter((r) => r.id !== f.id)
                     .map((cible) => (
-                      <button
-                        key={cible.id}
-                        className="t-chip"
-                        onClick={() => fusionner(f.id, cible.id)}
-                      >
+                      <Chip key={cible.id} onClick={() => fusionner(f.id, cible.id)}>
                         {cible.nom}
-                      </button>
+                      </Chip>
                     ))}
                 </div>
-                {erreurFusion && <p className="t-erreur">{erreurFusion}</p>}
-                <button
-                  className="t-lien"
-                  style={{ margin: "10px 0 0" }}
+                {erreurFusion && <p className="mt-1.5 font-mono text-[10px] text-rose-400">{erreurFusion}</p>}
+                <Lien
+                  className="mt-3"
                   onClick={() => {
                     setFusionDepuis(null);
                     setErreurFusion(null);
                   }}
                 >
                   Annuler
-                </button>
+                </Lien>
               </div>
             ) : (
               <>
-                <div className="t-roster-nom">
-                  <span>{f.nom}</span>
-                  <small>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-[15px]" data-testid="roster-nom">
+                    {f.nom}
+                  </span>
+                  <small className="font-mono text-[10px] text-slate-400">
                     {comptes[f.id] || 0} partie{(comptes[f.id] || 0) > 1 ? "s" : ""}
                   </small>
                 </div>
-                <div className="t-roster-actions">
-                  <Link className="t-lien" style={{ margin: 0 }} to={`/joueurs/${f.id}`}>
+                <div className="flex flex-wrap gap-4">
+                  <Link
+                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
+                    to={`/joueurs/${f.id}`}
+                  >
                     Stats
                   </Link>
                   <button
-                    className="t-lien"
-                    style={{ margin: 0 }}
+                    type="button"
+                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
                     onClick={() => {
                       setRenommage(f.id);
                       setTexteRenommage(f.nom);
@@ -155,13 +143,17 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
                     Renommer
                   </button>
                   <button
-                    className="t-lien"
-                    style={{ margin: 0 }}
+                    type="button"
+                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
                     onClick={() => setFusionDepuis(f.id)}
                   >
                     Fusionner
                   </button>
-                  <button className="t-lien" style={{ margin: 0 }} onClick={() => basculerActif(f.id)}>
+                  <button
+                    type="button"
+                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
+                    onClick={() => basculerActif(f.id)}
+                  >
                     Désactiver
                   </button>
                 </div>
@@ -169,39 +161,44 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
             )}
           </div>
         ))}
+      </div>
 
-        {desactives.length > 0 && (
-          <div className="t-field" style={{ marginTop: 22 }}>
-            <button className="t-lien" style={{ margin: 0 }} onClick={() => setVoirDesactives((v) => !v)}>
-              {voirDesactives ? "Masquer" : "Voir"} les joueurs désactivés ({desactives.length})
-            </button>
-            {voirDesactives &&
-              desactives.map((f) => (
-                <div key={f.id} className="t-roster-row">
-                  <div className="t-roster-nom">
-                    <span>{f.nom}</span>
-                    <small>
+      {desactives.length > 0 && (
+        <div className="mt-5">
+          <button
+            type="button"
+            className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
+            onClick={() => setVoirDesactives((v) => !v)}
+          >
+            {voirDesactives ? "Masquer" : "Voir"} les joueurs désactivés ({desactives.length})
+          </button>
+          {voirDesactives && (
+            <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
+              {desactives.map((f) => (
+                <div key={f.id} className="flex items-center justify-between gap-2.5 border-b border-slate-800 py-3.5 last:border-0">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-[15px]">{f.nom}</span>
+                    <small className="font-mono text-[10px] text-slate-400">
                       {f.redirigeVers
                         ? `fusionnée dans ${resoudreNom(f.redirigeVers, roster, f.nom)}`
                         : `${comptes[f.id] || 0} partie${(comptes[f.id] || 0) > 1 ? "s" : ""}`}
                     </small>
                   </div>
                   {!f.redirigeVers && (
-                    <div className="t-roster-actions">
-                      <button
-                        className="t-lien"
-                        style={{ margin: 0 }}
-                        onClick={() => basculerActif(f.id)}
-                      >
-                        Réactiver
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
+                      onClick={() => basculerActif(f.id)}
+                    >
+                      Réactiver
+                    </button>
                   )}
                 </div>
               ))}
-          </div>
-        )}
-      </div>
-    </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Page>
   );
 }

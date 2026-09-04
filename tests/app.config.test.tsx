@@ -22,8 +22,8 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
     await u.type(screen.getByPlaceholderText("Joueur 2"), "Fara");
     await u.type(screen.getByPlaceholderText("Joueur 3"), "Lian");
 
-    const siegeAndry = screen.getByDisplayValue("Andry").closest(".t-champ-nom") as HTMLElement;
-    const siegeLian = screen.getByDisplayValue("Lian").closest(".t-champ-nom") as HTMLElement;
+    const siegeAndry = screen.getByDisplayValue("Andry").closest('[data-testid="champ-nom"]') as HTMLElement;
+    const siegeLian = screen.getByDisplayValue("Lian").closest('[data-testid="champ-nom"]') as HTMLElement;
 
     fireEvent.dragStart(siegeAndry);
     fireEvent.dragOver(siegeLian);
@@ -32,8 +32,8 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
 
     // Andry et Lian ont permuté de siège ; Fara (au milieu) n'a pas bougé.
     expect(screen.getByPlaceholderText("Joueur 2")).toHaveValue("Fara");
-    expect(screen.getByDisplayValue("Andry").closest(".t-champ-nom")).toBe(siegeLian);
-    expect(screen.getByDisplayValue("Lian").closest(".t-champ-nom")).toBe(siegeAndry);
+    expect(screen.getByDisplayValue("Andry").closest('[data-testid="champ-nom"]')).toBe(siegeLian);
+    expect(screen.getByDisplayValue("Lian").closest('[data-testid="champ-nom"]')).toBe(siegeAndry);
   });
 });
 
@@ -70,7 +70,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(5\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const noms = [...document.querySelectorAll(".t-roster-nom span")].map((el) => el.textContent);
+    const noms = screen.getAllByTestId("roster-nom").map((el) => el.textContent);
     expect(noms).toEqual(["Andry", "Bob", "Fara", "Marc", "Zoé"]);
   });
 
@@ -84,14 +84,14 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(3\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneBob = screen.getByText("Bob").closest(".t-roster-row") as HTMLElement;
+    const ligneBob = screen.getByText("Bob").closest('[data-testid="roster-row"]') as HTMLElement;
     await u.click(within(ligneBob).getByText("Renommer"));
     const champ = screen.getByDisplayValue("Bob");
     await u.clear(champ);
     await u.type(champ, "Bobby");
     await u.click(screen.getByRole("button", { name: "Valider" }));
 
-    const noms = [...document.querySelectorAll(".t-roster-nom span")].map((el) => el.textContent);
+    const noms = screen.getAllByTestId("roster-nom").map((el) => el.textContent);
     expect(noms).toEqual(["Andry", "Bobby", "Marc"]);
   });
 
@@ -106,14 +106,14 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneAndry = screen.getByText("Andry").closest(".t-roster-row") as HTMLElement;
+    const ligneAndry = screen.getByText("Andry").closest('[data-testid="roster-row"]') as HTMLElement;
     await u.click(within(ligneAndry).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Bob" }));
 
     await screen.findByText(/fusion refusée/);
     await u.click(screen.getByRole("button", { name: "Annuler" }));
     // Toujours deux fiches actives : rien n'a été fusionné.
-    const noms = [...document.querySelectorAll(".t-roster-nom span")].map((el) => el.textContent);
+    const noms = screen.getAllByTestId("roster-nom").map((el) => el.textContent);
     expect(noms).toEqual(["Andry", "Bob"]);
   });
 
@@ -128,12 +128,12 @@ describe("Écran de configuration du trombinoscope", () => {
     await u.click(screen.getByRole("link", { name: /Joueurs \(2\)/ }));
     await screen.findByRole("heading", { name: "Joueurs" });
 
-    const ligneBob = screen.getByText("Bob").closest(".t-roster-row") as HTMLElement;
+    const ligneBob = screen.getByText("Bob").closest('[data-testid="roster-row"]') as HTMLElement;
     await u.click(within(ligneBob).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Andry" }));
 
     // Bob a disparu des actifs...
-    const nomsActifs = [...document.querySelectorAll(".t-roster-nom span")].map((el) => el.textContent);
+    const nomsActifs = screen.getAllByTestId("roster-nom").map((el) => el.textContent);
     expect(nomsActifs).toEqual(["Andry"]);
 
     // ...et réapparaît dans les désactivés, avec la mention de la fusion.

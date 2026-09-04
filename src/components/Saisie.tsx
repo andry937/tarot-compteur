@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { CONTRATS, SEUILS, POIGNEES, CHELEMS, calculer } from "../utils/regles";
 import type { Donne, Misere, PetitAuBout, Roi } from "../utils/regles";
+import { Field, Label, Chip, Cta } from "./ui";
 
 const ROIS: { id: Roi; nom: string }[] = [
   { id: "coeur", nom: "Cœur" },
@@ -68,173 +69,146 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
   };
 
   return (
-    <div className="t-modal" onClick={onFermer}>
-      <div className="t-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="t-panel-head">
-          <span className="t-panel-title">Donne {numero}</span>
-          <button className="t-close" onClick={onFermer}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/80 sm:items-center sm:p-4" onClick={onFermer}>
+      <div
+        className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl border-t-2 border-amber-400 bg-slate-900 p-4 pb-56 sm:max-w-lg sm:rounded-2xl sm:border sm:border-slate-800 sm:border-t-2 sm:pb-8"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <span className="font-serif text-xl font-bold sm:text-2xl">Donne {numero}</span>
+          <button
+            type="button"
+            className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
+            onClick={onFermer}
+          >
             Fermer
           </button>
         </div>
 
         {joueurs.length > parDonne && (
-          <div className="t-field">
-            <span className="t-label">
-              Qui joue cette donne
-              <em>
+          <Field>
+            <Label>
+              <span>Qui joue cette donne</span>
+              <em className="not-italic text-amber-400">
                 {table.length} / {parDonne}
               </em>
-            </span>
-            <div className="t-chips">
+            </Label>
+            <div className="flex flex-wrap gap-2">
               {joueurs.map((j, i) => (
-                <button
-                  key={i}
-                  className="t-chip"
-                  data-on={table.includes(i) ? 1 : 0}
-                  data-repos={table.includes(i) ? 0 : 1}
-                  onClick={() => basculer(i)}
-                >
+                <Chip key={i} on={table.includes(i)} className={!table.includes(i) ? "opacity-40" : ""} onClick={() => basculer(i)}>
                   {j}
-                </button>
+                </Chip>
               ))}
             </div>
-          </div>
+          </Field>
         )}
 
-        <div className="t-field">
-          <span className="t-label">
-            Donneur
-            {entame !== null && <em>{joueurs[entame]} entame</em>}
-          </span>
-          <div className="t-chips">
+        <Field>
+          <Label>
+            <span>Donneur</span>
+            {entame !== null && <em className="not-italic text-amber-400">{joueurs[entame]} entame</em>}
+          </Label>
+          <div className="flex flex-wrap gap-2">
             {table.map((i) => (
-              <button
-                key={i}
-                className="t-chip"
-                data-on={donneur === i ? 1 : 0}
-                onClick={() => setDonneur(i)}
-              >
+              <Chip key={i} on={donneur === i} onClick={() => setDonneur(i)}>
                 {joueurs[i]}
-              </button>
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Preneur</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Preneur</Label>
+          <div className="flex flex-wrap gap-2">
             {table.map((i) => (
-              <button
+              <Chip
                 key={i}
-                className="t-chip"
-                data-on={preneur === i ? 1 : 0}
+                on={preneur === i}
                 onClick={() => {
                   setPreneur(i);
                   if (appele === i) setAppele(null);
                 }}
               >
                 {joueurs[i]}
-              </button>
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
         {table.length === 5 && (
-          <div className="t-field">
-            <span className="t-label">Roi appelé</span>
-            <div className="t-chips">
+          <Field>
+            <Label>Roi appelé</Label>
+            <div className="flex flex-wrap gap-2">
               {ROIS.map((r) => (
-                <button
-                  key={r.id}
-                  className="t-chip"
-                  data-on={roiAppele === r.id ? 1 : 0}
-                  onClick={() => setRoiAppele(r.id)}
-                >
+                <Chip key={r.id} on={roiAppele === r.id} onClick={() => setRoiAppele(r.id)}>
                   {r.nom}
-                </button>
+                </Chip>
               ))}
             </div>
-          </div>
+          </Field>
         )}
 
         {table.length === 5 && (
-          <div className="t-field">
-            <span className="t-label">Chez qui ?</span>
-            <div className="t-chips">
-              <button
-                className="t-chip"
-                data-on={appele === null ? 1 : 0}
-                onClick={() => setAppele(null)}
-              >
+          <Field>
+            <Label>Chez qui ?</Label>
+            <div className="flex flex-wrap gap-2">
+              <Chip on={appele === null} onClick={() => setAppele(null)}>
                 Lui-même
-                <small>joue seul</small>
-              </button>
+                <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">joue seul</small>
+              </Chip>
               {table
                 .filter((i) => i !== preneur)
                 .map((i) => (
-                  <button
-                    key={i}
-                    className="t-chip"
-                    data-on={appele === i ? 1 : 0}
-                    onClick={() => setAppele(i)}
-                  >
+                  <Chip key={i} on={appele === i} onClick={() => setAppele(i)}>
                     {joueurs[i]}
-                  </button>
+                  </Chip>
                 ))}
             </div>
-          </div>
+          </Field>
         )}
 
-        <div className="t-field">
-          <span className="t-label">Contrat</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Contrat</Label>
+          <div className="flex flex-wrap gap-2">
             {CONTRATS.map((c) => (
-              <button
-                key={c.id}
-                className="t-chip"
-                data-on={contrat === c.id ? 1 : 0}
-                onClick={() => setContrat(c.id)}
-              >
+              <Chip key={c.id} on={contrat === c.id} onClick={() => setContrat(c.id)}>
                 {c.nom}
-                <small>×{c.mult}</small>
-              </button>
+                <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">×{c.mult}</small>
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Bouts du preneur</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Bouts du preneur</Label>
+          <div className="flex flex-wrap gap-2">
             {([0, 1, 2, 3] as const).map((b) => (
-              <button
-                key={b}
-                className="t-chip"
-                data-on={bouts === b ? 1 : 0}
-                onClick={() => setBouts(b)}
-              >
+              <Chip key={b} on={bouts === b} onClick={() => setBouts(b)}>
                 {b}
-                <small>{SEUILS[b]} pts</small>
-              </button>
+                <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">{SEUILS[b]} pts</small>
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Points de l'attaque</span>
-          <div className="t-points">
+        <Field>
+          <Label>Points de l'attaque</Label>
+          <div className="flex items-center gap-3">
             <button
-              className="t-step"
+              type="button"
+              className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
               onClick={() => setPoints((p) => cadrer(p - 0.5))}
               aria-label="Retirer un demi-point"
             >
               −
             </button>
-            <div className="t-points-val">
-              <b>{points}</b>
-              <span>sur 91</span>
+            <div className="flex-1 text-center">
+              <b className="font-serif text-4xl font-bold tracking-tight">{points}</b>
+              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">sur 91</span>
             </div>
             <button
-              className="t-step"
+              type="button"
+              className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
               onClick={() => setPoints((p) => cadrer(p + 0.5))}
               aria-label="Ajouter un demi-point"
             >
@@ -242,7 +216,7 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
             </button>
           </div>
           <input
-            className="t-range"
+            className="mt-3 w-full accent-amber-400"
             type="range"
             min="0"
             max="91"
@@ -250,158 +224,145 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
             value={points}
             onChange={(e) => setPoints(parseFloat(e.target.value))}
           />
-          <div className="t-goal" data-ok={res.reussi ? 1 : 0}>
+          <div className={`mt-2 text-center font-mono text-[11px] ${res.reussi ? "text-amber-400" : "text-rose-400"}`}>
             {res.reussi
               ? `Contrat réussi de ${res.ecart} pt${res.ecart > 1 ? "s" : ""}`
               : `Chute de ${res.ecart} pt${res.ecart > 1 ? "s" : ""} — il fallait ${seuil}`}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Petit au bout</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Petit au bout</Label>
+          <div className="flex flex-wrap gap-2">
             {[
               { id: "aucun", nom: "Aucun" },
               { id: "attaque", nom: "Attaque" },
               { id: "defense", nom: "Défense" },
             ].map((o) => (
-              <button
-                key={o.id}
-                className="t-chip"
-                data-on={petitAuBout === o.id ? 1 : 0}
-                onClick={() => setPetitAuBout(o.id as PetitAuBout)}
-              >
+              <Chip key={o.id} on={petitAuBout === o.id} onClick={() => setPetitAuBout(o.id as PetitAuBout)}>
                 {o.nom}
-              </button>
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Poignée</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Poignée</Label>
+          <div className="flex flex-wrap gap-2">
             {POIGNEES.map((p) => (
-              <button
-                key={p.id}
-                className="t-chip"
-                data-on={poignee === p.id ? 1 : 0}
-                onClick={() => setPoignee(p.id)}
-              >
+              <Chip key={p.id} on={poignee === p.id} onClick={() => setPoignee(p.id)}>
                 {p.nom}
-                {p.val > 0 && <small>+{p.val}</small>}
-              </button>
+                {p.val > 0 && <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">+{p.val}</small>}
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">Chelem</span>
-          <div className="t-chips">
+        <Field>
+          <Label>Chelem</Label>
+          <div className="flex flex-wrap gap-2">
             {CHELEMS.map((c) => (
-              <button
-                key={c.id}
-                className="t-chip"
-                data-on={chelem === c.id ? 1 : 0}
-                onClick={() => setChelem(c.id)}
-              >
+              <Chip key={c.id} on={chelem === c.id} onClick={() => setChelem(c.id)}>
                 {c.nom}
-                {c.val !== 0 && <small>{c.val > 0 ? `+${c.val}` : c.val}</small>}
-              </button>
+                {c.val !== 0 && (
+                  <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">
+                    {c.val > 0 ? `+${c.val}` : c.val}
+                  </small>
+                )}
+              </Chip>
             ))}
           </div>
-        </div>
+        </Field>
 
-        <div className="t-field">
-          <span className="t-label">
-            Misère
-            <em>{miseres.length > 0 ? `${miseres.length} déclarée${miseres.length > 1 ? "s" : ""}` : ""}</em>
-          </span>
+        <Field>
+          <Label>
+            <span>Misère</span>
+            <em className="not-italic text-amber-400">
+              {miseres.length > 0 ? `${miseres.length} déclarée${miseres.length > 1 ? "s" : ""}` : ""}
+            </em>
+          </Label>
           {miseres.map((m, idx) => (
-            <div key={m.id} className="t-misere-entree">
-              <div className="t-chips">
+            <div key={m.id} className="mb-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+              <div className="flex flex-wrap gap-2">
                 {table.map((i) => (
-                  <button
-                    key={i}
-                    className="t-chip"
-                    data-on={m.joueur === i ? 1 : 0}
-                    onClick={() => majMisere(idx, { joueur: i })}
-                  >
+                  <Chip key={i} on={m.joueur === i} onClick={() => majMisere(idx, { joueur: i })}>
                     {joueurs[i]}
-                  </button>
+                  </Chip>
                 ))}
               </div>
-              <div className="t-chips" style={{ marginTop: 7 }}>
+              <div className="mt-2 flex flex-wrap gap-2">
                 {(
                   [
                     { id: "atout", nom: "Pas d'atout" },
                     { id: "tete", nom: "Pas de tête" },
                   ] as const
                 ).map((o) => (
-                  <button
-                    key={o.id}
-                    className="t-chip"
-                    data-on={m.type === o.id ? 1 : 0}
-                    onClick={() => majMisere(idx, { type: o.id })}
-                  >
+                  <Chip key={o.id} on={m.type === o.id} onClick={() => majMisere(idx, { type: o.id })}>
                     {o.nom}
-                  </button>
+                  </Chip>
                 ))}
-                <button
-                  className="t-chip"
-                  data-on={m.aTort ? 1 : 0}
-                  onClick={() => majMisere(idx, { aTort: !m.aTort })}
-                >
+                <Chip on={m.aTort} onClick={() => majMisere(idx, { aTort: !m.aTort })}>
                   Annoncée à tort
-                </button>
+                </Chip>
               </div>
-              <button className="t-misere-retirer" onClick={() => retirerMisere(idx)}>
+              <button
+                type="button"
+                className="mt-2 font-mono text-[10px] uppercase tracking-wide text-rose-400 hover:text-rose-300"
+                onClick={() => retirerMisere(idx)}
+              >
                 Retirer
               </button>
             </div>
           ))}
-          <button className="t-misere-ajouter" onClick={ajouterMisere}>
+          <button
+            type="button"
+            className="w-full rounded-lg border border-dashed border-slate-700 py-2.5 text-center font-mono text-[11px] uppercase tracking-wide text-slate-400 hover:border-slate-500"
+            onClick={ajouterMisere}
+          >
             + Ajouter une misère
           </button>
-        </div>
+        </Field>
 
-        <div className="t-preview">
-          {complete ? (
-            <>
-              <div className="t-preview-line">
-                <span>{joueurs[preneur]}</span>
-                <b>
-                  {(res.scores[preneur] as number) > 0 ? "+" : ""}
-                  {res.scores[preneur]}
-                </b>
-              </div>
-              {res.avecAppele && (
-                <div className="t-preview-line">
-                  <span>{joueurs[appele as number]} (appelé)</span>
-                  <b>
-                    {(res.scores[appele as number] as number) > 0 ? "+" : ""}
-                    {res.scores[appele as number]}
+        <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur sm:absolute sm:rounded-b-2xl">
+          <div className="mx-auto max-w-lg">
+            {complete ? (
+              <>
+                <div className="mb-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
+                  <span>{joueurs[preneur]}</span>
+                  <b className="font-medium text-slate-100">
+                    {(res.scores[preneur] as number) > 0 ? "+" : ""}
+                    {res.scores[preneur]}
                   </b>
                 </div>
-              )}
-              <div className="t-preview-line">
-                <span>Chaque défenseur</span>
-                <b>
-                  {(res.scores[res.defenseurs[0]] as number) > 0 ? "+" : ""}
-                  {res.scores[res.defenseurs[0]]}
+                {res.avecAppele && (
+                  <div className="mb-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
+                    <span>{joueurs[appele as number]} (appelé)</span>
+                    <b className="font-medium text-slate-100">
+                      {(res.scores[appele as number] as number) > 0 ? "+" : ""}
+                      {res.scores[appele as number]}
+                    </b>
+                  </div>
+                )}
+                <div className="mb-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
+                  <span>Chaque défenseur</span>
+                  <b className="font-medium text-slate-100">
+                    {(res.scores[res.defenseurs[0]] as number) > 0 ? "+" : ""}
+                    {res.scores[res.defenseurs[0]]}
+                  </b>
+                </div>
+              </>
+            ) : (
+              <div className="mb-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
+                <span>Choisissez {parDonne} joueurs pour cette donne</span>
+                <b className="font-medium text-slate-100">
+                  {table.length} / {parDonne}
                 </b>
               </div>
-            </>
-          ) : (
-            <div className="t-preview-line">
-              <span>Choisissez {parDonne} joueurs pour cette donne</span>
-              <b>
-                {table.length} / {parDonne}
-              </b>
-            </div>
-          )}
-          <button className="t-cta" disabled={!complete} onClick={() => onValider(donne)}>
-            Inscrire la donne
-          </button>
+            )}
+            <Cta disabled={!complete} onClick={() => onValider(donne)}>
+              Inscrire la donne
+            </Cta>
+          </div>
         </div>
       </div>
     </div>

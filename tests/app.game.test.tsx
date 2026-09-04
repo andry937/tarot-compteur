@@ -61,10 +61,9 @@ describe("Parcours d'une partie de bout en bout", () => {
     // Valeurs par défaut de la saisie : garde, seuil 51, points 51 -> réussi, écart 0, base 50
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
-    const totaux = document.querySelectorAll(".t-total");
-    const valeurs = [...totaux].map((el) => el.textContent);
+    const totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
     // Andry (preneur, 4 défenseurs) : (5-1)*50 = 200, chacun des 4 autres -50
-    expect(valeurs).toEqual(["200", "-50", "-50", "-50", "-50"]);
+    expect(totaux).toEqual(["200", "-50", "-50", "-50", "-50"]);
   });
 
   it("une misère fait payer 10 points par les autres joueurs, y compris les coéquipiers", async () => {
@@ -84,7 +83,7 @@ describe("Parcours d'une partie de bout en bout", () => {
 
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
-    const totaux = [...document.querySelectorAll(".t-total")].map((el) => el.textContent);
+    const totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
     // Sans misère : [200,-50,-50,-50,-50]. À 5 joueurs, Fara (index 1) reçoit
     // 10×(n-1)=40 au total, chacun des 4 autres paie 10.
     expect(totaux).toEqual(["190", "-10", "-60", "-60", "-60"]);
@@ -123,13 +122,12 @@ describe("Parcours d'une partie de bout en bout", () => {
     await screen.findByRole("link", { name: /Historique \(1\)/ });
     await u.click(screen.getByRole("link", { name: /Historique \(1\)/ }));
 
-    const ligne = document.querySelector(".t-archive-row") as HTMLElement;
-    await u.click(ligne);
+    await u.click(screen.getByTestId("archive-row"));
 
     await screen.findByText("Classement final");
-    const lignesClassement = document.querySelectorAll(".t-cl-row");
+    const lignesClassement = screen.getAllByTestId("classement-row");
     expect(lignesClassement).toHaveLength(5);
-    const premiere = within(lignesClassement[0] as HTMLElement);
+    const premiere = within(lignesClassement[0]);
     expect(premiere.getByText("Andry")).toBeInTheDocument();
     expect(premiere.getByText("200")).toBeInTheDocument();
   }, 15000);
@@ -166,8 +164,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     await u.click(await screen.findByRole("link", { name: /Historique \(1\)/ }));
-    const ligne = document.querySelector(".t-archive-row") as HTMLElement;
-    await u.click(ligne);
+    await u.click(screen.getByTestId("archive-row"));
 
     await screen.findByText("Classement final");
     await u.click(screen.getByRole("button", { name: "Supprimer" }));

@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (50 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (60 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -33,9 +33,14 @@ pour des besoins absents — voir Conventions) :
 
 ```
 public/                    vide pour l'instant (pas de favicon/robots.txt/sitemap)
+tailwind.config.js          config Tailwind (content scanning sur src/**)
+postcss.config.js           tailwindcss + autoprefixer
 
 src/
   vite-env.d.ts             référence des types du client Vite
+  index.css                  point d'entrée CSS : @tailwind base/components/utilities + quelques
+                              réglages globaux (fond, prefers-reduced-motion) ; importé une seule
+                              fois dans main.tsx
   types.ts                  types d'état partagés entre écrans (Partie, TirageEnCours, …)
   utils/
     regles.ts               règles du tarot + moteur de score — pur, sans React
@@ -47,8 +52,6 @@ src/
     window-storage.d.ts        typage global de l'API window.storage
     firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*)
     firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage
-  styles/
-    styles.ts                 CSS partagé (template string unique, injecté via <style>{CSS}</style>)
   router/
     AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel)
   pages/                     un écran par route
@@ -60,29 +63,30 @@ src/
     FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
     Classement.tsx              classement général Elo (route /classement)
   components/                pièces rendues à l'intérieur d'un écran, jamais routées
+    ui.tsx                     primitives visuelles Tailwind partagées (Page, Header, GhostButton,
+                                Chip, Cta, Field, Label, Section, RankRow, ArchiveRow, Lien, …)
+    ScoreGrid.tsx               grille de score partagée par Feuille.tsx (partie en cours) et
+                                ArchiveFeuille.tsx (archive) — évite de dupliquer le tableau
     Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
   App.tsx                     composant racine : état partagé, effets de persistance
-  main.tsx                    monte <App /> dans <BrowserRouter>
+  main.tsx                    monte <App /> dans <BrowserRouter>, importe index.css
 
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
   stats.test.ts                unitaires : utils/stats.ts (7 tests)
   elo.test.ts                  unitaires : utils/elo.ts (7 tests)
-  app.game.test.tsx           intégration : parcours complet d'une partie (5 tests)
+  app.game.test.tsx           intégration : parcours complet d'une partie (7 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
 n'importent jamais React ni les autres modules — c'est ce qui les rend
-testables sans monter de composant. Un écran importe `CSS` depuis
-`styles/styles.ts` seulement s'il injecte lui-même une balise `<style>`
-(voir « Piège connu » plus bas) ; `Saisie.tsx` et `ArchiveFeuille.tsx` n'en
-ont pas besoin car ils s'affichent toujours à l'intérieur d'un écran qui
-l'a déjà fait.
+testables sans monter de composant.
 
-## Piège connu (déjà corrigé une fois, peut se reproduire)
+## Piège connu (historique — le CSS-in-JS qu'il concernait a depuis été
+remplacé par Tailwind, voir Conventions, mais la leçon générale reste valable)
 
 Le split en fichiers séparés a introduit deux régressions silencieuses,
 trouvées uniquement grâce aux tests :
@@ -90,12 +94,13 @@ trouvées uniquement grâce aux tests :
 1. `ROMAINS` et `nomAtout` n'étaient pas exportés dans le fichier
    monolithique d'origine (inutile puisque tout était dans la même portée).
    En extrayant `Tirage.jsx`, l'import manquant a cassé le tirage.
-2. `Tirage.jsx` faisait `<style>{CSS}</style>` sans importer `CSS`. Comme
-   c'est un module ES en environnement navigateur/jsdom, l'identifiant libre
-   `CSS` s'est résolu vers l'objet global `window.CSS` (API CSSOM, qui a une
-   méthode `.escape`) au lieu de lever une `ReferenceError` — React a alors
-   tenté de rendre cet objet comme enfant et a planté avec un message
-   trompeur (« object with keys {escape} »).
+2. `Tirage.jsx` faisait `<style>{CSS}</style>` sans importer `CSS` (à
+   l'époque du CSS-in-JS par template string, avant la migration vers
+   Tailwind). Comme c'est un module ES en environnement navigateur/jsdom,
+   l'identifiant libre `CSS` s'est résolu vers l'objet global `window.CSS`
+   (API CSSOM, qui a une méthode `.escape`) au lieu de lever une
+   `ReferenceError` — React a alors tenté de rendre cet objet comme enfant
+   et a planté avec un message trompeur (« object with keys {escape} »).
 
 **Leçon pour toute future extraction/refactor** : après avoir déplacé du
 JSX dans un nouveau fichier, vérifier systématiquement que chaque
@@ -205,7 +210,20 @@ donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
 lecture seule, suppression d'une partie archivée, classement général Elo,
 écran de configuration du trombinoscope, glisser-déposer pour réordonner
-les sièges, persistance Firestore, suite de tests complète.
+les sièges, persistance Firestore, refonte visuelle Tailwind (responsive),
+suite de tests complète.
+
+**Refonte visuelle Tailwind** : remplacement complet de l'ancien CSS-in-JS
+(un unique gros template string, non responsive — la grille de score
+notamment débordait sur petit écran) par Tailwind, à la demande explicite
+de l'utilisateur, avec refonte du design (thème sombre épuré, plutôt qu'une
+reconduction à l'identique de l'ancien thème « feutre/papier »). Voir
+Conventions pour le détail de l'organisation (`components/ui.tsx`,
+`ScoreGrid.tsx`) et le piège d'override de classes à éviter. Les tests
+d'intégration qui s'appuyaient sur les anciennes classes CSS globales
+(`.t-total`, `.t-cl-row`, `.t-archive-row`, `.t-roster-nom`, `.t-roster-row`,
+`.t-champ-nom`) ont été réécrits pour utiliser `data-testid` (posés sur les
+primitives concernées) plutôt que des sélecteurs de présentation.
 
 **Suppression d'une partie archivée** (issue #7) : bouton « Supprimer »
 dans l'écran détail d'archive (`Historique.tsx`), pattern de confirmation
@@ -292,8 +310,25 @@ classique ne s'applique pas directement) —
 - TypeScript partout (`.ts`/`.tsx`), `strict` activé. Types partagés entre
   écrans dans `src/types.ts` ; types propres au moteur de score ou au
   registre des joueurs co-localisés dans `utils/regles.ts`/`utils/identite.ts`.
-- CSS-in-JS via template string unique (`styles/styles.ts`), pas de fichier
-  `.css` séparé — cohérent avec le fonctionnement en artifact d'origine.
+- **Tailwind CSS** pour tout le style (remplace l'ancien CSS-in-JS par
+  template string, retiré) : classes utilitaires directement dans le JSX,
+  `tailwind.config.js` + `postcss.config.js` à la racine, `src/index.css`
+  (`@tailwind base/components/utilities`) importé une seule fois dans
+  `main.tsx`. Vocabulaire visuel répété (bouton fantôme, chip, CTA,
+  carte/section, ligne de classement…) extrait en primitives dans
+  `components/ui.tsx` plutôt que dupliqué dans chaque écran — équivalent
+  Tailwind des anciennes classes globales `t-*`. Thème sombre (fond
+  `slate-950`, accent `amber-400`, négatif `rose-400`) sauf la grille de
+  score (`ScoreGrid.tsx`) qui garde une carte « papier » claire pour
+  rester dense et lisible, en contraste volontaire avec le reste de
+  l'écran. **Piège à éviter** : ne jamais faire dépendre le style d'un
+  composant partagé d'un override de classe sur la même propriété CSS que
+  sa classe de base (ex. passer `py-2.5` en `className` à un composant qui
+  a déjà `py-4` en dur) — les classes Tailwind n'ont pas de garantie
+  d'ordre de spécificité via la concaténation de chaînes, donc le résultat
+  n'est pas fiable ; préférer une prop de variante (voir `Cta({ compact })`)
+  ou un `<div>` englobant pour la mise en page (ex. `flex-1`) plutôt qu'un
+  override en conflit.
 - Pas de librairie de composants ni de state manager : `useState`/`useEffect`
   bruts. La navigation entre écrans passe par `react-router-dom`
   (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies

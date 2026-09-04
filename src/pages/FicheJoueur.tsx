@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { resoudreFiche } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import { calculerStatsJoueur } from "../utils/stats";
@@ -7,7 +7,7 @@ import type { PartieAnalysee, Role, StatsJoueur } from "../utils/stats";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
 import { fmt } from "../utils/regles";
-import { CSS } from "../styles/styles";
+import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
 
 interface FicheJoueurProps {
   roster: Fiche[];
@@ -71,9 +71,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
           console.error("Lecture de l'archive impossible", e);
         }
       }
-      const idPresent = cluster.find((pid) =>
-        parties.some((p) => p.joueursId.includes(pid))
-      );
+      const idPresent = cluster.find((pid) => parties.some((p) => p.joueursId.includes(pid)));
       setStats(calculerStatsJoueur(idPresent ?? ficheFinale.id, parties));
       setChargement(false);
     })();
@@ -82,173 +80,125 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
 
   if (!id || !ficheFinale) {
     return (
-      <div className="tarot">
-        <style>{CSS}</style>
-        <div className="t-head">
-          <div>
-            <h1 className="t-title">Joueur introuvable</h1>
-          </div>
-          <div className="t-head-actions">
-            <Link className="t-ghost" to="/">
-              Accueil
-            </Link>
-            <Link className="t-ghost" to="/joueurs">
-              Retour
-            </Link>
-          </div>
-        </div>
-      </div>
+      <Page>
+        <Header
+          eyebrow="Statistiques"
+          title="Joueur introuvable"
+          actions={
+            <>
+              <GhostLink to="/">Accueil</GhostLink>
+              <GhostLink to="/joueurs">Retour</GhostLink>
+            </>
+          }
+        />
+      </Page>
     );
   }
 
   return (
-    <div className="tarot">
-      <style>{CSS}</style>
-      <div className="t-head">
-        <div>
-          <div className="t-eyebrow">
-            {stats ? `${stats.partiesJouees} partie${stats.partiesJouees > 1 ? "s" : ""} · ${stats.donneesJouees} donne${stats.donneesJouees > 1 ? "s" : ""}` : "Statistiques"}
-          </div>
-          <h1 className="t-title">{ficheFinale.nom}</h1>
-        </div>
-        <div className="t-head-actions">
-          <Link className="t-ghost" to="/">
-            Accueil
-          </Link>
-          <Link className="t-ghost" to="/joueurs">
-            Retour
-          </Link>
-        </div>
-      </div>
+    <Page>
+      <Header
+        eyebrow={
+          stats
+            ? `${stats.partiesJouees} partie${stats.partiesJouees > 1 ? "s" : ""} · ${stats.donneesJouees} donne${stats.donneesJouees > 1 ? "s" : ""}`
+            : "Statistiques"
+        }
+        title={ficheFinale.nom}
+        actions={
+          <>
+            <GhostLink to="/">Accueil</GhostLink>
+            <GhostLink to="/joueurs">Retour</GhostLink>
+          </>
+        }
+      />
 
-      {chargement && (
-        <div className="t-setup">
-          <p className="t-intro">Chargement des statistiques…</p>
-        </div>
-      )}
+      {chargement && <p className="text-sm text-slate-400">Chargement des statistiques…</p>}
 
       {!chargement && stats && stats.partiesJouees === 0 && (
-        <div className="t-empty">
-          <p>Aucune donne jouée pour l'instant.</p>
-          <span>Les stats apparaîtront ici dès que ce joueur aura joué une partie</span>
-        </div>
+        <Empty title="Aucune donne jouée pour l'instant." hint="Les stats apparaîtront ici dès que ce joueur aura joué une partie" />
       )}
 
       {!chargement && stats && stats.partiesJouees > 0 && (
         <>
-          <div className="t-classement">
-            <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-              Points totaux
-            </div>
-            <div className="t-cl-row">
-              <span className="t-cl-nom">Cumul sur {stats.donneesJouees} donnes</span>
-              <span className="t-cl-pts" data-neg={stats.pointsTotaux < 0 ? 1 : 0}>
-                {fmt(stats.pointsTotaux)}
-              </span>
-            </div>
-          </div>
+          <Section title="Points totaux">
+            <RankRow nom={`Cumul sur ${stats.donneesJouees} donnes`} valeur={fmt(stats.pointsTotaux)} negatif={stats.pointsTotaux < 0} />
+          </Section>
 
-          <div className="t-classement">
-            <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-              Par rôle
-            </div>
+          <Section title="Par rôle">
             {(["preneur", "appele", "defense"] as Role[]).map((role) => {
               const r = stats.parRole[role];
               const taux = r.donnes > 0 ? Math.round((r.victoires / r.donnes) * 100) : null;
               return (
-                <div className="t-cl-row" key={role}>
-                  <span className="t-cl-nom">{LABEL_ROLE[role]}</span>
-                  <span className="t-cl-donnes">{r.donnes} donnes</span>
-                  <span className="t-cl-pts">{taux !== null ? `${taux}% de victoires` : "—"}</span>
-                </div>
+                <RankRow
+                  key={role}
+                  nom={LABEL_ROLE[role]}
+                  meta={`${r.donnes} donnes`}
+                  valeur={taux !== null ? `${taux}%` : "—"}
+                />
               );
             })}
-            <div className="t-cl-row">
-              <span className="t-cl-nom">Nombre de fois appelé</span>
-              <span className="t-cl-pts">{stats.foisAppele}</span>
-            </div>
-          </div>
+            <RankRow nom="Nombre de fois appelé" valeur={stats.foisAppele} />
+          </Section>
 
           {stats.contratsPreneur.length > 0 && (
-            <div className="t-classement">
-              <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-                Contrats de prédilection (en tant que preneur)
-              </div>
+            <Section title="Contrats de prédilection (en tant que preneur)">
               {stats.contratsPreneur.map((c) => (
-                <div className="t-cl-row" key={c.contrat}>
-                  <span className="t-cl-nom">{c.contrat}</span>
-                  <span className="t-cl-pts">{c.fois}</span>
-                </div>
+                <RankRow key={c.contrat} nom={c.contrat} valeur={c.fois} />
               ))}
-            </div>
+            </Section>
           )}
 
           {stats.roisAppelesParLui.length > 0 && (
-            <div className="t-classement">
-              <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-                Rois appelés (en tant que preneur)
-              </div>
+            <Section title="Rois appelés (en tant que preneur)">
               {stats.roisAppelesParLui.map((r) => (
-                <div className="t-cl-row" key={r.roi}>
-                  <span className="t-cl-nom">{NOM_ROI[r.roi]}</span>
-                  <span className="t-cl-pts">{r.fois}</span>
-                </div>
+                <RankRow key={r.roi} nom={NOM_ROI[r.roi]} valeur={r.fois} />
               ))}
-            </div>
+            </Section>
           )}
 
           {(stats.meilleureDonne || stats.pireDonne) && (
-            <div className="t-classement">
-              <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-                Meilleure / pire donne
-              </div>
+            <Section title="Meilleure / pire donne">
               {stats.meilleureDonne && (
-                <button
-                  className="t-archive-row"
+                <RankRow
+                  nom={`Meilleure — ${fmtDate(stats.meilleureDonne.date)}`}
+                  valeur={fmt(stats.meilleureDonne.points)}
                   onClick={() => navigate(`/historique/${stats.meilleureDonne!.archiveId}`)}
-                >
-                  <span className="t-archive-joueurs">Meilleure — {fmtDate(stats.meilleureDonne.date)}</span>
-                  <span className="t-cl-pts">{fmt(stats.meilleureDonne.points)}</span>
-                </button>
+                />
               )}
               {stats.pireDonne && (
-                <button
-                  className="t-archive-row"
+                <RankRow
+                  nom={`Pire — ${fmtDate(stats.pireDonne.date)}`}
+                  valeur={fmt(stats.pireDonne.points)}
+                  negatif={stats.pireDonne.points < 0}
                   onClick={() => navigate(`/historique/${stats.pireDonne!.archiveId}`)}
-                >
-                  <span className="t-archive-joueurs">Pire — {fmtDate(stats.pireDonne.date)}</span>
-                  <span className="t-cl-pts" data-neg={stats.pireDonne.points < 0 ? 1 : 0}>
-                    {fmt(stats.pireDonne.points)}
-                  </span>
-                </button>
+                />
               )}
-            </div>
+            </Section>
           )}
 
-          <div className="t-classement">
-            <div className="t-eyebrow" style={{ marginBottom: 6 }}>
-              Parties jouées
-            </div>
+          <Section title="Parties jouées">
             {stats.parties.map((p) => (
-              <button
+              <ArchiveRow
                 key={p.archiveId}
-                className="t-archive-row"
                 onClick={() => navigate(`/historique/${p.archiveId}`)}
-              >
-                <div>
-                  <span className="t-archive-date">{fmtDate(p.date)}</span>
-                  <span className="t-archive-joueurs">{p.nbDonnes} donnes jouées</span>
-                </div>
-                <div className="t-archive-droite">
-                  <span className="t-cl-pts" data-neg={p.points < 0 ? 1 : 0}>
+                gauche={
+                  <div className="min-w-0">
+                    <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                      {fmtDate(p.date)}
+                    </span>
+                    <span className="mt-0.5 block truncate text-sm">{p.nbDonnes} donnes jouées</span>
+                  </div>
+                }
+                droite={
+                  <span className={`shrink-0 font-serif text-lg font-bold ${p.points < 0 ? "text-rose-400" : ""}`}>
                     {fmt(p.points)}
                   </span>
-                </div>
-              </button>
+                }
+              />
             ))}
-          </div>
+          </Section>
         </>
       )}
-    </div>
+    </Page>
   );
 }
