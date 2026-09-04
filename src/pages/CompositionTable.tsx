@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { normaliser } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree } from "../types";
-import { CSS } from "../styles/styles";
+import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "../components/ui";
 
 const nomsParDefaut = (n: number): string[] =>
   Array.from({ length: n }, (_, i) => (i === 0 ? "Andry" : ""));
@@ -33,132 +32,137 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
   };
   const options = [3, 4, 5].filter((n) => n <= nbSetup);
 
+  const actifs = roster.filter((r) => r.actif).length;
+
   return (
-    <div className="tarot">
-      <style>{CSS}</style>
-      <div className="t-head">
-        <div>
-          <div className="t-eyebrow">Tarot à la française</div>
-          <h1 className="t-title">Feuille de marque</h1>
-        </div>
-        <div className="t-head-actions">
-          <Link className="t-ghost" to="/joueurs">
-            Joueurs{roster.filter((r) => r.actif).length > 0 ? ` (${roster.filter((r) => r.actif).length})` : ""}
-          </Link>
-          <Link className="t-ghost" to="/historique">
-            Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
-          </Link>
-          <Link className="t-ghost" to="/classement">
-            Classement
-          </Link>
-        </div>
-      </div>
-      <div className="t-setup">
-        <div className="t-field">
-          <span className="t-label">Joueurs à table</span>
-          <div className="t-count">
-            <button className="t-step" onClick={() => majNb(-1)} aria-label="Un joueur de moins">
-              −
-            </button>
-            <b>{nbSetup}</b>
-            <button className="t-step" onClick={() => majNb(1)} aria-label="Un joueur de plus">
-              +
-            </button>
-            <span>
-              {nbSetup > parDonneSetup
-                ? `${nbSetup - parDonneSetup} au repos à chaque donne`
-                : "tout le monde joue"}
-            </span>
-          </div>
-        </div>
+    <Page>
+      <Header
+        eyebrow="Tarot à la française"
+        title="Feuille de marque"
+        actions={
+          <>
+            <GhostLink to="/joueurs">Joueurs{actifs > 0 ? ` (${actifs})` : ""}</GhostLink>
+            <GhostLink to="/historique">
+              Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
+            </GhostLink>
+            <GhostLink to="/classement">Classement</GhostLink>
+          </>
+        }
+      />
 
-        <div className="t-field">
-          <span className="t-label">Joueurs par donne</span>
-          <div className="t-chips">
-            {options.map((n) => (
-              <button
-                key={n}
-                className="t-chip"
-                data-on={parDonneSetup === n ? 1 : 0}
-                onClick={() => setParDonneSetup(n)}
+      <Field>
+        <Label>Joueurs à table</Label>
+        <div className="flex items-center gap-3.5">
+          <button
+            type="button"
+            className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
+            onClick={() => majNb(-1)}
+            aria-label="Un joueur de moins"
+          >
+            −
+          </button>
+          <b className="min-w-[2.2rem] text-center font-serif text-3xl font-bold">{nbSetup}</b>
+          <button
+            type="button"
+            className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
+            onClick={() => majNb(1)}
+            aria-label="Un joueur de plus"
+          >
+            +
+          </button>
+          <span className="text-xs leading-snug text-slate-400">
+            {nbSetup > parDonneSetup
+              ? `${nbSetup - parDonneSetup} au repos à chaque donne`
+              : "tout le monde joue"}
+          </span>
+        </div>
+      </Field>
+
+      <Field>
+        <Label>Joueurs par donne</Label>
+        <div className="flex flex-wrap gap-2">
+          {options.map((n) => (
+            <Chip key={n} on={parDonneSetup === n} onClick={() => setParDonneSetup(n)}>
+              {n}
+              <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">
+                {n === 5 ? "avec appelé" : n === 4 ? "classique" : "à trois"}
+              </small>
+            </Chip>
+          ))}
+        </div>
+      </Field>
+
+      <Field>
+        <Label>Ordre autour de la table</Label>
+        <div className="flex flex-col gap-2">
+          {nomsSetup.map((nom, i) => {
+            const val = normaliser(nom);
+            const prises = nomsSetup.filter((_, j) => j !== i).map(normaliser);
+            const suggestions = roster
+              .filter((r) => r.actif)
+              .filter((r) => normaliser(r.nom) !== val)
+              .filter((r) => !prises.includes(normaliser(r.nom)))
+              .filter((r) => val === "" || normaliser(r.nom).includes(val))
+              .slice(0, 6);
+            return (
+              <div
+                key={i}
+                data-testid="champ-nom"
+                className={`relative ${dragIndex === i ? "cursor-grabbing opacity-50" : "cursor-grab"}`}
+                draggable
+                onDragStart={() => setDragIndex(i)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex !== null && dragIndex !== i) {
+                    setNomsSetup((n) => {
+                      const copy = [...n];
+                      [copy[dragIndex], copy[i]] = [copy[i], copy[dragIndex]];
+                      return copy;
+                    });
+                  }
+                  setDragIndex(null);
+                }}
+                onDragEnd={() => setDragIndex(null)}
               >
-                {n}
-                <small>{n === 5 ? "avec appelé" : n === 4 ? "classique" : "à trois"}</small>
-              </button>
-            ))}
-          </div>
+                <input
+                  className="w-full select-text rounded-lg border border-slate-700 bg-slate-900/70 px-3.5 py-3 text-[15px] text-slate-100 placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+                  value={nom}
+                  maxLength={12}
+                  placeholder={`Joueur ${i + 1}`}
+                  onFocus={() => setFocusIndex(i)}
+                  onBlur={() => setTimeout(() => setFocusIndex((f) => (f === i ? null : f)), 120)}
+                  onChange={(e) =>
+                    setNomsSetup((n) => n.map((x, j) => (j === i ? e.target.value : x)))
+                  }
+                />
+                {focusIndex === i && suggestions.length > 0 && (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {suggestions.map((r) => (
+                      <button
+                        key={r.id}
+                        type="button"
+                        className="rounded-full border border-amber-400/40 bg-amber-400/10 px-2.5 py-1 font-mono text-[11px] text-amber-300"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setNomsSetup((n) => n.map((x, j) => (j === i ? r.nom : x)));
+                          setFocusIndex(null);
+                        }}
+                      >
+                        {r.nom}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {prises.includes(val) && val !== "" && (
+                  <p className="mt-1 font-mono text-[10px] text-rose-400">Déjà pris par un autre siège</p>
+                )}
+              </div>
+            );
+          })}
         </div>
+      </Field>
 
-        <div className="t-field">
-          <span className="t-label">Ordre autour de la table</span>
-          <div className="t-players">
-            {nomsSetup.map((nom, i) => {
-              const val = normaliser(nom);
-              const prises = nomsSetup.filter((_, j) => j !== i).map(normaliser);
-              const suggestions = roster
-                .filter((r) => r.actif)
-                .filter((r) => normaliser(r.nom) !== val)
-                .filter((r) => !prises.includes(normaliser(r.nom)))
-                .filter((r) => val === "" || normaliser(r.nom).includes(val))
-                .slice(0, 6);
-              return (
-                <div
-                  key={i}
-                  className="t-champ-nom"
-                  draggable
-                  data-drag={dragIndex === i ? 1 : 0}
-                  onDragStart={() => setDragIndex(i)}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={() => {
-                    if (dragIndex !== null && dragIndex !== i) {
-                      setNomsSetup((n) => {
-                        const copy = [...n];
-                        [copy[dragIndex], copy[i]] = [copy[i], copy[dragIndex]];
-                        return copy;
-                      });
-                    }
-                    setDragIndex(null);
-                  }}
-                  onDragEnd={() => setDragIndex(null)}
-                >
-                  <input
-                    className="t-input"
-                    value={nom}
-                    maxLength={12}
-                    placeholder={`Joueur ${i + 1}`}
-                    onFocus={() => setFocusIndex(i)}
-                    onBlur={() => setTimeout(() => setFocusIndex((f) => (f === i ? null : f)), 120)}
-                    onChange={(e) =>
-                      setNomsSetup((n) => n.map((x, j) => (j === i ? e.target.value : x)))
-                    }
-                  />
-                  {focusIndex === i && suggestions.length > 0 && (
-                    <div className="t-suggestions">
-                      {suggestions.map((r) => (
-                        <button
-                          key={r.id}
-                          className="t-suggestion"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => {
-                            setNomsSetup((n) => n.map((x, j) => (j === i ? r.nom : x)));
-                            setFocusIndex(null);
-                          }}
-                        >
-                          {r.nom}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {prises.includes(val) && val !== "" && (
-                    <p className="t-erreur">Déjà pris par un autre siège</p>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-      <div className="t-bar">
+      <Bar>
         {(() => {
           const nomsTrim = nomsSetup.map((n) => n.trim());
           const manquants = nomsTrim.filter((n) => n === "").length;
@@ -171,16 +175,12 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
             ? `Encore ${manquants} joueur${manquants > 1 ? "s" : ""} à nommer`
             : "Tirer qui distribue";
           return (
-            <button
-              className="t-cta"
-              disabled={!valide}
-              onClick={() => onValider(nomsTrim, parDonneSetup)}
-            >
+            <Cta disabled={!valide} onClick={() => onValider(nomsTrim, parDonneSetup)}>
               {libelle}
-            </button>
+            </Cta>
           );
         })()}
-      </div>
-    </div>
+      </Bar>
+    </Page>
   );
 }
