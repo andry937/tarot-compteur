@@ -151,6 +151,38 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(screen.queryByRole("link", { name: /Historique \(/ })).not.toBeInTheDocument();
   });
 
+  it("modifie une donne déjà saisie et recalcule les totaux sans en ajouter une nouvelle", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await lancerPartieJusquaLaFeuille(u);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    let totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
+    expect(totaux).toEqual(["200", "-50", "-50", "-50", "-50"]);
+
+    // Ouvrir le détail de la donne 1, puis "Modifier cette donne"
+    const table = document.querySelector("table") as HTMLElement;
+    await u.click(within(table).getByText("1").closest("tr") as HTMLElement);
+    await u.click(screen.getByRole("button", { name: "Modifier cette donne" }));
+
+    // Le roi déjà choisi (Cœur) doit rester sélectionné dans la saisie rouverte
+    await screen.findByText("Donne 1");
+    expect(screen.getByRole("button", { name: "Cœur", pressed: true })).toBeInTheDocument();
+
+    // Fait chuter le contrat (points sous le seuil de 51) et valide à nouveau
+    fireEvent.change(screen.getByRole("slider"), { target: { value: "30" } });
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    // Une seule donne toujours en jeu (pas une deuxième ligne ajoutée), mais recalculée en chute :
+    // seuil 51, points 30 -> écart 21, base -92 ; Andry seul preneur = 4×-92 = -368, chacun des 4 autres +92
+    expect(screen.getByText(/Noter la donne 2/)).toBeInTheDocument();
+    totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
+    expect(totaux).toEqual(["-368", "92", "92", "92", "92"]);
+  });
+
   it("supprime une partie archivée depuis l'écran détail", async () => {
     const u = await ouvrirSetup();
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);

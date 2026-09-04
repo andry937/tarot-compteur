@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (64 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (65 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -75,7 +75,8 @@ src/
     GraphiqueComparatif.tsx     vue comparative (Recharts) : tous les joueurs d'une partie
                                 superposés sur l'axe de ses donnes, partagé par les mêmes deux écrans
     GraphiquePersonnel.tsx      fiche joueur : axe personnel dense (Recharts), dans FicheJoueur.tsx
-    Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
+    Saisie.tsx                 formulaire modal de saisie d'une donne, aussi utilisé pour en
+                                modifier une existante (prop donneInitiale) — dans Feuille
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
   App.tsx                     composant racine : état partagé, effets de persistance
   main.tsx                    monte <App /> dans <BrowserRouter>, importe index.css
@@ -86,7 +87,7 @@ tests/
   stats.test.ts                unitaires : utils/stats.ts (8 tests)
   elo.test.ts                  unitaires : utils/elo.ts (7 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
-  app.game.test.tsx           intégration : parcours complet d'une partie (7 tests)
+  app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
 
@@ -215,15 +216,31 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 ## Où en est le projet
 
 **Fait** : registre à identités stables avec fusion, saisie complète d'une
-donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
-donneur (aléatoire + désignation manuelle), historique + archives en
-lecture seule, suppression d'une partie archivée, classement général Elo,
-statistiques sur les donnes d'une partie, graphiques de progression, écran
-de configuration du trombinoscope, glisser-déposer pour réordonner les
-sièges, persistance Firestore, refonte visuelle Tailwind (responsive),
-suite de tests complète. **Toutes les issues initialement listées sont
-closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
-l'instant.
+donne (avec misère et primes), modification d'une donne déjà saisie, Petit
+sec, rotation avec repos, tirage du donneur (aléatoire + désignation
+manuelle), historique + archives en lecture seule, suppression d'une
+partie archivée, classement général Elo, statistiques sur les donnes d'une
+partie, graphiques de progression, écran de configuration du
+trombinoscope, glisser-déposer pour réordonner les sièges, persistance
+Firestore, refonte visuelle Tailwind (responsive), suite de tests
+complète. **Toutes les issues initialement listées sont closes** (#7, #8,
+#9, #10, #11) — pas de backlog ouvert sur le dépôt pour l'instant.
+
+**Modification d'une donne déjà saisie** (`Feuille.tsx`, `Saisie.tsx`) :
+dans le détail d'une donne (clic sur sa ligne dans `ScoreGrid`), bouton
+« Modifier cette donne » à côté de « Effacer cette donne ». Rouvre
+`Saisie.tsx` pré-rempli avec les valeurs de cette donne (nouvelle prop
+`donneInitiale?: Donne`, utilisée pour initialiser chaque `useState` —
+fonctionne sans `useEffect`/`key` car la modale est démontée/remontée à
+chaque ouverture, donc l'initialiseur relit toujours la prop à jour).
+`Feuille.tsx` distingue les deux usages de la modale (nouvelle donne vs.
+modification) via un seul état `{ index: number | null }` plutôt que deux
+booléens séparés : `index === null` → ajoute via `onAjouterDonne`,
+`index === k` → remplace `donnes[k]` en place via `onModifierDonne(k, d)`
+(`App.tsx`) sans changer sa position dans le tableau ni son "numéro" de
+donne. Scoped à la partie **en cours** uniquement : `ArchiveFeuille.tsx`
+(parties closes) ne reçoit pas ce bouton, cohérent avec `Effacer cette
+donne` qui n'existe déjà que côté partie en cours.
 
 **Graphiques de progression** (issue #11, `components/GraphiqueComparatif.tsx`
 et `components/GraphiquePersonnel.tsx`, librairie **Recharts** — choix
