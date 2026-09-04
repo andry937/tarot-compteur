@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (43 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (50 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -40,6 +40,7 @@ src/
   utils/
     regles.ts               règles du tarot + moteur de score — pur, sans React
     identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
+    stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans React
   lib/
     stockage.ts               clés de persistance centralisées (encapsule window.storage)
     window-storage.d.ts        typage global de l'API window.storage
@@ -55,6 +56,7 @@ src/
     Feuille.tsx                 feuille de score en cours (route /partie)
     Configuration.tsx          gestion du trombinoscope (route /joueurs)
     Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
+    FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
   components/                pièces rendues à l'intérieur d'un écran, jamais routées
     Saisie.tsx                 formulaire modal de saisie d'une donne (dans Feuille)
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
@@ -64,6 +66,7 @@ src/
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
+  stats.test.ts                unitaires : utils/stats.ts (7 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (5 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
 ```
@@ -173,7 +176,10 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 - Petit au bout (±10×contrat), poignée (20/30/40), chelem
   (200/400/−200)
 - À 5 joueurs avec appelé : preneur = 2 parts, appelé = 1 part, défense = le
-  reste
+  reste. Le roi précis appelé (Cœur/Carreau/Trèfle/Pique) est enregistré
+  optionnellement (`roiAppele` sur la donne, saisi dans `Saisie.tsx`) pour
+  les statistiques par roi appelé — absent sur les donnes déjà archivées
+  avant son introduction.
 - **Petit sec** (le seul atout d'un joueur est Le Petit, sans l'Excuse) :
   annoncé *avant* les enchères, annule la donne et la redonne (même
   donneur), aucun effet sur le score. Panneau dédié dans l'écran de la
@@ -183,7 +189,7 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
   avant la première carte. Chaque *autre* joueur à table lui paie 10
   points, y compris ses propres coéquipiers — indépendant du multiplicateur
   de contrat. Annoncée à tort, le paiement s'inverse. Saisi comme un
-  tableau `miseres` sur la donne, dans le formulaire `Saisie.jsx`.
+  tableau `miseres` sur la donne, dans le formulaire `Saisie.tsx`.
 
 ## Où en est le projet
 
@@ -191,31 +197,34 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
 lecture seule, écran de configuration du trombinoscope, glisser-déposer
-pour réordonner les sièges, suite de tests complète.
+pour réordonner les sièges, persistance Firestore, suite de tests complète.
 
-**Pas commencé (« Lot 2 » dans la conversation d'origine)** — statistiques
-cumulées à travers toutes les parties :
-1. `roleDe(donne, resultatCalculer, i)` → `"preneur" | "appele" | "defense" | "repos"`,
-   helper manquant pour toute stat par rôle
-2. Agrégat `tarot:stats:v1` : compteurs additifs par joueur (parties, donnes,
-   points, meilleure/pire donne, décomposition par rôle, contrats pris,
-   primes), liste des parties déjà intégrées (idempotence), reconstructible
-   entièrement depuis les archives
-3. Mise à jour incrémentale à l'archivage + rattrapage à l'ouverture de
-   l'écran stats + recalcul complet après toute fusion
-4. Écran palmarès : classement par **moyenne par donne jouée** (pas le
-   total brut, trompeur avec la rotation), total en secondaire, seuil
-   minimum de donnes avant classement (valeur non tranchée)
-5. Fiche joueur : stats de rôle, contrats de prédilection, meilleures/pires
-   donnes, liste des parties avec renvoi vers la feuille archivée
-6. Graphique de progression en SVG à la main (pas de librairie de charts
-   disponible dans l'environnement d'origine) : vue comparative sur l'axe
-   des donnes globales (plateaux visibles pour les joueurs au repos, assumé)
-   + fiche joueur sur son axe personnel dense
+**Statistiques par joueur** (`utils/stats.ts`, écran `FicheJoueur.tsx`,
+route `/joueurs/:id`, lien « Stats » depuis `Configuration.tsx`) : décision
+prise de calculer à la volée depuis les archives à chaque ouverture de
+l'écran plutôt que maintenir un agrégat stocké (`tarot:stats:v1` envisagé
+initialement, abandonné — plus simple, pas de risque de désynchronisation
+après une fusion de joueurs, l'échelle actuelle du groupe le permet).
+`roleDe(donne, resultat, i)` → `"preneur" | "appele" | "defense" | "repos"`
+réutilise directement le `ResultatDonne` déjà calculé. Gère la résolution
+de fusion (cluster de tous les identifiants qui redirigent vers la même
+fiche, sinon les donnes jouées sous l'ancienne identité disparaîtraient).
+Affiche : points totaux, décomposition par rôle (nb + taux de victoire),
+contrats de prédilection, rois appelés, nombre de fois appelé,
+meilleure/pire donne, liste des parties avec renvoi vers l'archive.
 
-Points explicitement laissés ouverts dans la conception : le seuil de
-donnes minimum avant classement, et le traitement des formats mixtes
-(tables à 4 et à 5 mélangées) dans les moyennes cumulées.
+**Pas encore fait** (issues GitHub ouvertes sur le dépôt) :
+- Suppression d'une partie archivée
+- Statistiques sur les donnes d'une partie en cours (roi appelé, taux de
+  victoire/défaite, mains appelées) — panneau dans `Feuille.tsx`/`ArchiveFeuille.tsx`,
+  distinct de la fiche joueur cumulée
+- Classement général : système de classement Elo (remplace l'idée initiale
+  de classement par moyenne par donne jouée — le tarot n'étant pas un jeu
+  1v1, la modélisation du « match » Elo reste à trancher)
+- Graphique de progression en SVG à la main (pas de librairie de charts
+  disponible dans l'environnement d'origine) : vue comparative sur l'axe
+  des donnes globales (plateaux visibles pour les joueurs au repos, assumé)
+  + fiche joueur sur son axe personnel dense
 
 ## Conventions
 
@@ -236,7 +245,8 @@ donnes minimum avant classement, et le traitement des formats mixtes
   dans `router/AppRoutes.tsx` :
   `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`
   (feuille de score), `/joueurs` (configuration du trombinoscope),
-  `/historique` et `/historique/:id` (liste et détail d'une archive).
+  `/joueurs/:id` (fiche statistique d'un joueur), `/historique` et
+  `/historique/:id` (liste et détail d'une archive).
   `/tirage` et `/partie` gardent chacune leur état (`tirage`, `partie`) :
   si l'état attendu est absent (ex. rechargement direct sans partie
   persistée), la route redirige vers `/` plutôt que planter — `tirage`
