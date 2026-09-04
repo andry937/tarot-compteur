@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { cleArchive } from "../lib/stockage";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
@@ -48,9 +48,14 @@ export default function Historique({ index, roster, onRetour }: HistoriqueProps)
             <div className="t-eyebrow">{resume ? fmtDate(resume.date) : "Archive"}</div>
             <h1 className="t-title">Partie close</h1>
           </div>
-          <button className="t-ghost" onClick={() => navigate("/historique")}>
-            Retour
-          </button>
+          <div className="t-head-actions">
+            <Link className="t-ghost" to="/">
+              Accueil
+            </Link>
+            <button className="t-ghost" onClick={() => navigate("/historique")}>
+              Retour
+            </button>
+          </div>
         </div>
         {chargement && (
           <div className="t-setup">
