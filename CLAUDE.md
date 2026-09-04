@@ -200,8 +200,30 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 **Fait** : registre à identités stables avec fusion, saisie complète d'une
 donne (avec misère et primes), Petit sec, rotation avec repos, tirage du
 donneur (aléatoire + désignation manuelle), historique + archives en
-lecture seule, écran de configuration du trombinoscope, glisser-déposer
-pour réordonner les sièges, persistance Firestore, suite de tests complète.
+lecture seule, suppression d'une partie archivée, écran de configuration du
+trombinoscope, glisser-déposer pour réordonner les sièges, persistance
+Firestore, suite de tests complète.
+
+**Suppression d'une partie archivée** (issue #7) : bouton « Supprimer »
+dans l'écran détail d'archive (`Historique.tsx`), pattern de confirmation
+en deux clics identique à « Nouvelle » dans `Feuille.tsx` (« Supprimer » →
+« Confirmer ? » pendant 4s). Supprime le document `tarot:archive:{id}` et
+retire l'entrée de l'index `tarot:historique` (`App.tsx::supprimerPartie`).
+Pas de corbeille : suppression définitive, assumé (issue explicitement hors
+périmètre sur ce point). Effet de bord accepté et non traité : le
+garde-fou de fusion des joueurs (`ontDejaJoueEnsemble`, dans
+`identite.ts`) s'appuie sur `historiqueIndex` pour savoir si deux joueurs
+ont déjà partagé une table — supprimer la dernière partie commune entre
+deux joueurs peut donc réautoriser une fusion qui aurait dû rester
+bloquée.
+
+**Bouton « Accueil » dans l'écran Partie** (`Feuille.tsx`) : permet de
+quitter la partie en cours sans l'archiver dans l'historique (contrairement
+à « Nouvelle », qui archive avant de réinitialiser). Même pattern de
+confirmation en deux clics. `App.tsx::quitterPartie` réutilise
+`reinitialiserPartie()` (vidage de l'état + suppression de `tarot:partie:v4`
++ retour à `/`), la seule différence avec `nouvellePartie()` étant l'absence
+de l'étape d'archivage.
 
 **Statistiques par joueur** (`utils/stats.ts`, écran `FicheJoueur.tsx`,
 route `/joueurs/:id`, lien « Stats » depuis `Configuration.tsx`) : décision
@@ -218,7 +240,6 @@ contrats de prédilection, rois appelés, nombre de fois appelé,
 meilleure/pire donne, liste des parties avec renvoi vers l'archive.
 
 **Pas encore fait** (issues GitHub ouvertes sur le dépôt) :
-- Suppression d'une partie archivée
 - Statistiques sur les donnes d'une partie en cours (roi appelé, taux de
   victoire/défaite, mains appelées) — panneau dans `Feuille.tsx`/`ArchiveFeuille.tsx`,
   distinct de la fiche joueur cumulée

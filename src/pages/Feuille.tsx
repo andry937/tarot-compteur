@@ -20,6 +20,7 @@ interface FeuilleProps {
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
   onNouvellePartie: () => void;
+  onQuitterPartie: () => void;
 }
 
 export default function Feuille({
@@ -36,11 +37,13 @@ export default function Feuille({
   onEffacerDonne,
   onAjouterAnnulation,
   onNouvellePartie,
+  onQuitterPartie,
 }: FeuilleProps) {
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState(false);
   const [confirmer, setConfirmer] = useState(false);
+  const [confirmerQuitter, setConfirmerQuitter] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
@@ -56,6 +59,16 @@ export default function Feuille({
     }
     setConfirmer(false);
     onNouvellePartie();
+  };
+
+  const surQuitterPartie = () => {
+    if (!confirmerQuitter) {
+      setConfirmerQuitter(true);
+      setTimeout(() => setConfirmerQuitter(false), 4000);
+      return;
+    }
+    setConfirmerQuitter(false);
+    onQuitterPartie();
   };
 
   const classement = joueurs
@@ -80,6 +93,9 @@ export default function Feuille({
           <Link className="t-ghost" to="/historique">
             Historique
           </Link>
+          <button className="t-ghost" onClick={surQuitterPartie}>
+            {confirmerQuitter ? "Confirmer ?" : "Accueil"}
+          </button>
           <button className="t-ghost" onClick={surNouvellePartie}>
             {confirmer ? "Confirmer ?" : "Nouvelle"}
           </button>
