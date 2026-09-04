@@ -1,14 +1,9 @@
 import { useState } from "react";
-import { CONTRATS, SEUILS, POIGNEES, CHELEMS, calculer } from "../utils/regles";
+import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, calculer } from "../utils/regles";
 import type { Donne, Misere, PetitAuBout, Roi } from "../utils/regles";
 import { Field, Label, Chip, Cta } from "./ui";
 
-const ROIS: { id: Roi; nom: string }[] = [
-  { id: "coeur", nom: "Cœur" },
-  { id: "carreau", nom: "Carreau" },
-  { id: "trefle", nom: "Trèfle" },
-  { id: "pique", nom: "Pique" },
-];
+const ROIS = (Object.entries(NOM_ROI) as [Roi, string][]).map(([id, nom]) => ({ id, nom }));
 
 interface SaisieProps {
   joueurs: string[];
