@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "../lib/stockage";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
-import { CSS } from "../styles/styles";
 import ArchiveFeuille from "../components/ArchiveFeuille";
+import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "../components/ui";
 
 interface HistoriqueProps {
   index: HistoriqueEntree[];
@@ -54,81 +54,71 @@ export default function Historique({ index, roster, onRetour, onSupprimer }: His
   if (id) {
     const resume = index.find((r) => r.id === id);
     return (
-      <div className="tarot">
-        <style>{CSS}</style>
-        <div className="t-head">
-          <div>
-            <div className="t-eyebrow">{resume ? fmtDate(resume.date) : "Archive"}</div>
-            <h1 className="t-title">Partie close</h1>
-          </div>
-          <div className="t-head-actions">
-            <Link className="t-ghost" to="/">
-              Accueil
-            </Link>
-            <button className="t-ghost" onClick={() => navigate("/historique")}>
-              Retour
-            </button>
-            <button className="t-ghost" onClick={surSupprimer}>
-              {confirmerSuppression ? "Confirmer ?" : "Supprimer"}
-            </button>
-          </div>
-        </div>
-        {chargement && (
-          <div className="t-setup">
-            <p className="t-intro">Chargement de la feuille…</p>
-          </div>
-        )}
+      <Page>
+        <Header
+          eyebrow={resume ? fmtDate(resume.date) : "Archive"}
+          title="Partie close"
+          actions={
+            <>
+              <GhostLink to="/">Accueil</GhostLink>
+              <GhostButton onClick={() => navigate("/historique")}>Retour</GhostButton>
+              <GhostButton onClick={surSupprimer}>
+                {confirmerSuppression ? "Confirmer ?" : "Supprimer"}
+              </GhostButton>
+            </>
+          }
+        />
+        {chargement && <p className="text-sm text-slate-400">Chargement de la feuille…</p>}
         {record && <ArchiveFeuille record={record} roster={roster} />}
-      </div>
+      </Page>
     );
   }
 
   return (
-    <div className="tarot">
-      <style>{CSS}</style>
-      <div className="t-head">
-        <div>
-          <div className="t-eyebrow">
-            {index.length} partie{index.length > 1 ? "s" : ""} archivée
-            {index.length > 1 ? "s" : ""}
-          </div>
-          <h1 className="t-title">Historique</h1>
-        </div>
-        <button className="t-ghost" onClick={onRetour}>
-          Retour
-        </button>
-      </div>
+    <Page>
+      <Header
+        eyebrow={`${index.length} partie${index.length > 1 ? "s" : ""} archivée${index.length > 1 ? "s" : ""}`}
+        title="Historique"
+        actions={<GhostButton onClick={onRetour}>Retour</GhostButton>}
+      />
 
-      <div className="t-classement">
-        {index.map((p) => {
-          const meneur = (p.joueurs || [])
-            .map((nom, i) => ({ nom, pts: p.totaux ? p.totaux[i] : 0 }))
-            .sort((a, b) => b.pts - a.pts)[0];
-          return (
-            <button key={p.id} className="t-archive-row" onClick={() => navigate(`/historique/${p.id}`)}>
-              <div>
-                <span className="t-archive-date">{fmtDate(p.date)}</span>
-                <span className="t-archive-joueurs">{(p.joueurs || []).join(", ")}</span>
-              </div>
-              <div className="t-archive-droite">
-                <span className="t-archive-donnes">{p.nbDonnes} donnes</span>
-                {meneur && (
-                  <span className="t-archive-meneur">
-                    {meneur.nom} {meneur.pts > 0 ? "+" : ""}
-                    {meneur.pts}
-                  </span>
-                )}
-              </div>
-            </button>
-          );
-        })}
-        {index.length === 0 && (
-          <div className="t-empty">
-            <p>Aucune partie archivée.</p>
-            <span>Elle apparaîtra ici dès qu'une feuille sera close</span>
-          </div>
-        )}
-      </div>
-    </div>
+      {index.length === 0 ? (
+        <Empty title="Aucune partie archivée." hint="Elle apparaîtra ici dès qu'une feuille sera close" />
+      ) : (
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
+          {index.map((p) => {
+            const meneur = (p.joueurs || [])
+              .map((nom, i) => ({ nom, pts: p.totaux ? p.totaux[i] : 0 }))
+              .sort((a, b) => b.pts - a.pts)[0];
+            return (
+              <ArchiveRow
+                key={p.id}
+                testId="archive-row"
+                onClick={() => navigate(`/historique/${p.id}`)}
+                gauche={
+                  <div className="min-w-0">
+                    <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                      {fmtDate(p.date)}
+                    </span>
+                    <span className="mt-0.5 block truncate text-[13.5px]">{(p.joueurs || []).join(", ")}</span>
+                  </div>
+                }
+                droite={
+                  <div className="shrink-0 text-right">
+                    <span className="block font-mono text-[10px] text-slate-400">{p.nbDonnes} donnes</span>
+                    {meneur && (
+                      <span className="mt-0.5 block font-serif text-[15px] font-bold text-amber-400">
+                        {meneur.nom} {meneur.pts > 0 ? "+" : ""}
+                        {meneur.pts}
+                      </span>
+                    )}
+                  </div>
+                }
+              />
+            );
+          })}
+        </div>
+      )}
+    </Page>
   );
 }

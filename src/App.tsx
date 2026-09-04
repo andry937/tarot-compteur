@@ -6,7 +6,6 @@ import { resoudreNom, resoudreOuCreerFiches } from "./utils/identite";
 import type { Fiche } from "./utils/identite";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, cleArchive } from "./lib/stockage";
 import type { Partie, TirageEnCours, HistoriqueEntree, Annulation } from "./types";
-import { CSS } from "./styles/styles";
 import AppRoutes from "./router/AppRoutes";
 
 export default function App() {
@@ -154,12 +153,7 @@ export default function App() {
     navigate("/historique");
   };
 
-  if (!pret)
-    return (
-      <div className="tarot">
-        <style>{CSS}</style>
-      </div>
-    );
+  if (!pret) return <div className="min-h-screen bg-slate-950" />;
 
   return (
     <AppRoutes

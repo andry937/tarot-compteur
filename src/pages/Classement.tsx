@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { calculerClassementElo } from "../utils/elo";
 import type { ClassementElo } from "../utils/elo";
 import type { PartieAnalysee } from "../utils/stats";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
-import { CSS } from "../styles/styles";
+import { Page, Header, GhostLink, Section, RankRow, Empty } from "../components/ui";
 
 interface ClassementProps {
   roster: Fiche[];
@@ -43,52 +43,29 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
   }, [historiqueIndex.length]);
 
   return (
-    <div className="tarot">
-      <style>{CSS}</style>
-      <div className="t-head">
-        <div>
-          <div className="t-eyebrow">Classement général</div>
-          <h1 className="t-title">Elo</h1>
-        </div>
-        <div className="t-head-actions">
-          <Link className="t-ghost" to="/">
-            Accueil
-          </Link>
-        </div>
-      </div>
+    <Page>
+      <Header eyebrow="Classement général" title="Elo" actions={<GhostLink to="/">Accueil</GhostLink>} />
 
-      {chargement && (
-        <div className="t-setup">
-          <p className="t-intro">Calcul du classement…</p>
-        </div>
-      )}
+      {chargement && <p className="text-sm text-slate-400">Calcul du classement…</p>}
 
       {!chargement && classement && classement.length === 0 && (
-        <div className="t-empty">
-          <p>Aucune partie archivée pour l'instant.</p>
-          <span>Le classement apparaîtra ici dès qu'une feuille sera close</span>
-        </div>
+        <Empty title="Aucune partie archivée pour l'instant." hint="Le classement apparaîtra ici dès qu'une feuille sera close" />
       )}
 
       {!chargement && classement && classement.length > 0 && (
-        <div className="t-classement">
+        <Section>
           {classement.map((c, r) => (
-            <button
+            <RankRow
               key={c.id}
-              className="t-cl-row"
-              style={{ width: "100%", textAlign: "left", cursor: "pointer" }}
+              rang={r + 1}
+              nom={c.nom}
+              meta={`${c.matchs} donne${c.matchs > 1 ? "s" : ""}`}
+              valeur={c.elo}
               onClick={() => navigate(`/joueurs/${c.id}`)}
-            >
-              <span className="t-cl-rang">{r + 1}</span>
-              <span className="t-cl-nom">{c.nom}</span>
-              <span className="t-cl-donnes">
-                {c.matchs} donne{c.matchs > 1 ? "s" : ""}
-              </span>
-              <span className="t-cl-pts">{c.elo}</span>
-            </button>
+            />
           ))}
-        </div>
+        </Section>
       )}
-    </div>
+    </Page>
   );
 }
