@@ -83,6 +83,39 @@ describe("calculerStatsJoueur", () => {
       { archiveId: "p1", date: partie1.date, points: 100, nbDonnes: 2 },
       { archiveId: "p2", date: partie2.date, points: -136, nbDonnes: 1 },
     ]);
+
+    // Trajectoire chronologique et dense : 136 (p1/d0) -> 136-36=100 (p1/d1) -> 100-136=-36 (p2/d0)
+    expect(stats.trajectoire).toEqual([
+      { index: 1, cumul: 136 },
+      { index: 2, cumul: 100 },
+      { index: 3, cumul: -36 },
+    ]);
+  });
+
+  it("trie la trajectoire chronologiquement même si les parties sont reçues dans le désordre, sans changer l'ordre de `parties`", () => {
+    const ancienne: PartieAnalysee = {
+      archiveId: "vieille",
+      date: "2026-01-01T00:00:00.000Z",
+      joueursId: ["a", "b", "c", "d", "e"],
+      donnes: [{ ...donneBase, preneur: 0, appele: 1, points: 60 }], // a preneur, +136
+    };
+    const recente: PartieAnalysee = {
+      archiveId: "neuve",
+      date: "2026-02-01T00:00:00.000Z",
+      joueursId: ["a", "b", "c", "d", "e"],
+      donnes: [{ ...donneBase, preneur: 1, appele: 0, points: 60 }], // a appelé, +68
+    };
+
+    // Reçues récente d'abord, ancienne ensuite.
+    const stats = calculerStatsJoueur("a", [recente, ancienne]);
+
+    // `parties` garde l'ordre reçu en entrée (récente d'abord)...
+    expect(stats.parties.map((p) => p.archiveId)).toEqual(["neuve", "vieille"]);
+    // ...mais la trajectoire reste chronologique (ancienne d'abord).
+    expect(stats.trajectoire).toEqual([
+      { index: 1, cumul: 136 },
+      { index: 2, cumul: 204 },
+    ]);
   });
 
   it("ignore une partie où le joueur n'apparaît pas", () => {
