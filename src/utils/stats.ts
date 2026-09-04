@@ -1,0 +1,154 @@
+/**
+ * Statistiques par joueur, calculées à la volée à partir des parties
+ * archivées (pas d'agrégat stocké). Aucune dépendance React : testable
+ * isolément, comme regles.ts et identite.ts.
+ */
+import { calculer } from "./regles";
+import type { Donne, ResultatDonne, Roi } from "./regles";
+
+export type Role = "preneur" | "appele" | "defense" | "repos";
+
+/** Rôle d'un joueur (par index de siège) sur une donne, à partir du résultat
+ *  déjà calculé — réutilise resultat.table/avecAppele, aucune logique
+ *  dupliquée avec calculer(). */
+export function roleDe(donne: Donne, resultat: ResultatDonne, i: number): Role {
+  if (!resultat.table.includes(i)) return "repos";
+  if (donne.preneur === i) return "preneur";
+  if (resultat.avecAppele && donne.appele === i) return "appele";
+  return "defense";
+}
+
+export interface PartieAnalysee {
+  archiveId: string;
+  date: string;
+  joueursId: string[];
+  donnes: Donne[];
+}
+
+export interface StatsRole {
+  donnes: number;
+  victoires: number;
+}
+
+export interface StatsContrat {
+  contrat: string;
+  fois: number;
+}
+
+export interface StatsRoi {
+  roi: Roi;
+  fois: number;
+}
+
+export interface DonneReference {
+  archiveId: string;
+  date: string;
+  indexDonne: number;
+  points: number;
+}
+
+export interface PartieResume {
+  archiveId: string;
+  date: string;
+  points: number;
+  nbDonnes: number;
+}
+
+export interface StatsJoueur {
+  partiesJouees: number;
+  donneesJouees: number;
+  pointsTotaux: number;
+  parRole: Record<Role, StatsRole>;
+  contratsPreneur: StatsContrat[];
+  roisAppelesParLui: StatsRoi[];
+  foisAppele: number;
+  meilleureDonne: DonneReference | null;
+  pireDonne: DonneReference | null;
+  parties: PartieResume[];
+}
+
+const roleVide = (): StatsRole => ({ donnes: 0, victoires: 0 });
+
+const trierParFrequence = <K extends string>(compte: Map<K, number>) =>
+  [...compte.entries()].sort((a, b) => b[1] - a[1]);
+
+/**
+ * Calcule les statistiques cumulées d'un joueur (par son identifiant)
+ * à travers un ensemble de parties déjà chargées. Une partie où l'id n'est
+ * pas trouvé dans joueursId est ignorée silencieusement (ex. partie qui ne
+ * concerne pas ce joueur).
+ */
+export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[]): StatsJoueur {
+  const parRole: Record<Role, StatsRole> = {
+    preneur: roleVide(),
+    appele: roleVide(),
+    defense: roleVide(),
+    repos: roleVide(),
+  };
+  const contratsCompte = new Map<string, number>();
+  const roisCompte = new Map<Roi, number>();
+  let partiesJouees = 0;
+  let donneesJouees = 0;
+  let pointsTotaux = 0;
+  let foisAppele = 0;
+  let meilleureDonne: DonneReference | null = null;
+  let pireDonne: DonneReference | null = null;
+  const partiesResume: PartieResume[] = [];
+
+  parties.forEach((partie) => {
+    const idx = partie.joueursId.indexOf(joueurId);
+    if (idx === -1) return;
+    const nbTotal = partie.joueursId.length;
+    let joueDansCettePartie = false;
+    let pointsCettePartie = 0;
+
+    partie.donnes.forEach((d, indexDonne) => {
+      const resultat = calculer(d, nbTotal);
+      const role = roleDe(d, resultat, idx);
+      if (role === "repos") return;
+
+      joueDansCettePartie = true;
+      donneesJouees += 1;
+      const points = resultat.scores[idx] as number;
+      pointsTotaux += points;
+      pointsCettePartie += points;
+
+      const victoire = role === "defense" ? !resultat.reussi : resultat.reussi;
+      parRole[role].donnes += 1;
+      if (victoire) parRole[role].victoires += 1;
+
+      if (role === "preneur") {
+        contratsCompte.set(d.contrat, (contratsCompte.get(d.contrat) || 0) + 1);
+        if (d.roiAppele) roisCompte.set(d.roiAppele, (roisCompte.get(d.roiAppele) || 0) + 1);
+      }
+      if (role === "appele") foisAppele += 1;
+
+      const ref: DonneReference = { archiveId: partie.archiveId, date: partie.date, indexDonne, points };
+      if (!meilleureDonne || points > meilleureDonne.points) meilleureDonne = ref;
+      if (!pireDonne || points < pireDonne.points) pireDonne = ref;
+    });
+
+    if (joueDansCettePartie) {
+      partiesJouees += 1;
+      partiesResume.push({
+        archiveId: partie.archiveId,
+        date: partie.date,
+        points: pointsCettePartie,
+        nbDonnes: partie.donnes.length,
+      });
+    }
+  });
+
+  return {
+    partiesJouees,
+    donneesJouees,
+    pointsTotaux,
+    parRole,
+    contratsPreneur: trierParFrequence(contratsCompte).map(([contrat, fois]) => ({ contrat, fois })),
+    roisAppelesParLui: trierParFrequence(roisCompte).map(([roi, fois]) => ({ roi, fois })),
+    foisAppele,
+    meilleureDonne,
+    pireDonne,
+    parties: partiesResume,
+  };
+}
