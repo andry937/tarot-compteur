@@ -199,7 +199,9 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
             </button>
             <div className="flex-1 text-center">
               <b className="font-serif text-4xl font-bold tracking-tight">{points}</b>
-              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">sur 91</span>
+              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                sur 91 · défense {91 - points}
+              </span>
             </div>
             <button
               type="button"
@@ -224,6 +226,15 @@ export default function Saisie({ joueurs, parDonne, tableProposee, total, numero
               ? `Contrat réussi de ${res.ecart} pt${res.ecart > 1 ? "s" : ""}`
               : `Chute de ${res.ecart} pt${res.ecart > 1 ? "s" : ""} — il fallait ${seuil}`}
           </div>
+          {res.defenseurs.length > 0 && (
+            <div className="mt-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
+              <span>Chaque défenseur</span>
+              <b className="font-medium text-slate-100">
+                {(res.scores[res.defenseurs[0]] as number) > 0 ? "+" : ""}
+                {res.scores[res.defenseurs[0]]}
+              </b>
+            </div>
+          )}
         </Field>
 
         <Field>
