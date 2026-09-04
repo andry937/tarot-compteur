@@ -31,6 +31,8 @@ export interface AppRoutesProps {
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
   onNouvellePartie: () => void;
+  onQuitterPartie: () => void;
+  onSupprimerPartie: (id: string) => void;
 }
 
 export default function AppRoutes({
@@ -55,6 +57,8 @@ export default function AppRoutes({
   onEffacerDonne,
   onAjouterAnnulation,
   onNouvellePartie,
+  onQuitterPartie,
+  onSupprimerPartie,
 }: AppRoutesProps) {
   return (
     <Routes>
@@ -75,11 +79,25 @@ export default function AppRoutes({
       />
       <Route
         path="/historique"
-        element={<Historique index={historiqueIndex} roster={roster} onRetour={onRetourHistorique} />}
+        element={
+          <Historique
+            index={historiqueIndex}
+            roster={roster}
+            onRetour={onRetourHistorique}
+            onSupprimer={onSupprimerPartie}
+          />
+        }
       />
       <Route
         path="/historique/:id"
-        element={<Historique index={historiqueIndex} roster={roster} onRetour={onRetourHistorique} />}
+        element={
+          <Historique
+            index={historiqueIndex}
+            roster={roster}
+            onRetour={onRetourHistorique}
+            onSupprimer={onSupprimerPartie}
+          />
+        }
       />
       <Route
         path="/tirage"
@@ -109,6 +127,7 @@ export default function AppRoutes({
               onEffacerDonne={onEffacerDonne}
               onAjouterAnnulation={onAjouterAnnulation}
               onNouvellePartie={onNouvellePartie}
+              onQuitterPartie={onQuitterPartie}
             />
           ) : (
             <Navigate to="/" replace />

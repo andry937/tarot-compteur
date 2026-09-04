@@ -133,4 +133,46 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(premiere.getByText("Andry")).toBeInTheDocument();
     expect(premiere.getByText("200")).toBeInTheDocument();
   }, 15000);
+
+  it("Accueil quitte la partie en cours sans l'archiver dans l'historique", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await lancerPartieJusquaLaFeuille(u);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    // "Accueil" -> confirmation -> abandon sans archivage
+    await u.click(screen.getByRole("button", { name: "Accueil" }));
+    await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
+
+    await screen.findByText("Feuille de marque");
+    expect(screen.getByRole("button", { name: /joueur.*à nommer/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Historique" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Historique \(/ })).not.toBeInTheDocument();
+  });
+
+  it("supprime une partie archivée depuis l'écran détail", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await lancerPartieJusquaLaFeuille(u);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    await u.click(screen.getByRole("button", { name: "Nouvelle" }));
+    await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
+
+    await u.click(await screen.findByRole("link", { name: /Historique \(1\)/ }));
+    const ligne = document.querySelector(".t-archive-row") as HTMLElement;
+    await u.click(ligne);
+
+    await screen.findByText("Classement final");
+    await u.click(screen.getByRole("button", { name: "Supprimer" }));
+    await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
+
+    await screen.findByText("Aucune partie archivée.");
+  }, 15000);
 });

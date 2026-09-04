@@ -10,13 +10,26 @@ interface HistoriqueProps {
   index: HistoriqueEntree[];
   roster: Fiche[];
   onRetour: () => void;
+  onSupprimer: (id: string) => void;
 }
 
-export default function Historique({ index, roster, onRetour }: HistoriqueProps) {
+export default function Historique({ index, roster, onRetour, onSupprimer }: HistoriqueProps) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [record, setRecord] = useState<ArchiveRecord | null>(null);
   const [chargement, setChargement] = useState(false);
+  const [confirmerSuppression, setConfirmerSuppression] = useState(false);
+
+  const surSupprimer = () => {
+    if (!id) return;
+    if (!confirmerSuppression) {
+      setConfirmerSuppression(true);
+      setTimeout(() => setConfirmerSuppression(false), 4000);
+      return;
+    }
+    setConfirmerSuppression(false);
+    onSupprimer(id);
+  };
 
   useEffect(() => {
     if (!id) {
@@ -54,6 +67,9 @@ export default function Historique({ index, roster, onRetour }: HistoriqueProps)
             </Link>
             <button className="t-ghost" onClick={() => navigate("/historique")}>
               Retour
+            </button>
+            <button className="t-ghost" onClick={surSupprimer}>
+              {confirmerSuppression ? "Confirmer ?" : "Supprimer"}
             </button>
           </div>
         </div>
