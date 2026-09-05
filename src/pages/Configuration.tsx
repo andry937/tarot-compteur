@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
@@ -18,6 +18,26 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
   const [fusionDepuis, setFusionDepuis] = useState<string | null>(null);
   const [erreurFusion, setErreurFusion] = useState<string | null>(null);
   const [voirDesactives, setVoirDesactives] = useState(false);
+  const [menuOuvert, setMenuOuvert] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOuvert) return;
+    const fermerSiExterieur = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOuvert(null);
+      }
+    };
+    const fermerSurEchap = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOuvert(null);
+    };
+    document.addEventListener("mousedown", fermerSiExterieur);
+    document.addEventListener("keydown", fermerSurEchap);
+    return () => {
+      document.removeEventListener("mousedown", fermerSiExterieur);
+      document.removeEventListener("keydown", fermerSurEchap);
+    };
+  }, [menuOuvert]);
 
   const comptes: Record<string, number> = {};
   historiqueIndex.forEach((h) => {
@@ -72,7 +92,9 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
           <div
             key={f.id}
             data-testid="roster-row"
-            className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800 py-3.5 last:border-0"
+            className={`flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-800 py-3.5 last:border-0 ${
+              menuOuvert === f.id ? "relative z-10" : ""
+            }`}
           >
             {renommage === f.id ? (
               <div className="w-full">
@@ -125,37 +147,60 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
                     {comptes[f.id] || 0} partie{(comptes[f.id] || 0) > 1 ? "s" : ""}
                   </small>
                 </div>
-                <div className="flex flex-wrap gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                   <Link
                     className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
                     to={`/joueurs/${f.id}`}
                   >
                     Stats
                   </Link>
-                  <button
-                    type="button"
-                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
-                    onClick={() => {
-                      setRenommage(f.id);
-                      setTexteRenommage(f.nom);
-                    }}
-                  >
-                    Renommer
-                  </button>
-                  <button
-                    type="button"
-                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
-                    onClick={() => setFusionDepuis(f.id)}
-                  >
-                    Fusionner
-                  </button>
-                  <button
-                    type="button"
-                    className="font-mono text-[11px] uppercase tracking-wider text-slate-400 hover:text-white"
-                    onClick={() => basculerActif(f.id)}
-                  >
-                    Désactiver
-                  </button>
+                  <div className="relative" ref={menuOuvert === f.id ? menuRef : undefined}>
+                    <button
+                      type="button"
+                      aria-label="Plus d'actions"
+                      aria-haspopup="true"
+                      aria-expanded={menuOuvert === f.id}
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-base text-slate-400 transition-colors hover:bg-slate-800 hover:text-white"
+                      onClick={() => setMenuOuvert((cur) => (cur === f.id ? null : f.id))}
+                    >
+                      ⋮
+                    </button>
+                    {menuOuvert === f.id && (
+                      <div className="absolute right-0 top-full z-10 mt-1 w-40 divide-y divide-slate-800 overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-lg shadow-black/40">
+                        <button
+                          type="button"
+                          className="block w-full px-3.5 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:bg-slate-800 hover:text-white"
+                          onClick={() => {
+                            setRenommage(f.id);
+                            setTexteRenommage(f.nom);
+                            setMenuOuvert(null);
+                          }}
+                        >
+                          Renommer
+                        </button>
+                        <button
+                          type="button"
+                          className="block w-full px-3.5 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:bg-slate-800 hover:text-white"
+                          onClick={() => {
+                            setFusionDepuis(f.id);
+                            setMenuOuvert(null);
+                          }}
+                        >
+                          Fusionner
+                        </button>
+                        <button
+                          type="button"
+                          className="block w-full px-3.5 py-2.5 text-left font-mono text-[11px] uppercase tracking-wider text-slate-300 hover:bg-slate-800 hover:text-white"
+                          onClick={() => {
+                            basculerActif(f.id);
+                            setMenuOuvert(null);
+                          }}
+                        >
+                          Désactiver
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </>
             )}
