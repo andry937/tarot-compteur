@@ -4,7 +4,7 @@
  * isolément, comme regles.ts et identite.ts.
  */
 import { calculer } from "./regles";
-import type { Donne, ResultatDonne, Roi } from "./regles";
+import type { Bout, Donne, ResultatDonne, Roi } from "./regles";
 
 export type Role = "preneur" | "appele" | "defense" | "repos";
 
@@ -49,6 +49,7 @@ export interface AppelPreneur {
   indexDonne: number;
   contrat: string;
   bouts: 0 | 1 | 2 | 3;
+  boutsPrecis: Bout[];
   /** Points bruts réalisés par l'attaque sur cette donne (sur 91) — pas le
    * score signé (`resultat.scores[idx]`, déjà utilisé ailleurs dans ce
    * fichier pour les totaux) : c'est bien `d.points` qu'il faut lire ici. */
@@ -159,6 +160,7 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
           indexDonne,
           contrat: d.contrat,
           bouts: d.bouts,
+          boutsPrecis: d.boutsPrecis ?? [],
           points: d.points, // brut, pas `points` (le score signé de la donne)
           reussi,
         };
