@@ -122,7 +122,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await screen.findByRole("link", { name: /Historique \(1\)/ });
     await u.click(screen.getByRole("link", { name: /Historique \(1\)/ }));
 
-    await u.click(screen.getByTestId("archive-row"));
+    await u.click(await screen.findByTestId("archive-row"));
 
     await screen.findByText("Classement final");
     const lignesClassement = screen.getAllByTestId("classement-row");
@@ -196,7 +196,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     await u.click(await screen.findByRole("link", { name: /Historique \(1\)/ }));
-    await u.click(screen.getByTestId("archive-row"));
+    await u.click(await screen.findByTestId("archive-row"));
 
     await screen.findByText("Classement final");
     await u.click(screen.getByRole("button", { name: "Supprimer" }));
