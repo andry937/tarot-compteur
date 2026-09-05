@@ -40,6 +40,16 @@ export const NOM_ROI: Record<Roi, string> = {
   pique: "Pique",
 };
 
+/** Un bout précis (Petit, 21 ou Excuse) — distinct du simple compte
+ * `Donne.bouts` (0-3), qui ne dit pas lesquels l'attaque détenait. */
+export type Bout = "petit" | "21" | "excuse";
+
+export const NOM_BOUT: Record<Bout, string> = {
+  petit: "Le Petit",
+  "21": "Le 21",
+  excuse: "L'Excuse",
+};
+
 export interface Misere {
   id: string;
   joueur: number;
@@ -54,6 +64,11 @@ export interface Donne {
   appele: number | null;
   contrat: string;
   bouts: 0 | 1 | 2 | 3;
+  /** Lesquels précisément, parmi les `bouts` détenus par l'attaque (obtenus
+   * dans le chien ou capturés en jouant) — absent sur les donnes archivées
+   * avant l'introduction de ce champ. N'intervient pas dans `calculer()` :
+   * purement informatif, pour les statistiques. */
+  boutsPrecis?: Bout[];
   points: number;
   petitAuBout: PetitAuBout;
   /** @deprecated ancien champ (poignée unique, non nominative) — conservé en lecture

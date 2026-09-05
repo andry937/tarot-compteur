@@ -218,6 +218,16 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 - Seuils par bouts : 0→56, 1→51, 2→41, 3→36 ; score de base =
   `(25 + écart) × contrat`
 - Petit au bout (±10×contrat), chelem (200/400/−200)
+- **Bouts précis** (`boutsPrecis?: Bout[]` sur la donne, `Bout = "petit" | "21" | "excuse"`,
+  `NOM_BOUT` dans `regles.ts`) : en plus du simple compte `bouts` (0-3, qui
+  seul détermine le seuil via `SEUILS` et n'est pas remis en cause), un
+  champ optionnel indique *lesquels* précisément l'attaque détenait (au
+  chien ou capturés en jouant) — saisi via un sélecteur multiple dédié
+  dans `Saisie.tsx`, indépendant du compteur `bouts` (pas de validation
+  croisée entre les deux : à l'utilisateur de rester cohérent, comme pour
+  le reste de la saisie). N'intervient pas dans `calculer()` : purement
+  informatif, affiché dans les stats du joueur (voir plus bas). Absent sur
+  les donnes archivées avant son introduction.
 - **Poignée** (20/30/40, simple/double/triple) : nominative — chaque
   déclaration porte le joueur qui l'a montrée (`poignees: PoigneeDeclaree[]`
   sur la donne, formulaire en liste dans `Saisie.tsx`, même pattern que
@@ -262,10 +272,28 @@ général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
 réordonner les sièges, persistance Firestore, passphrase partagé (Firebase
 Auth), menu « Plus d'actions » sur l'écran Joueurs, appels réussis/échoués
-sur la fiche joueur, refonte visuelle Tailwind (responsive), CI GitHub
-Actions, code-splitting des écrans à Recharts, suite de tests complète.
-**Toutes les issues initialement listées sont closes** (#7, #8, #9, #10,
-#11) — pas de backlog ouvert sur le dépôt pour l'instant.
+sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
+(responsive), CI GitHub Actions, code-splitting des écrans à Recharts,
+suite de tests complète. **Toutes les issues initialement listées sont
+closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
+l'instant.
+
+**Bouts précis sur les appels de la fiche joueur** (`utils/regles.ts`,
+`Saisie.tsx`, `utils/stats.ts`, `FicheJoueur.tsx`) : le compte `bouts`
+(0-3) ne dit pas *lesquels* l'attaque détenait (Le Petit ? Le 21 ?
+L'Excuse ?) — ces bouts auraient pu être obtenus dans le chien ou
+capturés en jouant, sans que le simple compte le distingue. Nouveau champ
+optionnel `boutsPrecis?: Bout[]` sur la donne (`Bout = "petit" | "21" |
+"excuse"`), saisi via un sélecteur multiple dédié dans `Saisie.tsx`
+(« Bouts précis du preneur », juste après le compteur existant) —
+volontairement indépendant du compteur `bouts` : pas de validation
+croisée entre les deux champs, cohérent avec le reste de la saisie qui
+fait confiance à l'utilisateur plutôt que de recouper les données
+(`calculer()` n'est pas modifié, ce champ est purement informatif). Ajouté
+à `AppelPreneur` dans `utils/stats.ts` (`d.boutsPrecis ?? []` pour les
+donnes archivées avant son introduction) et affiché entre parenthèses sur
+chaque ligne des listes « Appels réussis »/« Appels échoués » de la fiche
+joueur (ex. « Garde · 1 bout (Le Petit) »).
 
 **Appels réussis/échoués sur la fiche joueur** (`utils/stats.ts`,
 `pages/FicheJoueur.tsx`) : remplace « Contrats de prédilection » (un
@@ -484,7 +512,7 @@ réutilise directement le `ResultatDonne` déjà calculé. Gère la résolution
 de fusion (cluster de tous les identifiants qui redirigent vers la même
 fiche, sinon les donnes jouées sous l'ancienne identité disparaîtraient).
 Affiche : points totaux, décomposition par rôle (nb + taux de victoire),
-appels réussis/échoués (contrat, bouts, points réalisés), rois appelés, nombre de
+appels réussis/échoués (contrat, bouts, bouts précis si connus, points réalisés), rois appelés, nombre de
 fois appelé, meilleure/pire donne, liste des parties avec renvoi vers
 l'archive.
 
