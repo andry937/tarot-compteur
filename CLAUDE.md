@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (67 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (71 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -64,8 +64,10 @@ src/
   lib/
     stockage.ts               clés de persistance centralisées (encapsule window.storage)
     window-storage.d.ts        typage global de l'API window.storage
-    firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*)
-    firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage
+    firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*) ;
+                                `auth` reste `null` sans VITE_FIREBASE_API_KEY (config absente)
+    firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage ; exporte aussi
+                                DELAI_MS, réutilisé par AuthGate.tsx
   router/
     AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel) ;
                                 charge Feuille/FicheJoueur/Historique via React.lazy (voir Conventions)
@@ -90,17 +92,22 @@ src/
     Saisie.tsx                 formulaire modal de saisie d'une donne, aussi utilisé pour en
                                 modifier une existante (prop donneInitiale) — dans Feuille
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
+    Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
+                                tant qu'aucun utilisateur Firebase Auth n'est connecté
   App.tsx                     composant racine : état partagé, effets de persistance
-  main.tsx                    monte <App /> dans <BrowserRouter>, importe index.css
+  AuthGate.tsx                  bascule connecté/non connecté (Firebase Auth) : affiche Verrou.tsx
+                                ou <App/> selon onAuthStateChanged — voir Persistance/Firebase
+  main.tsx                    monte <AuthGate /> dans <BrowserRouter>, importe index.css
 
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (35 tests)
   stats.test.ts                unitaires : utils/stats.ts (8 tests)
-  elo.test.ts                  unitaires : utils/elo.ts (7 tests)
+  elo.test.ts                  unitaires : utils/elo.ts (8 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
+  authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
@@ -150,25 +157,32 @@ dépôt) :
    `projectId`, …) — ces valeurs ne sont pas secrètes, mais vont dans
    `.env` (jamais commité) pour changer de projet entre le poste de dev
    et Vercel sans toucher au code. Voir `.env.example`.
-4. Règles Firestore (Firestore Database > Règles) — l'app n'a pas de
-   compte utilisateur, donc pas d'auth possible côté règles ; à défaut,
-   limiter l'accès à la seule collection utilisée :
+4. **Passphrase partagé (Firebase Auth)** : Authentication > Sign-in method
+   > activer le fournisseur « Email/Password ». Puis Authentication >
+   Users > Add user, avec l'email choisi dans `VITE_TAROT_AUTH_EMAIL`
+   (`.env.example` — un simple identifiant, pas un secret) et **le mot de
+   passe de ce compte = le passphrase partagé** (jamais dans ce dépôt).
+   Toute la table se connecte avec ce même compte (voir `AuthGate.tsx`,
+   `components/Verrou.tsx`).
+5. Règles Firestore (Firestore Database > Règles) — exiger une connexion
+   (n'importe quel compte du projet, donc seulement celui créé ci-dessus) :
    ```
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
        match /tarotStorage/{document} {
-         allow read, write: if true;
+         allow read, write: if request.auth != null;
        }
      }
    }
    ```
-   Ces règles restent ouvertes en lecture/écriture (pas d'authentification
-   dans l'app) : acceptable pour un outil de comptage entre amis sans
-   donnée sensible, mais à savoir — n'importe qui connaissant la config du
-   projet peut lire/écrire cette collection.
-5. Sur Vercel : Project Settings > Environment Variables, renseigner les
-   mêmes `VITE_FIREBASE_*` que dans `.env.example`.
+   Sans le compte Auth créé à l'étape 4 (ou avec l'ancienne règle
+   `allow read, write: if true`), n'importe qui connaissant la config du
+   projet peut lire/écrire directement cette collection, hors de l'app —
+   ce que ces règles ferment désormais.
+6. Sur Vercel : Project Settings > Environment Variables, renseigner les
+   mêmes `VITE_FIREBASE_*` et `VITE_TAROT_AUTH_EMAIL` que dans
+   `.env.example`.
 
 ## Modèle de données
 
@@ -246,11 +260,48 @@ repos, tirage du donneur (aléatoire + désignation manuelle), historique +
 archives en lecture seule, suppression d'une partie archivée, classement
 général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
-réordonner les sièges, persistance Firestore, refonte visuelle Tailwind
-(responsive), CI GitHub Actions, code-splitting des écrans à Recharts,
-suite de tests complète. **Toutes les issues initialement listées sont
-closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
-l'instant.
+réordonner les sièges, persistance Firestore, passphrase partagé (Firebase
+Auth), refonte visuelle Tailwind (responsive), CI GitHub Actions,
+code-splitting des écrans à Recharts, suite de tests complète. **Toutes
+les issues initialement listées sont closes** (#7, #8, #9, #10, #11) —
+pas de backlog ouvert sur le dépôt pour l'instant.
+
+**Passphrase partagé** (`AuthGate.tsx`, `components/Verrou.tsx`,
+`lib/firebase.ts`) : jusqu'ici, les règles Firestore restaient ouvertes en
+lecture/écriture (`allow read, write: if true`) faute d'authentification
+dans l'app — n'importe qui connaissant la config publique du projet
+pouvait lire/écrire directement la collection, sans même passer par l'app.
+Ajout de Firebase Auth (fournisseur email/mot de passe, un seul compte
+partagé par toute la table — voir Persistance/Firebase) : `AuthGate.tsx`
+n'affiche `<App/>` que si `onAuthStateChanged` rapporte un utilisateur
+connecté, sinon `Verrou.tsx` (écran de saisie du passphrase, qui appelle
+`signInWithEmailAndPassword` avec l'email fixe `VITE_TAROT_AUTH_EMAIL` et
+le passphrase saisi comme mot de passe). Les règles Firestore passent à
+`allow read, write: if request.auth != null` : sans passphrase, plus aucun
+accès, dans l'app ou en dehors.
+
+Deux pièges découverts en testant sans `.env` réel (déjà le cas toléré
+partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
+« eager » que Firestore à l'initialisation :
+- `getAuth()` démarre en interne un traitement asynchrone dès sa
+  construction (indépendamment de tout appel à `onAuthStateChanged`) ; une
+  clé API absente/vide le fait échouer via une `FirebaseError` non
+  interceptable proprement, qui plantait tout le rendu React au lieu
+  d'afficher le verrou. `lib/firebase.ts` laisse donc `auth` à `null` sans
+  `VITE_FIREBASE_API_KEY`, plutôt que de construire un `Auth` invalide —
+  `AuthGate.tsx`/`Verrou.tsx` traitent ce cas comme une config manquante
+  (message dédié), pas comme une erreur de passphrase. Une config
+  présente-mais-invalide (projet Firebase supprimé, etc.) reste un cas non
+  couvert, hors périmètre ici.
+- Le tout premier callback d'`onAuthStateChanged` suppose un minimum de
+  réseau (détection de l'environnement) ; réseau coupé/lent le laisse en
+  attente indéfiniment, ce qui bloquerait l'écran sur le fond vide affiché
+  pendant le chargement, pour toujours. `AuthGate.tsx` réutilise le même
+  délai que `firestoreStorage.ts` (`DELAI_MS`, exporté pour l'occasion) :
+  passé ce délai sans nouvelle du SDK, on retombe sur « non connecté »
+  (échec fermé, cohérent avec l'objectif de sécurité) plutôt que de rester
+  bloqué ; si le callback finit par arriver plus tard, il met quand même à
+  jour l'état normalement.
 
 **Code-splitting des écrans à Recharts** (`router/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
