@@ -31,7 +31,9 @@ import { db } from "./firebase";
 import type { WindowStorage } from "./window-storage";
 
 const COLLECTION = "tarotStorage";
-const DELAI_MS = 8000;
+// Exporté : AuthGate.tsx applique le même délai à onAuthStateChanged, pour la
+// même raison (réseau coupé/lent ne doit pas bloquer indéfiniment l'app).
+export const DELAI_MS = 8000;
 
 function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T> {
   return Promise.race([

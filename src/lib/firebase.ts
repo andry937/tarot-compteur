@@ -8,6 +8,7 @@
  */
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -20,3 +21,10 @@ const firebaseConfig = {
 
 export const firebaseApp = initializeApp(firebaseConfig);
 export const db = getFirestore(firebaseApp);
+// getAuth() démarre en interne un processus asynchrone (persistance/session)
+// dès sa construction, indépendamment de tout appel à onAuthStateChanged —
+// sans clé API (config absente, ex. .env manquant), ça plante tout le rendu
+// React via une FirebaseError non interceptée. `null` dans ce cas précis ;
+// AuthGate.tsx/Verrou.tsx gèrent ce cas comme "config absente" (même famille
+// que l'absence de .env déjà tolérée ailleurs).
+export const auth = import.meta.env.VITE_FIREBASE_API_KEY ? getAuth(firebaseApp) : null;
