@@ -3,11 +3,21 @@
  *
  * Modèle retenu (issue #10) : un match par donne archivée, pas par partie.
  * Attaque (preneur + appelé le cas échéant) contre défense. Un seul Elo
- * global par joueur, pas de distinction par rôle. La comparaison à plusieurs
- * contre un (défense à 3 ou 4 contre 1 preneur) est traitée en calculant
- * l'espérance de gain sur la moyenne des Elo de chaque camp, puis en
- * appliquant le même delta à chaque membre du camp — sans le diviser entre
- * les membres.
+ * global par joueur. La comparaison à plusieurs contre un (défense à 3 ou 4
+ * contre 1 preneur) est traitée en calculant l'espérance de gain sur la
+ * moyenne des Elo de chaque camp (côté défense, le même delta est ensuite
+ * appliqué à chaque défenseur, sans le diviser entre eux).
+ *
+ * Côté attaque, le preneur porte plus de responsabilité que l'appelé (c'est
+ * lui qui annonce le contrat) : le delta du camp est réparti 2 parts pour le
+ * preneur, 1 part pour l'appelé — même ratio que la répartition des points
+ * réels de la donne (`calculer()` : `2×base`/`1×base`) — plutôt que de
+ * l'appliquer identique aux deux comme pour la défense. Cette répartition
+ * est normalisée pour que sa moyenne reste égale au delta du camp : seule la
+ * répartition interne entre preneur et appelé change, pas l'ampleur globale
+ * du gain/perte de l'attaque. L'espérance de gain, elle, reste basée sur une
+ * moyenne simple (non pondérée) des Elo du camp attaque — seul le résultat
+ * a posteriori distingue les deux rôles, pas la prédiction.
  *
  * Résultat continu plutôt que binaire : au lieu de simplement gagné/chuté,
  * le résultat de l'attaque est dérivé du score brut de la donne
@@ -92,8 +102,15 @@ export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]
       const reel = resultatContinu(res.base);
       const delta = ELO_K * (reel - espere);
 
-      attaque.forEach((id) => {
-        elos.set(id, noteDe(id) + delta);
+      // Répartition 2 parts (preneur) / 1 part (appelé) du delta du camp
+      // attaque — même ratio que les points réels — normalisée pour que la
+      // moyenne des facteurs reste 1 (donc la moyenne des deltas
+      // individuels égale au delta du camp calculé ci-dessus).
+      const poidsAttaque = res.avecAppele ? [2, 1] : [1];
+      const sommePoids = poidsAttaque.reduce((a, b) => a + b, 0);
+      attaque.forEach((id, idx) => {
+        const facteur = (poidsAttaque[idx] * poidsAttaque.length) / sommePoids;
+        elos.set(id, noteDe(id) + delta * facteur);
         matchs.set(id, (matchs.get(id) || 0) + 1);
       });
       defense.forEach((id) => {
