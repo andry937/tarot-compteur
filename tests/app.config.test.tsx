@@ -85,6 +85,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneBob = screen.getByText("Bob").closest('[data-testid="roster-row"]') as HTMLElement;
+    await u.click(within(ligneBob).getByRole("button", { name: "Plus d'actions" }));
     await u.click(within(ligneBob).getByText("Renommer"));
     const champ = screen.getByDisplayValue("Bob");
     await u.clear(champ);
@@ -107,6 +108,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneAndry = screen.getByText("Andry").closest('[data-testid="roster-row"]') as HTMLElement;
+    await u.click(within(ligneAndry).getByRole("button", { name: "Plus d'actions" }));
     await u.click(within(ligneAndry).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Bob" }));
 
@@ -129,6 +131,7 @@ describe("Écran de configuration du trombinoscope", () => {
     await screen.findByRole("heading", { name: "Joueurs" });
 
     const ligneBob = screen.getByText("Bob").closest('[data-testid="roster-row"]') as HTMLElement;
+    await u.click(within(ligneBob).getByRole("button", { name: "Plus d'actions" }));
     await u.click(within(ligneBob).getByText("Fusionner"));
     await u.click(screen.getByRole("button", { name: "Andry" }));
 
