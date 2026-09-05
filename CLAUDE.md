@@ -261,10 +261,31 @@ archives en lecture seule, suppression d'une partie archivée, classement
 général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
 réordonner les sièges, persistance Firestore, passphrase partagé (Firebase
-Auth), refonte visuelle Tailwind (responsive), CI GitHub Actions,
-code-splitting des écrans à Recharts, suite de tests complète. **Toutes
-les issues initialement listées sont closes** (#7, #8, #9, #10, #11) —
-pas de backlog ouvert sur le dépôt pour l'instant.
+Auth), menu « Plus d'actions » sur l'écran Joueurs, refonte visuelle
+Tailwind (responsive), CI GitHub Actions, code-splitting des écrans à
+Recharts, suite de tests complète. **Toutes les issues initialement
+listées sont closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur
+le dépôt pour l'instant.
+
+**Menu « Plus d'actions » sur l'écran Joueurs** (`pages/Configuration.tsx`) :
+chaque ligne du trombinoscope actif affichait quatre actions toujours
+visibles à plat (Stats, Renommer, Fusionner, Désactiver), alors que Stats
+est de loin la plus utilisée en pratique. Seul « Stats » reste un lien
+visible en permanence ; les trois autres sont désormais regroupées
+derrière un bouton pictogramme (« ⋮ », `aria-label="Plus d'actions"`) qui
+déploie un petit menu ancré à la ligne. Reste local à `Configuration.tsx`
+(nouvel état `menuOuvert: string | null`, même pattern à un seul élément
+ouvert que `renommage`/`fusionDepuis`) plutôt qu'extrait dans
+`components/ui.tsx` : aucun autre écran n'a besoin d'un menu de ce type
+pour l'instant, donc pas de primitive générique prématurée. Fermeture au
+clic extérieur ou à Échap via un unique effet document-level, actif
+seulement pendant qu'un menu est ouvert. Choisir une action dans le menu
+le ferme et déclenche exactement le même comportement qu'avant
+(`renommer`, `fusionner`, `basculerActif` inchangés — pure réorganisation
+d'UI, y compris le style neutre du bouton « Désactiver », identique aux
+deux autres). `tests/app.config.test.tsx` ouvre désormais explicitement
+ce menu (clic sur le bouton « Plus d'actions » de la ligne) avant de
+cliquer sur « Renommer »/« Fusionner ».
 
 **Passphrase partagé** (`AuthGate.tsx`, `components/Verrou.tsx`,
 `lib/firebase.ts`) : jusqu'ici, les règles Firestore restaient ouvertes en
