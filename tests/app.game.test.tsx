@@ -16,8 +16,9 @@ async function ouvrirSetup(): Promise<UserEvent> {
   return utilisateur;
 }
 
-/** Remplit les 4 sièges vides (le 1er, "Andry", est déjà rempli) avec les noms donnés. */
+/** Remplit les 5 sièges (le 1er avec "Andry", les suivants avec les noms donnés). */
 async function remplirSieges(utilisateur: UserEvent, noms: string[]) {
+  await utilisateur.type(screen.getByPlaceholderText("Joueur 1"), "Andry");
   for (let i = 0; i < noms.length; i++) {
     const champ = screen.getByPlaceholderText(`Joueur ${i + 2}`);
     await utilisateur.type(champ, noms[i]);
