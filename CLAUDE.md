@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (71 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (72 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -102,7 +102,7 @@ src/
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
   rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (35 tests)
-  stats.test.ts                unitaires : utils/stats.ts (8 tests)
+  stats.test.ts                unitaires : utils/stats.ts (9 tests)
   elo.test.ts                  unitaires : utils/elo.ts (8 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
@@ -261,11 +261,25 @@ archives en lecture seule, suppression d'une partie archivée, classement
 général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
 réordonner les sièges, persistance Firestore, passphrase partagé (Firebase
-Auth), menu « Plus d'actions » sur l'écran Joueurs, refonte visuelle
-Tailwind (responsive), CI GitHub Actions, code-splitting des écrans à
-Recharts, suite de tests complète. **Toutes les issues initialement
-listées sont closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur
-le dépôt pour l'instant.
+Auth), menu « Plus d'actions » sur l'écran Joueurs, appels réussis/échoués
+sur la fiche joueur, refonte visuelle Tailwind (responsive), CI GitHub
+Actions, code-splitting des écrans à Recharts, suite de tests complète.
+**Toutes les issues initialement listées sont closes** (#7, #8, #9, #10,
+#11) — pas de backlog ouvert sur le dépôt pour l'instant.
+
+**Appels réussis/échoués sur la fiche joueur** (`utils/stats.ts`,
+`pages/FicheJoueur.tsx`) : remplace « Contrats de prédilection » (un
+classement par type de contrat jugé peu utile) par une vue centrée sur la
+performance des appels — combien de donnes prises comme preneur ont
+réussi ou chuté, avec pour chacune le nombre de bouts et les points bruts
+réalisés (sur 91, pas le score signé de la donne). Nouveau type
+`AppelPreneur` (remplace `StatsContrat`), alimenté dans la même boucle que
+le reste de `calculerStatsJoueur` (aucune passe supplémentaire). Affiché
+en trois blocs : un résumé agrégé (compte + moyennes de bouts/points par
+issue), puis deux listes détaillées « Appels réussis »/« Appels échoués »
+(une ligne par donne, triée du plus récent au plus ancien comme « Parties
+jouées », avec renvoi vers l'archive via `ArchiveRow` — même pattern que
+la liste des parties, à la granularité de la donne).
 
 **Menu « Plus d'actions » sur l'écran Joueurs** (`pages/Configuration.tsx`) :
 chaque ligne du trombinoscope actif affichait quatre actions toujours
@@ -469,8 +483,9 @@ réutilise directement le `ResultatDonne` déjà calculé. Gère la résolution
 de fusion (cluster de tous les identifiants qui redirigent vers la même
 fiche, sinon les donnes jouées sous l'ancienne identité disparaîtraient).
 Affiche : points totaux, décomposition par rôle (nb + taux de victoire),
-contrats de prédilection, rois appelés, nombre de fois appelé,
-meilleure/pire donne, liste des parties avec renvoi vers l'archive.
+appels réussis/échoués (bouts, points réalisés), rois appelés, nombre de
+fois appelé, meilleure/pire donne, liste des parties avec renvoi vers
+l'archive.
 
 **Classement général Elo** (issue #10, `utils/elo.ts`, écran `Classement.tsx`,
 route `/classement`, lien depuis `CompositionTable.tsx`) : décisions prises
