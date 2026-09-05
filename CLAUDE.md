@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (72 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (74 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -92,6 +92,8 @@ src/
     Saisie.tsx                 formulaire modal de saisie d'une donne, aussi utilisé pour en
                                 modifier une existante (prop donneInitiale) — dans Feuille
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
+    ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
+                                partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
     Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
                                 tant qu'aucun utilisateur Firebase Auth n'est connecté
   App.tsx                     composant racine : état partagé, effets de persistance
@@ -108,6 +110,7 @@ tests/
   app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
   authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
+  eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
@@ -277,6 +280,37 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Le preneur gagne/perd plus d'Elo que l'appelé** (`utils/elo.ts`) : jusqu'ici
+le delta d'une donne était appliqué identique au preneur et à l'appelé, alors
+que le preneur porte plus de responsabilité (c'est lui qui annonce le
+contrat) et touche déjà 2 fois plus de points réels que l'appelé
+(`calculer()`). Le delta du camp attaque (inchangé dans son calcul) est
+maintenant réparti 2 parts pour le preneur, 1 part pour l'appelé — même
+ratio que les points réels — normalisée pour que la moyenne des deux deltas
+individuels reste égale au delta du camp (facteur `4/3` pour le preneur,
+`2/3` pour l'appelé) : la magnitude globale du gain/perte de l'attaque ne
+change pas, seule sa répartition interne. L'espérance de gain reste
+volontairement une moyenne simple (non pondérée) des Elo du camp — seul le
+résultat a posteriori distingue les deux rôles, pas la prédiction avant la
+donne. `components/ExplicationElo.tsx` documente ce ratio en langage
+courant.
+
+**Explication du classement Elo + Elo affiché sur la fiche joueur**
+(`components/ExplicationElo.tsx`, `pages/Classement.tsx`,
+`pages/FicheJoueur.tsx`) : le classement Elo (`utils/elo.ts`) n'avait
+jusqu'ici aucune explication en app de son fonctionnement — seul
+`CLAUDE.md` (lu par les développeurs, pas par les joueurs) documentait la
+logique. Nouveau composant partagé `ExplicationElo.tsx` (même pattern de
+bloc repliable `<details>` que « Comment les points sont comptés » dans
+`Feuille.tsx`), texte vulgarisé sans noms de fonctions, affiché tel quel
+en bas de `Classement.tsx` et de `FicheJoueur.tsx`. La fiche joueur affiche
+en plus une nouvelle section « Classement Elo » avec l'Elo actuel du
+joueur consulté (absent jusqu'ici de cet écran) : son effet de chargement
+des archives, qui ne récupérait auparavant que les parties de ce joueur,
+charge désormais tout `historiqueIndex` (l'Elo étant global, son calcul a
+besoin de toutes les donnes archivées, pas seulement celles de ce joueur)
+— même fetch non filtré que fait déjà `Classement.tsx`.
 
 **Bouts précis sur les appels de la fiche joueur** (`utils/regles.ts`,
 `Saisie.tsx`, `utils/stats.ts`, `FicheJoueur.tsx`) : le compte `bouts`
@@ -533,7 +567,9 @@ en discussion avant développement (le tarot n'étant pas un jeu 1v1, l'Elo
 classique ne s'applique pas directement) —
 - un match par **donne** archivée, pas par partie complète (plus de
   données, cohérent avec le calcul par-donne déjà fait dans `stats.ts`) ;
-- un seul Elo **global** par joueur, pas de distinction par rôle ;
+- un seul Elo **global** par joueur (pas d'Elo séparé par rôle), mais le
+  gain/perte d'une donne distingue quand même preneur et appelé (voir plus
+  bas) ;
 - match = attaque (preneur + appelé le cas échéant) contre défense ;
   résultat **continu**, pas binaire (affiné après un premier retour
   utilisateur sur la PR #10) : dérivé du score brut signé de la donne
@@ -547,8 +583,17 @@ classique ne s'applique pas directement) —
   seulement le fait de réussir ou chuter ;
 - plusieurs contre un (ex. 3 défenseurs contre 1 preneur) : espérance de
   gain calculée sur la **moyenne** des Elo de chaque camp (formule Elo
-  standard), puis le même delta est appliqué à chaque membre du camp, sans
-  le diviser entre les membres ;
+  standard) ; côté défense, le même delta est ensuite appliqué à chaque
+  défenseur, sans le diviser entre eux ;
+- côté attaque en revanche, le preneur et l'appelé ne reçoivent pas le même
+  delta : répartition pondérée 2 parts (preneur) / 1 part (appelé) — même
+  ratio que la répartition des points réels de la donne (`calculer()` :
+  `2×base`/`1×base`) — normalisée pour que la moyenne des deux deltas
+  individuels reste égale au delta du camp (donc `4/3` pour le preneur,
+  `2/3` pour l'appelé). L'espérance de gain, elle, reste basée sur la
+  moyenne simple des Elo du camp attaque, non pondérée — seule la
+  répartition du résultat après coup distingue les deux rôles, pas la
+  prédiction avant la donne ;
 - 1500 de départ, K-facteur 24 (valeurs Elo conventionnelles) ; pas de
   traitement spécial pour les joueurs à faible historique ;
 - recalcul complet à chaque affichage en rejouant toutes les donnes
@@ -556,6 +601,16 @@ classique ne s'applique pas directement) —
   d'agrégat stocké, donc pas de désynchronisation possible après une fusion
   de fiches — `calculerClassementElo` résout chaque identifiant de siège
   via `resoudreFiche` avant d'appliquer les deltas).
+
+`Classement.tsx` et `FicheJoueur.tsx` affichent chacun, en bas d'écran, un
+bloc repliable expliquant ce fonctionnement en langage courant (texte
+partagé, `components/ExplicationElo.tsx`, vulgarisé à partir du rationale
+ci-dessus). La fiche joueur affiche en plus l'Elo actuel de ce joueur
+précis (section « Classement Elo », absente jusqu'ici de cet écran) : son
+effet de chargement charge désormais **tout** `historiqueIndex` (pas
+seulement les parties de ce joueur, comme avant) puisque l'Elo est global
+et dépend de toutes les donnes archivées — même fetch non filtré que fait
+déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
 
 ## Conventions
 
