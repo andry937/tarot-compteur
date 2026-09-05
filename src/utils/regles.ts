@@ -15,6 +15,14 @@ export interface Poignee {
   val: number;
 }
 
+/** Une poignée réellement déclarée pendant une donne : nominative (le joueur qui
+ * l'a montrée) — plusieurs joueurs peuvent chacun en montrer une dans la même donne. */
+export interface PoigneeDeclaree {
+  id: string;
+  joueur: number;
+  taille: string;
+}
+
 export interface Chelem {
   id: string;
   nom: string;
@@ -48,7 +56,10 @@ export interface Donne {
   bouts: 0 | 1 | 2 | 3;
   points: number;
   petitAuBout: PetitAuBout;
-  poignee: string;
+  /** @deprecated ancien champ (poignée unique, non nominative) — conservé en lecture
+   * pour les donnes archivées avant l'introduction de `poignees`. */
+  poignee?: string;
+  poignees?: PoigneeDeclaree[];
   chelem: string;
   miseres: Misere[];
   roiAppele?: Roi;
@@ -82,7 +93,6 @@ export const CONTRATS: Contrat[] = [
 export const SEUILS: Record<number, number> = { 0: 56, 1: 51, 2: 41, 3: 36 };
 
 export const POIGNEES: Poignee[] = [
-  { id: "aucune", nom: "Aucune", val: 0 },
   { id: "simple", nom: "Simple", val: 20 },
   { id: "double", nom: "Double", val: 30 },
   { id: "triple", nom: "Triple", val: 40 },
@@ -130,13 +140,30 @@ export function calculer(d: Donne, nbTotal: number): ResultatDonne {
   const mult = CONTRATS.find((c) => c.id === d.contrat)!.mult;
   const signe = reussi ? 1 : -1;
   const pab = d.petitAuBout === "attaque" ? 1 : d.petitAuBout === "defense" ? -1 : 0;
-  const poignee = POIGNEES.find((p) => p.id === d.poignee)!.val;
   const chelem = CHELEMS.find((c) => c.id === d.chelem)!.val;
-
-  const base = signe * (25 + ecart) * mult + pab * 10 * mult + signe * poignee + chelem;
 
   const avecAppele =
     n === 5 && d.appele !== null && d.appele !== undefined && d.appele !== d.preneur;
+
+  // Poignée(s) : chaque camp qui en réalise une empoche sa valeur, qu'il y ait
+  // réussite ou chute du contrat — indépendant du signe du contrat (contrairement
+  // au petit au bout, qui lui reste rattaché au camp qui l'a réalisé de la même
+  // façon). Plusieurs joueurs, y compris de camps différents, peuvent chacun en
+  // déclarer une dans la même donne.
+  let poigneeTotal = 0;
+  if (d.poignees) {
+    d.poignees.forEach((p) => {
+      const val = POIGNEES.find((x) => x.id === p.taille)?.val ?? 0;
+      const campAttaque = p.joueur === d.preneur || (avecAppele && p.joueur === d.appele);
+      poigneeTotal += (campAttaque ? 1 : -1) * val;
+    });
+  } else if (d.poignee && d.poignee !== "aucune") {
+    // Archive antérieure à la poignée nominative : aucun joueur connu, on
+    // reproduit l'ancien calcul (suivait le signe du contrat).
+    poigneeTotal = signe * (POIGNEES.find((x) => x.id === d.poignee)?.val ?? 0);
+  }
+
+  const base = signe * (25 + ecart) * mult + pab * 10 * mult + poigneeTotal + chelem;
 
   const scores: (number | null)[] = new Array(nbTotal).fill(null); // null = au repos
   table.forEach((i) => (scores[i] = -base));

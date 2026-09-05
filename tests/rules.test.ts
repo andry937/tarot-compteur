@@ -110,9 +110,53 @@ describe("calculer — contrat simple à 4", () => {
     expect(res.base).toBe(68 - 10 * 2); // 48
   });
 
-  it("poignée simple ajoutée du côté du camp gagnant", () => {
-    const res = calculer({ ...donneBase, points: 51, poignee: "simple" }, 4); // écart 0
-    expect(res.base).toBe(25 * 2 + 20); // 70
+  it("poignée nominative : comptée pour le camp qui l'a montrée, indépendamment du contrat", () => {
+    // Le preneur (attaque) montre une poignée simple, contrat réussi : s'ajoute.
+    const reussi = calculer(
+      { ...donneBase, points: 51, poignees: [{ id: "p1", joueur: 0, taille: "simple" }] },
+      4
+    ); // écart 0
+    expect(reussi.base).toBe(25 * 2 + 20); // 70
+
+    // Le preneur (attaque) montre la même poignée, mais le contrat chute : elle
+    // reste acquise à l'attaque malgré la chute (contrairement à l'ancien calcul,
+    // qui l'aurait fait basculer du côté de la défense).
+    const chute = calculer(
+      { ...donneBase, points: 40, poignees: [{ id: "p1", joueur: 0, taille: "simple" }] },
+      4
+    ); // seuil 51, écart 11
+    expect(chute.base).toBe(-(25 + 11) * 2 + 20); // -52 (au lieu de -92)
+
+    // Un défenseur (index 1) montre la poignée alors que le contrat est réussi :
+    // elle profite à la défense, donc réduit le score du preneur.
+    const defense = calculer(
+      { ...donneBase, points: 60, poignees: [{ id: "p1", joueur: 1, taille: "simple" }] },
+      4
+    ); // écart 9
+    expect(defense.base).toBe((25 + 9) * 2 - 20); // 48 (au lieu de 88)
+  });
+
+  it("plusieurs poignées dans la même donne, y compris de camps différents, se cumulent", () => {
+    const res = calculer(
+      {
+        ...donneBase,
+        points: 51,
+        poignees: [
+          { id: "p1", joueur: 0, taille: "double" }, // preneur (attaque) : +30
+          { id: "p2", joueur: 1, taille: "simple" }, // défenseur : -20
+        ],
+      },
+      4
+    ); // écart 0
+    expect(res.base).toBe(25 * 2 + 30 - 20); // 60
+  });
+
+  it("compatibilité : une archive antérieure (champ 'poignee' isolé, sans joueur) suit encore le signe du contrat", () => {
+    const reussi = calculer({ ...donneBase, points: 51, poignee: "simple" }, 4);
+    expect(reussi.base).toBe(25 * 2 + 20); // 70, comme avant l'introduction du nominatif
+
+    const chute = calculer({ ...donneBase, points: 40, poignee: "simple" }, 4);
+    expect(chute.base).toBe(-(25 + 11) * 2 - 20); // -92, ancien comportement préservé
   });
 
   it("chelem annoncé et réussi ajoute une prime fixe de 400", () => {

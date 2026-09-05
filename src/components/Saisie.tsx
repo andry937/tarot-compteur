@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, calculer } from "../utils/regles";
-import type { Donne, Misere, PetitAuBout, Roi } from "../utils/regles";
+import type { Donne, Misere, PetitAuBout, PoigneeDeclaree, Roi } from "../utils/regles";
 import { Field, Label, Chip, Cta } from "./ui";
 
 const ROIS = (Object.entries(NOM_ROI) as [Roi, string][]).map(([id, nom]) => ({ id, nom }));
@@ -35,7 +35,7 @@ export default function Saisie({
   const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(donneInitiale?.bouts ?? 1);
   const [points, setPoints] = useState(donneInitiale?.points ?? 51);
   const [petitAuBout, setPetitAuBout] = useState<PetitAuBout>(donneInitiale?.petitAuBout ?? "aucun");
-  const [poignee, setPoignee] = useState(donneInitiale?.poignee ?? "aucune");
+  const [poignees, setPoignees] = useState<PoigneeDeclaree[]>(donneInitiale?.poignees ?? []);
   const [chelem, setChelem] = useState(donneInitiale?.chelem ?? "aucun");
   const [miseres, setMiseres] = useState<Misere[]>(donneInitiale?.miseres ?? []);
 
@@ -43,7 +43,7 @@ export default function Saisie({
   const complete =
     table.length === parDonne && table.includes(preneur) && (!roiRequis || roiAppele !== null);
   const donne: Donne = {
-    table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignee, chelem,
+    table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignees, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
@@ -59,6 +59,12 @@ export default function Saisie({
   const majMisere = (idx: number, patch: Partial<Misere>) =>
     setMiseres((m) => m.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
   const retirerMisere = (idx: number) => setMiseres((m) => m.filter((_, i) => i !== idx));
+
+  const ajouterPoignee = () =>
+    setPoignees((p) => [...p, { id: `${Date.now()}-${p.length}`, joueur: table[0], taille: "simple" }]);
+  const majPoignee = (idx: number, patch: Partial<PoigneeDeclaree>) =>
+    setPoignees((p) => p.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
+  const retirerPoignee = (idx: number) => setPoignees((p) => p.filter((_, i) => i !== idx));
 
   // On conserve l'ordre du tour de table, en partant du donneur.
   const basculer = (i: number) => {
@@ -263,15 +269,45 @@ export default function Saisie({
         </Field>
 
         <Field>
-          <Label>Poignée</Label>
-          <div className="flex flex-wrap gap-2">
-            {POIGNEES.map((p) => (
-              <Chip key={p.id} on={poignee === p.id} onClick={() => setPoignee(p.id)}>
-                {p.nom}
-                {p.val > 0 && <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">+{p.val}</small>}
-              </Chip>
-            ))}
-          </div>
+          <Label>
+            <span>Poignée</span>
+            <em className="not-italic text-amber-400">
+              {poignees.length > 0 ? `${poignees.length} déclarée${poignees.length > 1 ? "s" : ""}` : ""}
+            </em>
+          </Label>
+          {poignees.map((p, idx) => (
+            <div key={p.id} className="mb-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
+              <div className="flex flex-wrap gap-2">
+                {table.map((i) => (
+                  <Chip key={i} on={p.joueur === i} onClick={() => majPoignee(idx, { joueur: i })}>
+                    {joueurs[i]}
+                  </Chip>
+                ))}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {POIGNEES.map((o) => (
+                  <Chip key={o.id} on={p.taille === o.id} onClick={() => majPoignee(idx, { taille: o.id })}>
+                    {o.nom}
+                    <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">+{o.val}</small>
+                  </Chip>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="mt-2 font-mono text-[10px] uppercase tracking-wide text-rose-400 hover:text-rose-300"
+                onClick={() => retirerPoignee(idx)}
+              >
+                Retirer
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            className="w-full rounded-lg border border-dashed border-slate-700 py-2.5 text-center font-mono text-[11px] uppercase tracking-wide text-slate-400 hover:border-slate-500"
+            onClick={ajouterPoignee}
+          >
+            + Ajouter une poignée
+          </button>
         </Field>
 
         <Field>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CONTRATS, calculer, resumerDonnees, fmt } from "../utils/regles";
+import { CONTRATS, POIGNEES, calculer, resumerDonnees, fmt } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 
 interface ScoreGridProps {
@@ -126,7 +126,13 @@ export default function ScoreGrid({
             {detail.reussi ? "Contrat réussi de" : "Chute de"} {detail.ecart} pt
             {detail.ecart > 1 ? "s" : ""} (seuil {detail.seuil})
             {d0.petitAuBout !== "aucun" ? ` · petit au bout ${d0.petitAuBout}` : ""}
-            {d0.poignee !== "aucune" ? ` · poignée ${d0.poignee}` : ""}
+            {d0.poignees && d0.poignees.length > 0
+              ? ` · poignée ${d0.poignees
+                  .map((p) => `${POIGNEES.find((x) => x.id === p.taille)?.nom} (${joueurs[p.joueur]})`)
+                  .join(", ")}`
+              : d0.poignee && d0.poignee !== "aucune"
+              ? ` · poignée ${d0.poignee}`
+              : ""}
             {d0.chelem !== "aucun" ? " · chelem" : ""}
           </div>
           <div className="font-mono text-[11px] leading-relaxed text-slate-600">
