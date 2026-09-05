@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (72 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (74 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -92,6 +92,8 @@ src/
     Saisie.tsx                 formulaire modal de saisie d'une donne, aussi utilisé pour en
                                 modifier une existante (prop donneInitiale) — dans Feuille
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
+    ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
+                                partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
     Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
                                 tant qu'aucun utilisateur Firebase Auth n'est connecté
   App.tsx                     composant racine : état partagé, effets de persistance
@@ -108,6 +110,7 @@ tests/
   app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
   authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
+  eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
@@ -277,6 +280,22 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Explication du classement Elo + Elo affiché sur la fiche joueur**
+(`components/ExplicationElo.tsx`, `pages/Classement.tsx`,
+`pages/FicheJoueur.tsx`) : le classement Elo (`utils/elo.ts`) n'avait
+jusqu'ici aucune explication en app de son fonctionnement — seul
+`CLAUDE.md` (lu par les développeurs, pas par les joueurs) documentait la
+logique. Nouveau composant partagé `ExplicationElo.tsx` (même pattern de
+bloc repliable `<details>` que « Comment les points sont comptés » dans
+`Feuille.tsx`), texte vulgarisé sans noms de fonctions, affiché tel quel
+en bas de `Classement.tsx` et de `FicheJoueur.tsx`. La fiche joueur affiche
+en plus une nouvelle section « Classement Elo » avec l'Elo actuel du
+joueur consulté (absent jusqu'ici de cet écran) : son effet de chargement
+des archives, qui ne récupérait auparavant que les parties de ce joueur,
+charge désormais tout `historiqueIndex` (l'Elo étant global, son calcul a
+besoin de toutes les donnes archivées, pas seulement celles de ce joueur)
+— même fetch non filtré que fait déjà `Classement.tsx`.
 
 **Bouts précis sur les appels de la fiche joueur** (`utils/regles.ts`,
 `Saisie.tsx`, `utils/stats.ts`, `FicheJoueur.tsx`) : le compte `bouts`
@@ -556,6 +575,16 @@ classique ne s'applique pas directement) —
   d'agrégat stocké, donc pas de désynchronisation possible après une fusion
   de fiches — `calculerClassementElo` résout chaque identifiant de siège
   via `resoudreFiche` avant d'appliquer les deltas).
+
+`Classement.tsx` et `FicheJoueur.tsx` affichent chacun, en bas d'écran, un
+bloc repliable expliquant ce fonctionnement en langage courant (texte
+partagé, `components/ExplicationElo.tsx`, vulgarisé à partir du rationale
+ci-dessus). La fiche joueur affiche en plus l'Elo actuel de ce joueur
+précis (section « Classement Elo », absente jusqu'ici de cet écran) : son
+effet de chargement charge désormais **tout** `historiqueIndex` (pas
+seulement les parties de ce joueur, comme avant) puisque l'Elo est global
+et dépend de toutes les donnes archivées — même fetch non filtré que fait
+déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
 
 ## Conventions
 
