@@ -6,7 +6,7 @@ import { calculerStatsJoueur } from "../utils/stats";
 import type { PartieAnalysee, Role, StatsJoueur } from "../utils/stats";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
-import { fmt, NOM_ROI } from "../utils/regles";
+import { CONTRATS, fmt, NOM_ROI } from "../utils/regles";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
 import GraphiquePersonnel from "../components/GraphiquePersonnel";
 
@@ -27,6 +27,8 @@ const fmtDate = (iso: string) =>
 
 const moyenne = (valeurs: number[]) =>
   valeurs.length ? Math.round((valeurs.reduce((a, b) => a + b, 0) / valeurs.length) * 10) / 10 : 0;
+
+const nomContrat = (id: string) => CONTRATS.find((c) => c.id === id)?.nom ?? id;
 
 export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProps) {
   const { id } = useParams();
@@ -174,7 +176,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
                         {fmtDate(a.date)}
                       </span>
                       <span className="mt-0.5 block truncate text-sm">
-                        {a.bouts} bout{a.bouts > 1 ? "s" : ""}
+                        {nomContrat(a.contrat)} · {a.bouts} bout{a.bouts > 1 ? "s" : ""}
                       </span>
                     </div>
                   }
@@ -196,7 +198,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
                         {fmtDate(a.date)}
                       </span>
                       <span className="mt-0.5 block truncate text-sm">
-                        {a.bouts} bout{a.bouts > 1 ? "s" : ""}
+                        {nomContrat(a.contrat)} · {a.bouts} bout{a.bouts > 1 ? "s" : ""}
                       </span>
                     </div>
                   }

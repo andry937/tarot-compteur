@@ -271,15 +271,16 @@ Actions, code-splitting des écrans à Recharts, suite de tests complète.
 `pages/FicheJoueur.tsx`) : remplace « Contrats de prédilection » (un
 classement par type de contrat jugé peu utile) par une vue centrée sur la
 performance des appels — combien de donnes prises comme preneur ont
-réussi ou chuté, avec pour chacune le nombre de bouts et les points bruts
-réalisés (sur 91, pas le score signé de la donne). Nouveau type
-`AppelPreneur` (remplace `StatsContrat`), alimenté dans la même boucle que
-le reste de `calculerStatsJoueur` (aucune passe supplémentaire). Affiché
-en trois blocs : un résumé agrégé (compte + moyennes de bouts/points par
-issue), puis deux listes détaillées « Appels réussis »/« Appels échoués »
-(une ligne par donne, triée du plus récent au plus ancien comme « Parties
-jouées », avec renvoi vers l'archive via `ArchiveRow` — même pattern que
-la liste des parties, à la granularité de la donne).
+réussi ou chuté, avec pour chacune le contrat annoncé, le nombre de bouts
+et les points bruts réalisés (sur 91, pas le score signé de la donne).
+Nouveau type `AppelPreneur` (remplace `StatsContrat`), alimenté dans la
+même boucle que le reste de `calculerStatsJoueur` (aucune passe
+supplémentaire). Affiché en trois blocs : un résumé agrégé (compte +
+moyennes de bouts/points par issue, sans distinction de contrat), puis
+deux listes détaillées « Appels réussis »/« Appels échoués » (une ligne
+par donne — contrat, bouts, points — triée du plus récent au plus ancien
+comme « Parties jouées », avec renvoi vers l'archive via `ArchiveRow` —
+même pattern que la liste des parties, à la granularité de la donne).
 
 **Menu « Plus d'actions » sur l'écran Joueurs** (`pages/Configuration.tsx`) :
 chaque ligne du trombinoscope actif affichait quatre actions toujours
@@ -483,7 +484,7 @@ réutilise directement le `ResultatDonne` déjà calculé. Gère la résolution
 de fusion (cluster de tous les identifiants qui redirigent vers la même
 fiche, sinon les donnes jouées sous l'ancienne identité disparaîtraient).
 Affiche : points totaux, décomposition par rôle (nb + taux de victoire),
-appels réussis/échoués (bouts, points réalisés), rois appelés, nombre de
+appels réussis/échoués (contrat, bouts, points réalisés), rois appelés, nombre de
 fois appelé, meilleure/pire donne, liste des parties avec renvoi vers
 l'archive.
 
