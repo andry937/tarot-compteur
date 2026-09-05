@@ -14,8 +14,14 @@ export default function ExplicationElo() {
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
         <strong className="text-slate-100">Plusieurs contre un</strong> (ex.
         3 défenseurs contre 1 preneur) — le calcul se base sur la moyenne
-        des Elo du camp, mais chaque membre gagne ou perd le même delta,
+        des Elo du camp, mais chaque défenseur gagne ou perd le même delta,
         sans le diviser entre eux.
+      </p>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
+        <strong className="text-slate-100">Preneur et appelé</strong> ne
+        gagnent en revanche pas la même part de ce delta : le preneur, qui
+        annonce le contrat, en porte 2 parts contre 1 pour l'appelé — même
+        ratio que la répartition des points réels de la donne.
       </p>
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
         Tout le monde démarre à <code className="font-mono text-amber-400">1500</code> points,

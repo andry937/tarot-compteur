@@ -281,6 +281,21 @@ suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
 
+**Le preneur gagne/perd plus d'Elo que l'appelé** (`utils/elo.ts`) : jusqu'ici
+le delta d'une donne était appliqué identique au preneur et à l'appelé, alors
+que le preneur porte plus de responsabilité (c'est lui qui annonce le
+contrat) et touche déjà 2 fois plus de points réels que l'appelé
+(`calculer()`). Le delta du camp attaque (inchangé dans son calcul) est
+maintenant réparti 2 parts pour le preneur, 1 part pour l'appelé — même
+ratio que les points réels — normalisée pour que la moyenne des deux deltas
+individuels reste égale au delta du camp (facteur `4/3` pour le preneur,
+`2/3` pour l'appelé) : la magnitude globale du gain/perte de l'attaque ne
+change pas, seule sa répartition interne. L'espérance de gain reste
+volontairement une moyenne simple (non pondérée) des Elo du camp — seul le
+résultat a posteriori distingue les deux rôles, pas la prédiction avant la
+donne. `components/ExplicationElo.tsx` documente ce ratio en langage
+courant.
+
 **Explication du classement Elo + Elo affiché sur la fiche joueur**
 (`components/ExplicationElo.tsx`, `pages/Classement.tsx`,
 `pages/FicheJoueur.tsx`) : le classement Elo (`utils/elo.ts`) n'avait
@@ -552,7 +567,9 @@ en discussion avant développement (le tarot n'étant pas un jeu 1v1, l'Elo
 classique ne s'applique pas directement) —
 - un match par **donne** archivée, pas par partie complète (plus de
   données, cohérent avec le calcul par-donne déjà fait dans `stats.ts`) ;
-- un seul Elo **global** par joueur, pas de distinction par rôle ;
+- un seul Elo **global** par joueur (pas d'Elo séparé par rôle), mais le
+  gain/perte d'une donne distingue quand même preneur et appelé (voir plus
+  bas) ;
 - match = attaque (preneur + appelé le cas échéant) contre défense ;
   résultat **continu**, pas binaire (affiné après un premier retour
   utilisateur sur la PR #10) : dérivé du score brut signé de la donne
@@ -566,8 +583,17 @@ classique ne s'applique pas directement) —
   seulement le fait de réussir ou chuter ;
 - plusieurs contre un (ex. 3 défenseurs contre 1 preneur) : espérance de
   gain calculée sur la **moyenne** des Elo de chaque camp (formule Elo
-  standard), puis le même delta est appliqué à chaque membre du camp, sans
-  le diviser entre les membres ;
+  standard) ; côté défense, le même delta est ensuite appliqué à chaque
+  défenseur, sans le diviser entre eux ;
+- côté attaque en revanche, le preneur et l'appelé ne reçoivent pas le même
+  delta : répartition pondérée 2 parts (preneur) / 1 part (appelé) — même
+  ratio que la répartition des points réels de la donne (`calculer()` :
+  `2×base`/`1×base`) — normalisée pour que la moyenne des deux deltas
+  individuels reste égale au delta du camp (donc `4/3` pour le preneur,
+  `2/3` pour l'appelé). L'espérance de gain, elle, reste basée sur la
+  moyenne simple des Elo du camp attaque, non pondérée — seule la
+  répartition du résultat après coup distingue les deux rôles, pas la
+  prédiction avant la donne ;
 - 1500 de départ, K-facteur 24 (valeurs Elo conventionnelles) ; pas de
   traitement spécial pour les joueurs à faible historique ;
 - recalcul complet à chaque affichage en rejouant toutes les donnes

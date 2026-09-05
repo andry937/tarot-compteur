@@ -55,7 +55,7 @@ describe("calculerClassementElo", () => {
     expect(parId.b.matchs).toBe(1);
   });
 
-  it("prend en compte l'appelé du côté attaque à 5 joueurs", () => {
+  it("le preneur gagne plus que l'appelé, du même camp attaque gagnant à 5 joueurs", () => {
     const roster = ["a", "b", "c", "d", "e"].map((id) => fiche(id, id.toUpperCase()));
     const partie: PartieAnalysee = {
       archiveId: "p1",
@@ -69,9 +69,12 @@ describe("calculerClassementElo", () => {
     const classement = calculerClassementElo([partie], roster);
     const parId = Object.fromEntries(classement.map((c) => [c.id, c]));
     const delta = ELO_K * (REEL_60_GARDE - 0.5);
-    // a (preneur) et b (appelé) montent tous les deux du même delta, camp attaque gagnant
-    expect(parId.a.elo).toBe(Math.round(ELO_DEPART + delta));
-    expect(parId.b.elo).toBe(Math.round(ELO_DEPART + delta));
+    // a (preneur, 2 parts) et b (appelé, 1 part) montent tous les deux, mais
+    // pas du même montant : facteur 4/3 pour le preneur, 2/3 pour l'appelé
+    // (moyenne des deux facteurs = 1, donc moyenne des deltas = delta du camp).
+    expect(parId.a.elo).toBe(Math.round(ELO_DEPART + delta * (4 / 3)));
+    expect(parId.b.elo).toBe(Math.round(ELO_DEPART + delta * (2 / 3)));
+    expect(parId.a.elo).toBeGreaterThan(parId.b.elo);
     expect(parId.c.elo).toBe(Math.round(ELO_DEPART - delta));
   });
 
