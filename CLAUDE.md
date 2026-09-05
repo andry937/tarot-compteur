@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (65 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (67 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -83,7 +83,7 @@ src/
 
 tests/
   setup.ts                   faux window.storage en mémoire + jest-dom
-  rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (33 tests)
+  rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (35 tests)
   stats.test.ts                unitaires : utils/stats.ts (8 tests)
   elo.test.ts                  unitaires : utils/elo.ts (7 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
@@ -191,8 +191,20 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 - Contrats : Petite (×1), Garde (×2), Garde sans (×4), Garde contre (×6)
 - Seuils par bouts : 0→56, 1→51, 2→41, 3→36 ; score de base =
   `(25 + écart) × contrat`
-- Petit au bout (±10×contrat), poignée (20/30/40), chelem
-  (200/400/−200)
+- Petit au bout (±10×contrat), chelem (200/400/−200)
+- **Poignée** (20/30/40, simple/double/triple) : nominative — chaque
+  déclaration porte le joueur qui l'a montrée (`poignees: PoigneeDeclaree[]`
+  sur la donne, formulaire en liste dans `Saisie.tsx`, même pattern que
+  `miseres`). Sa valeur revient au camp de ce joueur (attaque si preneur ou
+  appelé, défense sinon), **qu'il y ait réussite ou chute du contrat** —
+  contrairement au reste du score de la donne, qui suit le signe du
+  contrat. Plusieurs joueurs peuvent chacune en déclarer une dans la même
+  donne, y compris de camps différents (elles se cumulent indépendamment).
+  Champ `poignee: string` (singulier, sans joueur) conservé en lecture
+  seule sur les donnes archivées avant cette évolution : `calculer()`
+  reproduit alors l'ancien calcul (approximatif, suivait le signe du
+  contrat) plutôt que de mal attribuer le camp faute de savoir qui l'a
+  montrée.
 - À 5 joueurs avec appelé : preneur = 2 parts, appelé = 1 part, défense = le
   reste. Le roi précis appelé (Cœur/Carreau/Trèfle/Pique) est enregistré
   (`roiAppele` sur la donne, saisi dans `Saisie.tsx`) pour les statistiques
@@ -216,15 +228,36 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 ## Où en est le projet
 
 **Fait** : registre à identités stables avec fusion, saisie complète d'une
-donne (avec misère et primes), modification d'une donne déjà saisie, Petit
-sec, rotation avec repos, tirage du donneur (aléatoire + désignation
-manuelle), historique + archives en lecture seule, suppression d'une
-partie archivée, classement général Elo, statistiques sur les donnes d'une
-partie, graphiques de progression, écran de configuration du
-trombinoscope, glisser-déposer pour réordonner les sièges, persistance
-Firestore, refonte visuelle Tailwind (responsive), suite de tests
-complète. **Toutes les issues initialement listées sont closes** (#7, #8,
-#9, #10, #11) — pas de backlog ouvert sur le dépôt pour l'instant.
+donne (avec misère et primes), poignée nominative (un ou plusieurs joueurs
+par donne), modification d'une donne déjà saisie, Petit sec, rotation avec
+repos, tirage du donneur (aléatoire + désignation manuelle), historique +
+archives en lecture seule, suppression d'une partie archivée, classement
+général Elo, statistiques sur les donnes d'une partie, graphiques de
+progression, écran de configuration du trombinoscope, glisser-déposer pour
+réordonner les sièges, persistance Firestore, refonte visuelle Tailwind
+(responsive), suite de tests complète. **Toutes les issues initialement
+listées sont closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le
+dépôt pour l'instant.
+
+**Poignée nominative** (`utils/regles.ts`, `Saisie.tsx`, `ScoreGrid.tsx`) :
+à l'origine, la poignée était une valeur unique par donne (`poignee: string`)
+et son signe suivait mécaniquement la réussite ou la chute du contrat — en
+pratique, ça l'attribuait toujours au camp gagnant, jamais à un joueur
+précis. Or la vraie règle est que la poignée est montrée par un joueur
+donné, et revient au camp de ce joueur **indépendamment** du résultat du
+contrat (un défenseur peut la montrer alors que l'attaque réussit son
+contrat — la poignée profite quand même à la défense ; symétriquement pour
+l'attaque en cas de chute). Remplacé par `poignees: PoigneeDeclaree[]`
+(`{ id, joueur, taille }`), saisi comme une liste dans `Saisie.tsx` — même
+pattern d'ajout/retrait que `miseres`, puisque plusieurs joueurs peuvent
+chacun en déclarer une dans la même donne (y compris de camps différents,
+auquel cas elles se cumulent indépendamment). `calculer()` détermine le
+camp de chaque déclaration (attaque si `joueur` est le preneur ou l'appelé,
+défense sinon) et ajoute sa valeur signée en conséquence, sans lien avec le
+signe du contrat. L'ancien champ `poignee` (singulier) reste lu pour les
+donnes déjà archivées : faute de savoir quel joueur l'a montrée sur ces
+archives-là, `calculer()` retombe sur l'ancien calcul (approximatif,
+suivait le signe du contrat) plutôt que de deviner un camp.
 
 **Modification d'une donne déjà saisie** (`Feuille.tsx`, `Saisie.tsx`) :
 dans le détail d'une donne (clic sur sa ligne dans `ScoreGrid`), bouton
