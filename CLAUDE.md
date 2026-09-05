@@ -267,6 +267,17 @@ Actions, code-splitting des écrans à Recharts, suite de tests complète.
 **Toutes les issues initialement listées sont closes** (#7, #8, #9, #10,
 #11) — pas de backlog ouvert sur le dépôt pour l'instant.
 
+**Aucun joueur par défaut sur l'écran de composition** (`pages/
+CompositionTable.tsx`) : le 1er siège pré-remplissait systématiquement
+« Andry » (`nomsParDefaut`) — un reliquat des tout premiers tests manuels
+du projet, sans raison de rester en production : les 5 sièges démarrent
+maintenant vides comme les autres, et le bouton reste bloqué (« Encore 5
+joueurs à nommer ») tant qu'aucun n'est nommé, cohérent avec le reste de
+l'écran. `tests/app.game.test.tsx::remplirSieges` et le test de
+glisser-déposer dans `tests/app.config.test.tsx` nomment désormais
+explicitement le 1er siège (« Andry », par convention conservée dans ces
+deux fichiers) plutôt que de compter sur le défaut disparu.
+
 **Appels réussis/échoués sur la fiche joueur** (`utils/stats.ts`,
 `pages/FicheJoueur.tsx`) : remplace « Contrats de prédilection » (un
 classement par type de contrat jugé peu utile) par une vue centrée sur la
