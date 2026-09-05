@@ -25,6 +25,16 @@ npm run test:watch
 npm run build           # tsc -b && vite build
 ```
 
+## CI
+
+`.github/workflows/ci.yml` : sur chaque push sur `master` et chaque pull
+request, exécute `typecheck`, `test` et `build` (dans cet ordre, `npm ci`
+d'abord). Aucun secret requis — le build n'a pas besoin de `.env` (voir
+`lib/firebase.ts` : `import.meta.env.VITE_FIREBASE_*` reste simplement
+`undefined` sans `.env`, `initializeApp` ne s'en plaint pas à
+l'initialisation ; seuls de vrais appels Firestore échoueraient, et aucun
+test ni le build n'en déclenche).
+
 ## Architecture
 
 Projet TypeScript (React + Vite). Structure inspirée d'un squelette Vite
@@ -32,6 +42,7 @@ conventionnel, adaptée au contenu réel du projet (pas de dossiers vides
 pour des besoins absents — voir Conventions) :
 
 ```
+.github/workflows/ci.yml    CI : typecheck + test + build sur push master et pull request
 public/                    vide pour l'instant (pas de favicon/robots.txt/sitemap)
 tailwind.config.js          config Tailwind (content scanning sur src/**)
 postcss.config.js           tailwindcss + autoprefixer
@@ -56,7 +67,8 @@ src/
     firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*)
     firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage
   router/
-    AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel)
+    AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel) ;
+                                charge Feuille/FicheJoueur/Historique via React.lazy (voir Conventions)
   pages/                     un écran par route
     CompositionTable.tsx      composition de la table (route /)
     Tirage.tsx                 tirage du donneur (route /tirage)
@@ -235,9 +247,32 @@ archives en lecture seule, suppression d'une partie archivée, classement
 général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
 réordonner les sièges, persistance Firestore, refonte visuelle Tailwind
-(responsive), suite de tests complète. **Toutes les issues initialement
-listées sont closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le
-dépôt pour l'instant.
+(responsive), CI GitHub Actions, code-splitting des écrans à Recharts,
+suite de tests complète. **Toutes les issues initialement listées sont
+closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
+l'instant.
+
+**Code-splitting des écrans à Recharts** (`router/AppRoutes.tsx`) : le
+bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
+imposant Recharts (de loin la plus grosse dépendance) à *tous* les écrans,
+y compris ceux sans le moindre graphique (`/`, `/tirage`, `/joueurs`,
+`/classement`). `Historique`, `Feuille` et `FicheJoueur` (les trois seuls
+écrans qui importent, directement ou via `ArchiveFeuille`/
+`GraphiqueComparatif`/`GraphiquePersonnel`, un composant Recharts) sont
+désormais chargés via `React.lazy(() => import(...))`, l'ensemble des
+routes enveloppé dans un unique `<Suspense fallback={...}>` (fallback
+minimal, cohérent avec l'écran vide affiché par `App.tsx` pendant le
+chargement initial). Résultat : le chunk d'entrée tombe à 534 kB
+(148 kB gzip), Recharts isolé dans son propre chunk chargé à la demande.
+Les autres écrans (`CompositionTable`, `Tirage`, `Configuration`,
+`Classement`) restent importés normalement — inutile de les rendre
+paresseux, ils ne tirent pas Recharts. Impact sur les tests : les
+transitions vers ces trois écrans doivent maintenant utiliser
+`findBy*`/`await` plutôt que `getBy*` synchrone juste après un clic de
+navigation (le composant n'est plus disponible au premier rendu, le temps
+que l'`import()` se résolve) — déjà le cas pour la plupart des assertions
+existantes, corrigé sur les deux qui ne l'étaient pas
+(`tests/app.game.test.tsx`, recherche de `archive-row`).
 
 **Poignée nominative** (`utils/regles.ts`, `Saisie.tsx`, `ScoreGrid.tsx`) :
 à l'origine, la poignée était une valeur unique par donne (`poignee: string`)
