@@ -6,7 +6,7 @@ import { calculerStatsJoueur } from "../utils/stats";
 import type { PartieAnalysee, Role, StatsJoueur } from "../utils/stats";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
-import { fmt, NOM_ROI } from "../utils/regles";
+import { CONTRATS, fmt, NOM_ROI } from "../utils/regles";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
 import GraphiquePersonnel from "../components/GraphiquePersonnel";
 
@@ -24,6 +24,11 @@ const LABEL_ROLE: Record<Role, string> = {
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+
+const moyenne = (valeurs: number[]) =>
+  valeurs.length ? Math.round((valeurs.reduce((a, b) => a + b, 0) / valeurs.length) * 10) / 10 : 0;
+
+const nomContrat = (id: string) => CONTRATS.find((c) => c.id === id)?.nom ?? id;
 
 export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProps) {
   const { id } = useParams();
@@ -136,10 +141,71 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
             <RankRow nom="Nombre de fois appelé" valeur={stats.foisAppele} />
           </Section>
 
-          {stats.contratsPreneur.length > 0 && (
-            <Section title="Contrats de prédilection (en tant que preneur)">
-              {stats.contratsPreneur.map((c) => (
-                <RankRow key={c.contrat} nom={c.contrat} valeur={c.fois} />
+          {(stats.appelsReussis.length > 0 || stats.appelsEchoues.length > 0) && (
+            <Section title="Appels (en tant que preneur)">
+              <RankRow
+                nom="Réussis"
+                meta={
+                  stats.appelsReussis.length > 0
+                    ? `${moyenne(stats.appelsReussis.map((a) => a.bouts))} bouts · ${moyenne(stats.appelsReussis.map((a) => a.points))} pts en moyenne`
+                    : undefined
+                }
+                valeur={stats.appelsReussis.length}
+              />
+              <RankRow
+                nom="Échoués"
+                meta={
+                  stats.appelsEchoues.length > 0
+                    ? `${moyenne(stats.appelsEchoues.map((a) => a.bouts))} bouts · ${moyenne(stats.appelsEchoues.map((a) => a.points))} pts en moyenne`
+                    : undefined
+                }
+                valeur={stats.appelsEchoues.length}
+              />
+            </Section>
+          )}
+
+          {stats.appelsReussis.length > 0 && (
+            <Section title="Appels réussis (en tant que preneur)">
+              {stats.appelsReussis.map((a) => (
+                <ArchiveRow
+                  key={`${a.archiveId}-${a.indexDonne}`}
+                  onClick={() => navigate(`/historique/${a.archiveId}`)}
+                  gauche={
+                    <div className="min-w-0">
+                      <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                        {fmtDate(a.date)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm">
+                        {nomContrat(a.contrat)} · {a.bouts} bout{a.bouts > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  }
+                  droite={<span className="shrink-0 font-serif text-lg font-bold">{a.points} pts</span>}
+                />
+              ))}
+            </Section>
+          )}
+
+          {stats.appelsEchoues.length > 0 && (
+            <Section title="Appels échoués (en tant que preneur)">
+              {stats.appelsEchoues.map((a) => (
+                <ArchiveRow
+                  key={`${a.archiveId}-${a.indexDonne}`}
+                  onClick={() => navigate(`/historique/${a.archiveId}`)}
+                  gauche={
+                    <div className="min-w-0">
+                      <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                        {fmtDate(a.date)}
+                      </span>
+                      <span className="mt-0.5 block truncate text-sm">
+                        {nomContrat(a.contrat)} · {a.bouts} bout{a.bouts > 1 ? "s" : ""}
+                      </span>
+                    </div>
+                  }
+                  droite={
+                    <span className="shrink-0 font-serif text-lg font-bold text-rose-400">{a.points} pts</span>
+                  }
+                />
               ))}
             </Section>
           )}

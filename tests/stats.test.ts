@@ -72,7 +72,10 @@ describe("calculerStatsJoueur", () => {
     expect(stats.parRole.appele).toEqual({ donnes: 1, victoires: 0 });
     expect(stats.parRole.defense).toEqual({ donnes: 1, victoires: 0 });
 
-    expect(stats.contratsPreneur).toEqual([{ contrat: "garde", fois: 1 }]);
+    expect(stats.appelsReussis).toEqual([
+      { archiveId: "p1", date: partie1.date, indexDonne: 0, contrat: "garde", bouts: 1, points: 60, reussi: true },
+    ]);
+    expect(stats.appelsEchoues).toEqual([]);
     expect(stats.roisAppelesParLui).toEqual([{ roi: "coeur", fois: 1 }]);
     expect(stats.foisAppele).toBe(1);
 
@@ -89,6 +92,25 @@ describe("calculerStatsJoueur", () => {
       { index: 1, cumul: 136 },
       { index: 2, cumul: 100 },
       { index: 3, cumul: -36 },
+    ]);
+  });
+
+  it("classe les appels du joueur en réussis/échoués, avec bouts et points bruts", () => {
+    const partie1: PartieAnalysee = {
+      archiveId: "p1",
+      date: "2026-01-01T00:00:00.000Z",
+      joueursId: ["a", "b", "c", "d", "e"],
+      donnes: [
+        { ...donneBase, preneur: 0, appele: 1, contrat: "garde", points: 60 }, // a preneur, réussi
+        { ...donneBase, preneur: 1, appele: 0, contrat: "petite", points: 40 }, // b preneur, chute
+      ],
+    };
+
+    const stats = calculerStatsJoueur("b", [partie1]);
+
+    expect(stats.appelsReussis).toEqual([]);
+    expect(stats.appelsEchoues).toEqual([
+      { archiveId: "p1", date: partie1.date, indexDonne: 1, contrat: "petite", bouts: 1, points: 40, reussi: false },
     ]);
   });
 
