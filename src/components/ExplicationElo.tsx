@@ -5,7 +5,7 @@ export default function ExplicationElo() {
         Comment fonctionne le classement Elo
       </summary>
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
-        Chaque donne archivée compte comme un match : l'attaque (le preneur,
+        Chaque donne compte comme un match : l'attaque (le preneur,
         et l'appelé s'il y en a un) affronte la défense. Le résultat n'est
         pas juste gagné/perdu — plus le contrat est réussi (ou chuté)
         largement, plus il se rapproche de 1 (ou de 0) ; une victoire
@@ -26,10 +26,7 @@ export default function ExplicationElo() {
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
         Tout le monde démarre à <code className="font-mono text-amber-400">1500</code> points,
         avec un K-facteur de <code className="font-mono text-amber-400">24</code> (valeurs
-        standard du système Elo). Le classement est recalculé en entier à
-        chaque affichage, en rejouant toutes les donnes archivées dans
-        l'ordre chronologique — pas d'agrégat stocké, donc pas de risque de
-        désynchronisation après une fusion de fiches joueur.
+        standard du système Elo).
       </p>
     </details>
   );
