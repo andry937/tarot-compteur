@@ -73,7 +73,7 @@ describe("calculerStatsJoueur", () => {
     expect(stats.parRole.defense).toEqual({ donnes: 1, victoires: 0 });
 
     expect(stats.appelsReussis).toEqual([
-      { archiveId: "p1", date: partie1.date, indexDonne: 0, bouts: 1, points: 60, reussi: true },
+      { archiveId: "p1", date: partie1.date, indexDonne: 0, contrat: "garde", bouts: 1, points: 60, reussi: true },
     ]);
     expect(stats.appelsEchoues).toEqual([]);
     expect(stats.roisAppelesParLui).toEqual([{ roi: "coeur", fois: 1 }]);
@@ -110,7 +110,7 @@ describe("calculerStatsJoueur", () => {
 
     expect(stats.appelsReussis).toEqual([]);
     expect(stats.appelsEchoues).toEqual([
-      { archiveId: "p1", date: partie1.date, indexDonne: 1, bouts: 1, points: 40, reussi: false },
+      { archiveId: "p1", date: partie1.date, indexDonne: 1, contrat: "petite", bouts: 1, points: 40, reussi: false },
     ]);
   });
 

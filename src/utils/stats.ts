@@ -47,6 +47,7 @@ export interface AppelPreneur {
   archiveId: string;
   date: string;
   indexDonne: number;
+  contrat: string;
   bouts: 0 | 1 | 2 | 3;
   /** Points bruts réalisés par l'attaque sur cette donne (sur 91) — pas le
    * score signé (`resultat.scores[idx]`, déjà utilisé ailleurs dans ce
@@ -156,6 +157,7 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
           archiveId: partie.archiveId,
           date: partie.date,
           indexDonne,
+          contrat: d.contrat,
           bouts: d.bouts,
           points: d.points, // brut, pas `points` (le score signé de la donne)
           reussi,
