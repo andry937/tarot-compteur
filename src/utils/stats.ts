@@ -30,11 +30,6 @@ export interface StatsRole {
   victoires: number;
 }
 
-export interface StatsContrat {
-  contrat: string;
-  fois: number;
-}
-
 export interface StatsRoi {
   roi: Roi;
   fois: number;
@@ -45,6 +40,19 @@ export interface DonneReference {
   date: string;
   indexDonne: number;
   points: number;
+}
+
+/** Une donne prise par le joueur en tant que preneur, avec son issue. */
+export interface AppelPreneur {
+  archiveId: string;
+  date: string;
+  indexDonne: number;
+  bouts: 0 | 1 | 2 | 3;
+  /** Points bruts réalisés par l'attaque sur cette donne (sur 91) — pas le
+   * score signé (`resultat.scores[idx]`, déjà utilisé ailleurs dans ce
+   * fichier pour les totaux) : c'est bien `d.points` qu'il faut lire ici. */
+  points: number;
+  reussi: boolean;
 }
 
 export interface PartieResume {
@@ -67,7 +75,8 @@ export interface StatsJoueur {
   donneesJouees: number;
   pointsTotaux: number;
   parRole: Record<Role, StatsRole>;
-  contratsPreneur: StatsContrat[];
+  appelsReussis: AppelPreneur[];
+  appelsEchoues: AppelPreneur[];
   roisAppelesParLui: StatsRoi[];
   foisAppele: number;
   meilleureDonne: DonneReference | null;
@@ -110,7 +119,8 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
     defense: roleVide(),
     repos: roleVide(),
   };
-  const contratsCompte = new Map<string, number>();
+  const appelsReussis: AppelPreneur[] = [];
+  const appelsEchoues: AppelPreneur[] = [];
   const roisCompte = new Map<Roi, number>();
   let partiesJouees = 0;
   let donneesJouees = 0;
@@ -142,7 +152,15 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
       if (victoire) parRole[role].victoires += 1;
 
       if (role === "preneur") {
-        contratsCompte.set(d.contrat, (contratsCompte.get(d.contrat) || 0) + 1);
+        const appel: AppelPreneur = {
+          archiveId: partie.archiveId,
+          date: partie.date,
+          indexDonne,
+          bouts: d.bouts,
+          points: d.points, // brut, pas `points` (le score signé de la donne)
+          reussi,
+        };
+        (reussi ? appelsReussis : appelsEchoues).push(appel);
         if (d.roiAppele) roisCompte.set(d.roiAppele, (roisCompte.get(d.roiAppele) || 0) + 1);
       }
       if (role === "appele") foisAppele += 1;
@@ -187,7 +205,8 @@ export function calculerStatsJoueur(joueurId: string, parties: PartieAnalysee[])
     donneesJouees,
     pointsTotaux,
     parRole,
-    contratsPreneur: trierParFrequence(contratsCompte).map(([contrat, fois]) => ({ contrat, fois })),
+    appelsReussis,
+    appelsEchoues,
     roisAppelesParLui: trierParFrequence(roisCompte).map(([roi, fois]) => ({ roi, fois })),
     foisAppele,
     meilleureDonne,
