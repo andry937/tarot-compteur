@@ -19,6 +19,7 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
     renderApp();
     await screen.findByText("Feuille de marque");
 
+    await u.type(screen.getByPlaceholderText("Joueur 1"), "Andry");
     await u.type(screen.getByPlaceholderText("Joueur 2"), "Fara");
     await u.type(screen.getByPlaceholderText("Joueur 3"), "Lian");
 

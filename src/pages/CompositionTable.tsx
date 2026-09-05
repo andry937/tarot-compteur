@@ -4,8 +4,7 @@ import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree } from "../types";
 import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "../components/ui";
 
-const nomsParDefaut = (n: number): string[] =>
-  Array.from({ length: n }, (_, i) => (i === 0 ? "Andry" : ""));
+const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
 
 interface CompositionTableProps {
   roster: Fiche[];
