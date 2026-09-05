@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, calculer } from "../utils/regles";
-import type { Donne, Misere, PetitAuBout, PoigneeDeclaree, Roi } from "../utils/regles";
+import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, NOM_BOUT, calculer } from "../utils/regles";
+import type { Bout, Donne, Misere, PetitAuBout, PoigneeDeclaree, Roi } from "../utils/regles";
 import { Field, Label, Chip, Cta } from "./ui";
 
 const ROIS = (Object.entries(NOM_ROI) as [Roi, string][]).map(([id, nom]) => ({ id, nom }));
+const BOUTS_PRECIS = (Object.entries(NOM_BOUT) as [Bout, string][]).map(([id, nom]) => ({ id, nom }));
 
 interface SaisieProps {
   joueurs: string[];
@@ -33,6 +34,7 @@ export default function Saisie({
   const [roiAppele, setRoiAppele] = useState<Roi | null>(donneInitiale?.roiAppele ?? null);
   const [contrat, setContrat] = useState(donneInitiale?.contrat ?? "garde");
   const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(donneInitiale?.bouts ?? 1);
+  const [boutsPrecis, setBoutsPrecis] = useState<Bout[]>(donneInitiale?.boutsPrecis ?? []);
   const [points, setPoints] = useState(donneInitiale?.points ?? 51);
   const [petitAuBout, setPetitAuBout] = useState<PetitAuBout>(donneInitiale?.petitAuBout ?? "aucun");
   const [poignees, setPoignees] = useState<PoigneeDeclaree[]>(donneInitiale?.poignees ?? []);
@@ -43,13 +45,16 @@ export default function Saisie({
   const complete =
     table.length === parDonne && table.includes(preneur) && (!roiRequis || roiAppele !== null);
   const donne: Donne = {
-    table, donneur, preneur, appele, contrat, bouts, points, petitAuBout, poignees, chelem,
+    table, donneur, preneur, appele, contrat, bouts, boutsPrecis, points, petitAuBout, poignees, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
   const res = calculer(donne, joueurs.length);
   const seuil = SEUILS[bouts];
   const cadrer = (v: number) => Math.min(91, Math.max(0, Math.round(v * 2) / 2));
+
+  const toggleBoutPrecis = (b: Bout) =>
+    setBoutsPrecis((arr) => (arr.includes(b) ? arr.filter((x) => x !== b) : [...arr, b]));
 
   const ajouterMisere = () =>
     setMiseres((m) => [
@@ -197,6 +202,20 @@ export default function Saisie({
               <Chip key={b} on={bouts === b} onClick={() => setBouts(b)}>
                 {b}
                 <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">{SEUILS[b]} pts</small>
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field>
+          <Label>
+            <span>Bouts précis du preneur</span>
+            <em className="not-italic text-amber-400">si connus</em>
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            {BOUTS_PRECIS.map((b) => (
+              <Chip key={b.id} on={boutsPrecis.includes(b.id)} onClick={() => toggleBoutPrecis(b.id)}>
+                {b.nom}
               </Chip>
             ))}
           </div>
