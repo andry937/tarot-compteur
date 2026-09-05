@@ -8,8 +8,11 @@ import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
 import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "../utils/regles";
 import type { Bout } from "../utils/regles";
+import { calculerClassementElo } from "../utils/elo";
+import type { ClassementElo } from "../utils/elo";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
 import GraphiquePersonnel from "../components/GraphiquePersonnel";
+import ExplicationElo from "../components/ExplicationElo";
 
 interface FicheJoueurProps {
   roster: Fiche[];
@@ -37,6 +40,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
   const { id } = useParams();
   const navigate = useNavigate();
   const [stats, setStats] = useState<StatsJoueur | null>(null);
+  const [elo, setElo] = useState<ClassementElo | null>(null);
   const [chargement, setChargement] = useState(true);
 
   const ficheFinale = id ? resoudreFiche(id, roster) : null;
@@ -53,17 +57,14 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
       setChargement(false);
       return;
     }
-    const partiesConcernees = historiqueIndex.filter((h) =>
-      (h.joueursId || []).some((pid) => cluster.includes(pid))
-    );
     setChargement(true);
     (async () => {
-      const parties: PartieAnalysee[] = [];
-      for (const h of partiesConcernees) {
+      const toutesLesParties: PartieAnalysee[] = [];
+      for (const h of historiqueIndex) {
         try {
           const r = await window.storage.get(cleArchive(h.id));
           const record: ArchiveRecord = JSON.parse(r.value);
-          parties.push({
+          toutesLesParties.push({
             archiveId: h.id,
             date: h.date,
             joueursId: record.joueursId,
@@ -73,8 +74,16 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
           console.error("Lecture de l'archive impossible", e);
         }
       }
+
+      const parties = toutesLesParties.filter((p) =>
+        (p.joueursId || []).some((pid) => cluster.includes(pid))
+      );
       const idPresent = cluster.find((pid) => parties.some((p) => p.joueursId.includes(pid)));
       setStats(calculerStatsJoueur(idPresent ?? ficheFinale.id, parties));
+
+      const classement = calculerClassementElo(toutesLesParties, roster);
+      setElo(classement.find((c) => c.id === ficheFinale.id) ?? null);
+
       setChargement(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,6 +134,16 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
           <Section title="Points totaux">
             <RankRow nom={`Cumul sur ${stats.donneesJouees} donnes`} valeur={fmt(stats.pointsTotaux)} negatif={stats.pointsTotaux < 0} />
           </Section>
+
+          {elo && (
+            <Section title="Classement Elo">
+              <RankRow
+                nom="Elo actuel"
+                meta={`${elo.matchs} donne${elo.matchs > 1 ? "s" : ""}`}
+                valeur={elo.elo}
+              />
+            </Section>
+          )}
 
           <GraphiquePersonnel trajectoire={stats.trajectoire} />
 
@@ -264,6 +283,8 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
               />
             ))}
           </Section>
+
+          <ExplicationElo />
         </>
       )}
     </Page>

@@ -7,6 +7,7 @@ import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import { cleArchive } from "../lib/stockage";
 import { Page, Header, GhostLink, Section, RankRow, Empty } from "../components/ui";
+import ExplicationElo from "../components/ExplicationElo";
 
 interface ClassementProps {
   roster: Fiche[];
@@ -66,6 +67,8 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
           ))}
         </Section>
       )}
+
+      <ExplicationElo />
     </Page>
   );
 }
