@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { resumerDonnees } from "../utils/regles";
+import type { Donne } from "../utils/regles";
 import { resoudreNom } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import type { ArchiveRecord } from "../types";
@@ -7,13 +8,15 @@ import { Section, RankRow } from "./ui";
 import ScoreGrid from "./ScoreGrid";
 import StatsPartie from "./StatsPartie";
 import GraphiqueComparatif from "./GraphiqueComparatif";
+import Saisie from "./Saisie";
 
 interface ArchiveFeuilleProps {
   record: ArchiveRecord & { joueurs?: string[] };
   roster: Fiche[];
+  onModifierDonne: (index: number, d: Donne) => void;
 }
 
-export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) {
+export default function ArchiveFeuille({ record, roster, onModifierDonne }: ArchiveFeuilleProps) {
   const joueursId = record.joueursId || [];
   const joueurs = joueursId.length
     ? joueursId.map((id, i) => resoudreNom(id, roster || [], (record.joueursNomFige || [])[i]))
@@ -23,6 +26,7 @@ export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) 
   const annulations = record.annulations || [];
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [cumule, setCumule] = useState(true);
+  const [saisie, setSaisie] = useState<number | null>(null);
 
   const { totaux, jouees } = resumerDonnees(donnes, nbTotal);
   const classement = joueurs
@@ -39,6 +43,15 @@ export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) 
         onCumule={setCumule}
         ouverte={ouverte}
         onOuvrir={setOuverte}
+        detailExtra={
+          <button
+            type="button"
+            className="mt-2.5 rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+            onClick={() => setSaisie(ouverte)}
+          >
+            Modifier cette donne
+          </button>
+        }
       />
 
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
@@ -66,6 +79,22 @@ export default function ArchiveFeuille({ record, roster }: ArchiveFeuilleProps) 
             </div>
           ))}
         </Section>
+      )}
+
+      {saisie !== null && (
+        <Saisie
+          joueurs={joueurs}
+          parDonne={record.parDonne}
+          tableProposee={donnes[saisie].table}
+          total={nbTotal}
+          numero={saisie + 1}
+          donneInitiale={donnes[saisie]}
+          onFermer={() => setSaisie(null)}
+          onValider={(d) => {
+            onModifierDonne(saisie, d);
+            setSaisie(null);
+          }}
+        />
       )}
     </>
   );
