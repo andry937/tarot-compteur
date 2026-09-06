@@ -18,6 +18,8 @@ describe("Réordonnancement des sièges par glisser-déposer", () => {
     const u = userEvent.setup();
     renderApp();
     await screen.findByText("Feuille de marque");
+    await u.click(screen.getByRole("button", { name: "Nouvelle table" }));
+    await screen.findByText("Composer la table");
 
     await u.type(screen.getByPlaceholderText("Joueur 1"), "Andry");
     await u.type(screen.getByPlaceholderText("Joueur 2"), "Fara");

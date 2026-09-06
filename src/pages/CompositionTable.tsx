@@ -1,18 +1,18 @@
 import { useState } from "react";
 import { normaliser } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
-import type { HistoriqueEntree } from "../types";
 import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "../components/ui";
 
 const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
 
 interface CompositionTableProps {
   roster: Fiche[];
-  historiqueIndex: HistoriqueEntree[];
+  /** Noms des joueurs actuellement assis à une autre table ouverte — ne peuvent pas être repris ici. */
+  joueursIndisponibles: string[];
   onValider: (noms: string[], parDonne: number) => void;
 }
 
-export default function CompositionTable({ roster, historiqueIndex, onValider }: CompositionTableProps) {
+export default function CompositionTable({ roster, joueursIndisponibles, onValider }: CompositionTableProps) {
   const [nbSetup, setNbSetup] = useState(5);
   const [parDonneSetup, setParDonneSetup] = useState(5);
   const [nomsSetup, setNomsSetup] = useState<string[]>(nomsParDefaut(5));
@@ -30,23 +30,14 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
     if (parDonneSetup > n) setParDonneSetup(n);
   };
   const options = [3, 4, 5].filter((n) => n <= nbSetup);
-
-  const actifs = roster.filter((r) => r.actif).length;
+  const indisponibles = joueursIndisponibles.map(normaliser);
 
   return (
     <Page>
       <Header
-        eyebrow="Tarot à la française"
-        title="Feuille de marque"
-        actions={
-          <>
-            <GhostLink to="/joueurs">Joueurs{actifs > 0 ? ` (${actifs})` : ""}</GhostLink>
-            <GhostLink to="/historique">
-              Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
-            </GhostLink>
-            <GhostLink to="/classement">Classement</GhostLink>
-          </>
-        }
+        eyebrow="Nouvelle table"
+        title="Composer la table"
+        actions={<GhostLink to="/">Annuler</GhostLink>}
       />
 
       <Field>
@@ -101,6 +92,7 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
               .filter((r) => r.actif)
               .filter((r) => normaliser(r.nom) !== val)
               .filter((r) => !prises.includes(normaliser(r.nom)))
+              .filter((r) => !indisponibles.includes(normaliser(r.nom)))
               .filter((r) => val === "" || normaliser(r.nom).includes(val))
               .slice(0, 6);
             return (
@@ -155,6 +147,9 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
                 {prises.includes(val) && val !== "" && (
                   <p className="mt-1 font-mono text-[10px] text-rose-400">Déjà pris par un autre siège</p>
                 )}
+                {!prises.includes(val) && indisponibles.includes(val) && val !== "" && (
+                  <p className="mt-1 font-mono text-[10px] text-rose-400">Joue déjà à une autre table</p>
+                )}
               </div>
             );
           })}
@@ -167,9 +162,12 @@ export default function CompositionTable({ roster, historiqueIndex, onValider }:
           const manquants = nomsTrim.filter((n) => n === "").length;
           const valeurs = nomsTrim.map(normaliser);
           const doublon = valeurs.some((v, i) => v !== "" && valeurs.indexOf(v) !== i);
-          const valide = manquants === 0 && !doublon;
+          const dejaAssis = valeurs.some((v) => v !== "" && indisponibles.includes(v));
+          const valide = manquants === 0 && !doublon && !dejaAssis;
           const libelle = doublon
             ? "Deux sièges ont le même nom"
+            : dejaAssis
+            ? "Un joueur est déjà à une autre table"
             : manquants > 0
             ? `Encore ${manquants} joueur${manquants > 1 ? "s" : ""} à nommer`
             : "Tirer qui distribue";

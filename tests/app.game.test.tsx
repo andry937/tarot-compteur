@@ -13,6 +13,8 @@ async function ouvrirSetup(): Promise<UserEvent> {
     </MemoryRouter>
   );
   await screen.findByText("Feuille de marque");
+  await utilisateur.click(screen.getByRole("button", { name: "Nouvelle table" }));
+  await screen.findByText("Composer la table");
   return utilisateur;
 }
 
@@ -119,7 +121,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Nouvelle" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
-    // De retour à l'écran de composition, l'historique affiche 1 partie
+    // De retour à la liste des tables, l'historique affiche 1 partie
     await screen.findByRole("link", { name: /Historique \(1\)/ });
     await u.click(screen.getByRole("link", { name: /Historique \(1\)/ }));
 
@@ -147,7 +149,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     await screen.findByText("Feuille de marque");
-    expect(screen.getByRole("button", { name: /joueur.*à nommer/i })).toBeInTheDocument();
+    expect(screen.getByText("Aucune table ouverte pour l'instant.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Historique" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Historique \(/ })).not.toBeInTheDocument();
   });
