@@ -1,5 +1,6 @@
-import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { lazy, Suspense, useEffect } from "react";
+import { Routes, Route, Navigate, useParams } from "react-router-dom";
+import { resoudreNom, joueursActuellementAssis } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import type { Donne } from "../utils/regles";
 import type { Partie, TirageEnCours, HistoriqueEntree, Annulation } from "../types";
@@ -7,6 +8,7 @@ import Tirage from "../pages/Tirage";
 import Configuration from "../pages/Configuration";
 import CompositionTable from "../pages/CompositionTable";
 import Classement from "../pages/Classement";
+import Tables from "../pages/Tables";
 
 // Chargées à la demande : ces trois écrans importent Recharts (via
 // GraphiqueComparatif/GraphiquePersonnel), la plus grosse dépendance du
@@ -16,6 +18,8 @@ const Feuille = lazy(() => import("../pages/Feuille"));
 const FicheJoueur = lazy(() => import("../pages/FicheJoueur"));
 
 export interface AppRoutesProps {
+  tablesIndex: HistoriqueEntree[];
+  tableActiveId: string | null;
   partie: Partie | null;
   tirage: TirageEnCours | null;
   donnes: Donne[];
@@ -30,6 +34,7 @@ export interface AppRoutesProps {
   onFermerJoueurs: () => void;
   onRoster: (suivant: Fiche[]) => void;
   onRetourHistorique: () => void;
+  onEntrerTable: (id: string) => void;
   onValiderComposition: (noms: string[], parDonne: number) => void;
   onValiderTirage: (depart: number) => void;
   onRetourTirage: () => void;
@@ -42,7 +47,73 @@ export interface AppRoutesProps {
   onSupprimerPartie: (id: string) => void;
 }
 
+function RouteTirage({
+  tirage,
+  onValider,
+  onRetour,
+}: {
+  tirage: TirageEnCours | null;
+  onValider: (depart: number) => void;
+  onRetour: () => void;
+}) {
+  const { id } = useParams();
+  if (!tirage || tirage.id !== id) return <Navigate to="/" replace />;
+  return <Tirage joueurs={tirage.joueurs} onRetour={onRetour} onValider={onValider} />;
+}
+
+function RoutePartie({
+  tableActiveId,
+  onEntrer,
+  partie,
+  ...feuilleProps
+}: {
+  tableActiveId: string | null;
+  onEntrer: (id: string) => void;
+  partie: Partie | null;
+  joueurs: string[];
+  nbTotal: number;
+  donnes: Donne[];
+  annulations: Annulation[];
+  totaux: number[];
+  jouees: number[];
+  cumuls: number[][];
+  onAjouterDonne: (d: Donne) => void;
+  onModifierDonne: (i: number, d: Donne) => void;
+  onEffacerDonne: (i: number) => void;
+  onAjouterAnnulation: (a: Annulation) => void;
+  onNouvellePartie: () => void;
+  onQuitterPartie: () => void;
+}) {
+  const { id } = useParams();
+  useEffect(() => {
+    if (id) onEntrer(id);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (tableActiveId !== id || !partie) return <div className="min-h-screen bg-slate-950" />;
+  return (
+    <Feuille
+      joueurs={feuilleProps.joueurs}
+      nbTotal={feuilleProps.nbTotal}
+      parDonne={partie.parDonne}
+      depart={partie.depart || 0}
+      donnes={feuilleProps.donnes}
+      annulations={feuilleProps.annulations}
+      totaux={feuilleProps.totaux}
+      jouees={feuilleProps.jouees}
+      cumuls={feuilleProps.cumuls}
+      onAjouterDonne={feuilleProps.onAjouterDonne}
+      onModifierDonne={feuilleProps.onModifierDonne}
+      onEffacerDonne={feuilleProps.onEffacerDonne}
+      onAjouterAnnulation={feuilleProps.onAjouterAnnulation}
+      onNouvellePartie={feuilleProps.onNouvellePartie}
+      onQuitterPartie={feuilleProps.onQuitterPartie}
+    />
+  );
+}
+
 export default function AppRoutes({
+  tablesIndex,
+  tableActiveId,
   partie,
   tirage,
   donnes,
@@ -57,6 +128,7 @@ export default function AppRoutes({
   onFermerJoueurs,
   onRoster,
   onRetourHistorique,
+  onEntrerTable,
   onValiderComposition,
   onValiderTirage,
   onRetourTirage,
@@ -68,6 +140,10 @@ export default function AppRoutes({
   onQuitterPartie,
   onSupprimerPartie,
 }: AppRoutesProps) {
+  const joueursIndisponibles = [...joueursActuellementAssis(tablesIndex)].map((id) =>
+    resoudreNom(id, roster, "?")
+  );
+
   return (
     <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
       <Routes>
@@ -113,50 +189,45 @@ export default function AppRoutes({
           }
         />
         <Route
-          path="/tirage"
+          path="/composition"
           element={
-            tirage && !partie ? (
-              <Tirage joueurs={tirage.joueurs} onRetour={onRetourTirage} onValider={onValiderTirage} />
-            ) : (
-              <Navigate to={partie ? "/partie" : "/"} replace />
-            )
+            <CompositionTable
+              roster={roster}
+              joueursIndisponibles={joueursIndisponibles}
+              onValider={onValiderComposition}
+            />
           }
         />
         <Route
-          path="/partie"
+          path="/tirage/:id"
+          element={<RouteTirage tirage={tirage} onValider={onValiderTirage} onRetour={onRetourTirage} />}
+        />
+        <Route
+          path="/partie/:id"
           element={
-            partie ? (
-              <Feuille
-                joueurs={joueurs}
-                nbTotal={nbTotal}
-                parDonne={partie.parDonne}
-                depart={partie.depart || 0}
-                donnes={donnes}
-                annulations={annulations}
-                totaux={totaux}
-                jouees={jouees}
-                cumuls={cumuls}
-                onAjouterDonne={onAjouterDonne}
-                onModifierDonne={onModifierDonne}
-                onEffacerDonne={onEffacerDonne}
-                onAjouterAnnulation={onAjouterAnnulation}
-                onNouvellePartie={onNouvellePartie}
-                onQuitterPartie={onQuitterPartie}
-              />
-            ) : (
-              <Navigate to="/" replace />
-            )
+            <RoutePartie
+              tableActiveId={tableActiveId}
+              onEntrer={onEntrerTable}
+              partie={partie}
+              joueurs={joueurs}
+              nbTotal={nbTotal}
+              donnes={donnes}
+              annulations={annulations}
+              totaux={totaux}
+              jouees={jouees}
+              cumuls={cumuls}
+              onAjouterDonne={onAjouterDonne}
+              onModifierDonne={onModifierDonne}
+              onEffacerDonne={onEffacerDonne}
+              onAjouterAnnulation={onAjouterAnnulation}
+              onNouvellePartie={onNouvellePartie}
+              onQuitterPartie={onQuitterPartie}
+            />
           }
         />
         <Route
           path="/"
-          element={
-            partie ? (
-              <Navigate to="/partie" replace />
-            ) : (
-              <CompositionTable roster={roster} historiqueIndex={historiqueIndex} onValider={onValiderComposition} />
-            )
-          }
+          element={<Tables tablesIndex={tablesIndex} roster={roster} historiqueIndex={historiqueIndex} />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

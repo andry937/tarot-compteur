@@ -8,6 +8,7 @@ export interface Partie {
 }
 
 export interface TirageEnCours {
+  id: string;
   joueurs: string[];
   joueursId: string[];
   parDonne: number;
