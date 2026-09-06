@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (78 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (80 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -114,6 +114,8 @@ tests/
   eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
                                 fermeture isolée, migration de l'ancienne partie unique (4 tests)
+  archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
+                                persistance et resynchronisation de l'historique (2 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
@@ -292,6 +294,26 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Modifier une donne d'une partie archivée** (`components/ArchiveFeuille.tsx`,
+`pages/Historique.tsx`) : jusqu'ici « Modifier cette donne » n'existait que
+sur la partie en cours (`Feuille.tsx`) — une erreur de saisie découverte
+après la clôture d'une partie ne pouvait être corrigée nulle part.
+`ArchiveFeuille.tsx` gagne le même bouton dans le détail d'une donne
+(`ScoreGrid`), qui rouvre `Saisie.tsx` pré-rempli (composant réutilisé tel
+quel). Contrairement à la partie en cours, `Historique.tsx` charge et
+persiste lui-même l'archive (son propre effet lit déjà `cleArchive(id)`) :
+il possède donc aussi l'écriture, plutôt que de la faire remonter en
+intégralité à `App.tsx` — seul le résumé en cache dans `historiqueIndex`
+(`totaux`, affiché dans les listes) a besoin d'une resynchronisation
+explicite (`onModifierDonneArchive(id, totaux)`, nouvelle prop d'`App.tsx`
+descendant jusqu'à `Historique.tsx` via `AppRoutes.tsx`, même pattern que
+`onSupprimer`). Aucun recalcul supplémentaire à écrire pour les stats, le
+classement Elo ou le classement final de l'archive elle-même : ils sont
+déjà tous recalculés à la volée depuis `donnes` à chaque affichage (aucun
+agrégat stocké), donc une correction se répercute automatiquement partout.
+Reste volontairement scopé à la modification seule : ajouter ou effacer
+une donne reste réservé à la partie en cours (`Feuille.tsx`).
 
 **Système de plusieurs tables ouvertes en même temps** (`pages/Tables.tsx`,
 `App.tsx`, `router/AppRoutes.tsx`) : jusqu'ici une seule partie pouvait être
@@ -505,9 +527,10 @@ modification) via un seul état `{ index: number | null }` plutôt que deux
 booléens séparés : `index === null` → ajoute via `onAjouterDonne`,
 `index === k` → remplace `donnes[k]` en place via `onModifierDonne(k, d)`
 (`App.tsx`) sans changer sa position dans le tableau ni son "numéro" de
-donne. Scoped à la partie **en cours** uniquement : `ArchiveFeuille.tsx`
-(parties closes) ne reçoit pas ce bouton, cohérent avec `Effacer cette
-donne` qui n'existe déjà que côté partie en cours.
+donne. `Effacer cette donne` reste scopé à la partie **en cours**
+uniquement (`ArchiveFeuille.tsx` ne reçoit pas ce bouton) ; « Modifier
+cette donne », lui, est aussi disponible sur une partie **archivée**
+(voir plus bas).
 
 **Graphiques de progression** (issue #11, `components/GraphiqueComparatif.tsx`
 et `components/GraphiquePersonnel.tsx`, librairie **Recharts** — choix
