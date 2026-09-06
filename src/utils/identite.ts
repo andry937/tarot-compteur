@@ -81,3 +81,8 @@ export function ontDejaJoueEnsemble(
     (h) => (h.joueursId || []).includes(idA) && (h.joueursId || []).includes(idB)
   );
 }
+
+/** Identifiants de tous les joueurs actuellement assis à une table ouverte. */
+export function joueursActuellementAssis(tablesOuvertes: HistoriqueRef[]): Set<string> {
+  return new Set(tablesOuvertes.flatMap((t) => t.joueursId || []));
+}

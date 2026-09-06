@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (74 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (78 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -72,9 +72,10 @@ src/
     AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel) ;
                                 charge Feuille/FicheJoueur/Historique via React.lazy (voir Conventions)
   pages/                     un écran par route
-    CompositionTable.tsx      composition de la table (route /)
-    Tirage.tsx                 tirage du donneur (route /tirage)
-    Feuille.tsx                 feuille de score en cours (route /partie)
+    Tables.tsx                  liste des tables actuellement ouvertes (route /), point d'entrée de l'app
+    CompositionTable.tsx      composition d'une nouvelle table (route /composition)
+    Tirage.tsx                 tirage du donneur (route /tirage/:id)
+    Feuille.tsx                 feuille de score d'une table ouverte (route /partie/:id)
     Configuration.tsx          gestion du trombinoscope (route /joueurs)
     Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
     FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
@@ -111,6 +112,8 @@ tests/
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
   authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
   eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
+  tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
+                                fermeture isolée, migration de l'ancienne partie unique (4 tests)
 ```
 
 **Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
@@ -200,16 +203,25 @@ la chaîne de redirections (plafonnée à 12 sauts) et retombe sur `repli` si
 la fiche est introuvable. Deux fiches ne peuvent pas fusionner si elles ont
 déjà partagé une table (`ontDejaJoueEnsemble`, garde-fou testé).
 
-**Partie en cours** — `tarot:partie:v4` :
+**Tables ouvertes** — plusieurs peuvent coexister (voir « Système de
+plusieurs tables » plus bas) : `tarot:tables` (index léger, même forme que
+`HistoriqueEntree`) + `tarot:table:{id}` (enregistrement complet d'une
+table, chargé à la demande — exactement le même pattern que l'historique
+ci-dessous, avec les tables ouvertes au lieu des parties closes) :
 ```js
 { joueursId, joueursNomFige, parDonne, depart, donnes: [...], annulations: [...] }
 ```
 `joueursId`/`joueursNomFige` sont parallèles à l'ordre des sièges (position
 = index dans ces deux tableaux). Tout le reste du code (rotation, calcul,
 tirage) raisonne en **index de position**, jamais en identifiant — la
-résolution d'identité n'intervient qu'à l'affichage. Une partie active
+résolution d'identité n'intervient qu'à l'affichage. Une table active
 n'accepte aucun siège vide : les 5 (par défaut) noms sont requis avant de
-pouvoir tirer le donneur, et deux sièges ne peuvent pas porter le même nom.
+pouvoir tirer le donneur, deux sièges ne peuvent pas porter le même nom, et
+un joueur déjà assis à une autre table ouverte ne peut pas être repris ici
+(`joueursActuellementAssis`, `utils/identite.ts`). `tarot:partie:v4`
+(ancien emplacement unique, une seule partie active possible) n'est plus
+écrit : lu une fois au démarrage pour migrer une éventuelle partie en cours
+vers ce nouveau système, puis abandonné.
 
 **Historique** — `tarot:historique` (index léger) + `tarot:archive:{id}`
 (feuille complète par partie close, chargée à la demande). Le résumé
@@ -280,6 +292,33 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Système de plusieurs tables ouvertes en même temps** (`pages/Tables.tsx`,
+`App.tsx`, `router/AppRoutes.tsx`) : jusqu'ici une seule partie pouvait être
+active à la fois (clé de stockage unique `tarot:partie:v4`), rendant
+impossible de suivre deux tables physiques en parallèle (ex. une soirée à
+deux tables, chacune sur son propre appareil, partageant le même compte).
+L'accueil (`/`) est désormais la liste des tables actuellement ouvertes
+(même pattern que l'Historique : index léger `tarot:tables` + enregistrement
+complet par id `tarot:table:{id}`), avec un bouton « Nouvelle table » qui
+mène à l'écran de composition, déplacé sur sa propre route
+(`/composition`) ; `/tirage` et `/partie` gagnent chacune un `:id`. Un
+joueur déjà assis à une table ouverte est bloqué s'il est saisi sur une
+autre table en cours de composition (`joueursActuellementAssis`,
+`utils/identite.ts`, résolu via `resoudreNom` puis comparé aux noms
+saisis — même pattern que le blocage « Deux sièges ont le même nom » déjà
+existant). `Historique.tsx`, `FicheJoueur.tsx`, `Classement.tsx` et le
+garde-fou de fusion (`ontDejaJoueEnsemble`) n'ont eu besoin d'aucune
+modification : entièrement découplés de la partie en cours dès l'origine.
+`Feuille.tsx`/`Tirage.tsx` non plus : ils recevaient déjà leurs props à
+plat (jamais l'objet `partie`/`tirage` entier), seul leur point d'entrée
+dans les routes a changé. `App.tsx` ne charge plus la table en détail au
+démarrage — seul l'index léger (`tablesIndex`) est chargé eagerly, une
+table précise n'est chargée que lorsque sa route `/partie/:id` est visitée
+(`chargerTable`), redirigeant vers `/` si l'id est inconnu. Migration
+unique au démarrage : si `tarot:partie:v4` (ancien emplacement) existe
+encore, il est converti en une table ouverte puis supprimé — pour ne pas
+perdre une partie en cours d'un déploiement existant.
 
 **Le preneur gagne/perd plus d'Elo que l'appelé** (`utils/elo.ts`) : jusqu'ici
 le delta d'une donne était appliqué identique au preneur et à l'appelé, alors
@@ -539,12 +578,12 @@ deux joueurs peut donc réautoriser une fusion qui aurait dû rester
 bloquée.
 
 **Bouton « Accueil » dans l'écran Partie** (`Feuille.tsx`) : permet de
-quitter la partie en cours sans l'archiver dans l'historique (contrairement
-à « Nouvelle », qui archive avant de réinitialiser). Même pattern de
-confirmation en deux clics. `App.tsx::quitterPartie` réutilise
-`reinitialiserPartie()` (vidage de l'état + suppression de `tarot:partie:v4`
-+ retour à `/`), la seule différence avec `nouvellePartie()` étant l'absence
-de l'étape d'archivage.
+quitter la table sans l'archiver dans l'historique (contrairement à
+« Nouvelle », qui archive avant de fermer). Même pattern de confirmation en
+deux clics. `App.tsx::quitterPartie`/`nouvellePartie` réutilisent toutes
+deux `fermerTable(archiver)` (retire la table de `tarot:tables` + supprime
+`tarot:table:{id}` + retour à `/`, désormais la liste des tables ouvertes),
+la seule différence étant l'étape d'archivage préalable.
 
 **Statistiques par joueur** (`utils/stats.ts`, écran `FicheJoueur.tsx`,
 route `/joueurs/:id`, lien « Stats » depuis `Configuration.tsx`) : décision
@@ -653,17 +692,20 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
   La navigation entre écrans passe par `react-router-dom`
   (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies
   dans `router/AppRoutes.tsx` :
-  `/` (composition de la table), `/tirage` (tirage du donneur), `/partie`
-  (feuille de score), `/joueurs` (configuration du trombinoscope),
-  `/joueurs/:id` (fiche statistique d'un joueur), `/historique` et
-  `/historique/:id` (liste et détail d'une archive), `/classement`
-  (classement général Elo).
-  `/tirage` et `/partie` gardent chacune leur état (`tirage`, `partie`) :
-  si l'état attendu est absent (ex. rechargement direct sans partie
-  persistée), la route redirige vers `/` plutôt que planter — `tirage`
-  n'est d'ailleurs jamais persisté, seule `partie` l'est. Le déploiement
-  statique (Vercel) nécessite un fallback SPA vers `index.html`
-  (`vercel.json`).
+  `/` (liste des tables ouvertes), `/composition` (composition d'une
+  nouvelle table), `/tirage/:id` (tirage du donneur pour cette table),
+  `/partie/:id` (feuille de score de cette table), `/joueurs` (configuration
+  du trombinoscope), `/joueurs/:id` (fiche statistique d'un joueur),
+  `/historique` et `/historique/:id` (liste et détail d'une archive),
+  `/classement` (classement général Elo).
+  `/tirage/:id` et `/partie/:id` vérifient que l'id de la route correspond
+  à une table connue de cet onglet (`tirage.id` en mémoire pour la
+  première, `tarot:table:{id}` chargé à la demande pour la seconde) : si
+  l'état attendu est absent (ex. rechargement direct sur un tirage en
+  cours, ou id d'une table inconnue/supprimée), la route redirige vers `/`
+  plutôt que planter — `tirage` n'est d'ailleurs jamais persisté, seules
+  les tables ouvertes le sont. Le déploiement statique (Vercel) nécessite
+  un fallback SPA vers `index.html` (`vercel.json`).
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
   `get()` lève sur une clé absente, c'est le cas normal au premier lancement
   (et Firestore peut aussi lever sur une erreur réseau). Typé dans

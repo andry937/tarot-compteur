@@ -2,15 +2,17 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { resumerDonnees } from "./utils/regles";
 import type { Donne } from "./utils/regles";
-import { resoudreNom, resoudreOuCreerFiches } from "./utils/identite";
+import { resoudreNom, resoudreOuCreerFiches, genId } from "./utils/identite";
 import type { Fiche } from "./utils/identite";
-import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, cleArchive } from "./lib/stockage";
-import type { Partie, TirageEnCours, HistoriqueEntree, Annulation } from "./types";
+import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable } from "./lib/stockage";
+import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "./types";
 import AppRoutes from "./router/AppRoutes";
 
 export default function App() {
   const navigate = useNavigate();
   const [pret, setPret] = useState(false);
+  const [tablesIndex, setTablesIndex] = useState<HistoriqueEntree[]>([]);
+  const [tableActiveId, setTableActiveId] = useState<string | null>(null);
   const [partie, setPartie] = useState<Partie | null>(null);
   const [tirage, setTirage] = useState<TirageEnCours | null>(null);
   const [donnes, setDonnes] = useState<Donne[]>([]);
@@ -19,22 +21,54 @@ export default function App() {
   const [annulations, setAnnulations] = useState<Annulation[]>([]);
 
   useEffect(() => {
-    const chargerPartie = async () => {
+    /** Migration unique : l'ancien emplacement à une seule table active
+     * devient une table ouverte parmi d'autres, puis est abandonné. */
+    const migrerAncienneTable = async () => {
       try {
         const r = await window.storage.get(CLE_PARTIE);
         const p = JSON.parse(r.value);
-        if (p?.joueursId?.length) {
-          setPartie({
-            joueursId: p.joueursId,
-            joueursNomFige: p.joueursNomFige || p.joueursId.map(() => "?"),
-            parDonne: p.parDonne || p.joueursId.length,
-            depart: p.depart || 0,
-          });
-          setDonnes(p.donnes || []);
-          setAnnulations(p.annulations || []);
+        if (!p?.joueursId?.length) return;
+        const id = genId();
+        const joueursId: string[] = p.joueursId;
+        const joueursNomFige: string[] = p.joueursNomFige || joueursId.map(() => "?");
+        const record: ArchiveRecord = {
+          joueursId,
+          joueursNomFige,
+          parDonne: p.parDonne || joueursId.length,
+          depart: p.depart || 0,
+          donnes: p.donnes || [],
+          annulations: p.annulations || [],
+        };
+        await window.storage.set(cleTable(id), JSON.stringify(record));
+        const { totaux } = resumerDonnees(record.donnes, joueursId.length);
+        const resume: HistoriqueEntree = {
+          id,
+          date: new Date().toISOString(),
+          joueurs: joueursNomFige,
+          joueursId,
+          parDonne: record.parDonne,
+          nbDonnes: record.donnes.length,
+          totaux,
+        };
+        let indexActuel: HistoriqueEntree[] = [];
+        try {
+          const rt = await window.storage.get(CLE_TABLES);
+          indexActuel = JSON.parse(rt.value);
+        } catch (e) {
+          /* pas encore de tables ouvertes */
         }
+        await window.storage.set(CLE_TABLES, JSON.stringify([resume, ...indexActuel]));
+        await window.storage.delete(CLE_PARTIE);
       } catch (e) {
-        /* première ouverture, rien d'enregistré, ou stockage indisponible */
+        /* rien à migrer */
+      }
+    };
+    const chargerTablesOuvertes = async () => {
+      try {
+        const rt = await window.storage.get(CLE_TABLES);
+        setTablesIndex(JSON.parse(rt.value));
+      } catch (e) {
+        /* aucune table ouverte, ou stockage indisponible */
       }
     };
     const chargerRoster = async () => {
@@ -54,23 +88,45 @@ export default function App() {
       }
     };
 
-    // En parallèle : un stockage lent ou mal configuré ne doit bloquer
-    // l'affichage que d'un délai, pas de trois mis bout à bout.
-    Promise.all([chargerPartie(), chargerRoster(), chargerHistorique()]).finally(() => {
+    (async () => {
+      await migrerAncienneTable();
+      // En parallèle : un stockage lent ou mal configuré ne doit bloquer
+      // l'affichage que d'un délai, pas de trois mis bout à bout.
+      await Promise.all([chargerTablesOuvertes(), chargerRoster(), chargerHistorique()]);
       setPret(true);
-    });
+    })();
   }, []);
 
+  /** Charge à la demande la table `id` (route /partie/:id) si elle n'est pas déjà active dans cet onglet. */
+  const chargerTable = async (id: string) => {
+    if (tableActiveId === id) return;
+    try {
+      const r = await window.storage.get(cleTable(id));
+      const rec: ArchiveRecord = JSON.parse(r.value);
+      setPartie({
+        joueursId: rec.joueursId,
+        joueursNomFige: rec.joueursNomFige,
+        parDonne: rec.parDonne,
+        depart: rec.depart || 0,
+      });
+      setDonnes(rec.donnes || []);
+      setAnnulations(rec.annulations || []);
+      setTableActiveId(id);
+    } catch (e) {
+      navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
+    }
+  };
+
   useEffect(() => {
-    if (!pret || !partie) return;
+    if (!pret || !partie || !tableActiveId) return;
     (async () => {
       try {
-        await window.storage.set(CLE_PARTIE, JSON.stringify({ ...partie, donnes, annulations }));
+        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations }));
       } catch (e) {
         console.error("Sauvegarde impossible", e);
       }
     })();
-  }, [partie, donnes, annulations, pret]);
+  }, [partie, donnes, annulations, pret, tableActiveId]);
 
   const joueurs = partie
     ? partie.joueursId.map((id, i) => resoudreNom(id, roster, partie.joueursNomFige[i]))
@@ -81,6 +137,23 @@ export default function App() {
     () => resumerDonnees(donnes, nbTotal),
     [donnes, nbTotal]
   );
+
+  // Garde l'entrée de cette table dans l'index (nbDonnes/totaux affichés
+  // dans la liste des tables ouvertes) synchronisée avec ses donnes.
+  useEffect(() => {
+    if (!pret || !tableActiveId) return;
+    setTablesIndex((idx) =>
+      idx.map((h) => (h.id === tableActiveId ? { ...h, nbDonnes: donnes.length, totaux, joueurs } : h))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [donnes.length, totaux, tableActiveId, pret]);
+
+  useEffect(() => {
+    if (!pret) return;
+    window.storage
+      .set(CLE_TABLES, JSON.stringify(tablesIndex))
+      .catch((e) => console.error("Sauvegarde de l'index des tables impossible", e));
+  }, [tablesIndex, pret]);
 
   const persisterRoster = async (suivant: Fiche[]) => {
     setRoster(suivant);
@@ -98,48 +171,45 @@ export default function App() {
     return ids;
   };
 
-  /** Vide l'état de la partie en cours et sa persistance, sans archivage. */
-  const reinitialiserPartie = async () => {
-    try {
-      await window.storage.delete(CLE_PARTIE);
-    } catch (e) {
-      /* rien à supprimer */
+  /** Ferme la table active dans cet onglet : l'archive d'abord si demandé, puis la retire des tables ouvertes. */
+  const fermerTable = async (archiver: boolean) => {
+    const id = tableActiveId;
+    if (id && partie) {
+      if (archiver && donnes.length > 0) {
+        const resume: HistoriqueEntree = {
+          id,
+          date: new Date().toISOString(),
+          joueurs,
+          joueursId: partie.joueursId,
+          parDonne: partie.parDonne,
+          nbDonnes: donnes.length,
+          totaux,
+        };
+        try {
+          await window.storage.set(cleArchive(id), JSON.stringify({ ...partie, donnes, annulations }));
+          const suivant = [resume, ...historiqueIndex];
+          await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
+          setHistoriqueIndex(suivant);
+        } catch (e) {
+          console.error("Archivage impossible", e);
+        }
+      }
+      try {
+        await window.storage.delete(cleTable(id));
+      } catch (e) {
+        /* rien à supprimer */
+      }
+      setTablesIndex((idx) => idx.filter((h) => h.id !== id));
     }
     setPartie(null);
     setDonnes([]);
     setAnnulations([]);
+    setTableActiveId(null);
     navigate("/");
   };
 
-  const nouvellePartie = async () => {
-    if (donnes.length > 0 && partie) {
-      const id = `${Date.now()}`;
-      const resume: HistoriqueEntree = {
-        id,
-        date: new Date().toISOString(),
-        joueurs,
-        joueursId: partie.joueursId,
-        parDonne: partie.parDonne,
-        nbDonnes: donnes.length,
-        totaux,
-      };
-      try {
-        await window.storage.set(
-          cleArchive(id),
-          JSON.stringify({ ...partie, donnes, annulations })
-        );
-        const suivant = [resume, ...historiqueIndex];
-        await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
-        setHistoriqueIndex(suivant);
-      } catch (e) {
-        console.error("Archivage impossible", e);
-      }
-    }
-    await reinitialiserPartie();
-  };
-
-  /** Quitte la partie en cours sans l'archiver dans l'historique. */
-  const quitterPartie = () => reinitialiserPartie();
+  const nouvellePartie = () => fermerTable(true);
+  const quitterPartie = () => fermerTable(false);
 
   const supprimerPartie = async (id: string) => {
     try {
@@ -157,6 +227,8 @@ export default function App() {
 
   return (
     <AppRoutes
+      tablesIndex={tablesIndex}
+      tableActiveId={tableActiveId}
       partie={partie}
       tirage={tirage}
       donnes={donnes}
@@ -171,23 +243,43 @@ export default function App() {
       onFermerJoueurs={() => navigate("/")}
       onRoster={persisterRoster}
       onRetourHistorique={() => navigate("/")}
+      onEntrerTable={chargerTable}
       onValiderComposition={async (noms, parDonne) => {
         const ids = await majRoster(noms);
-        setTirage({ joueurs: noms, joueursId: ids, parDonne });
-        navigate("/tirage");
+        const id = genId();
+        setTirage({ id, joueurs: noms, joueursId: ids, parDonne });
+        navigate(`/tirage/${id}`);
       }}
-      onValiderTirage={(depart) => {
+      onValiderTirage={async (depart) => {
         if (!tirage) return;
-        setPartie({
+        const id = tirage.id;
+        const nouvelle: Partie = {
           joueursId: tirage.joueursId,
           joueursNomFige: tirage.joueurs,
           parDonne: tirage.parDonne,
           depart,
-        });
+        };
+        setPartie(nouvelle);
         setDonnes([]);
         setAnnulations([]);
+        setTableActiveId(id);
         setTirage(null);
-        navigate("/partie");
+        try {
+          await window.storage.set(cleTable(id), JSON.stringify({ ...nouvelle, donnes: [], annulations: [] }));
+          const resume: HistoriqueEntree = {
+            id,
+            date: new Date().toISOString(),
+            joueurs: tirage.joueurs,
+            joueursId: tirage.joueursId,
+            parDonne: tirage.parDonne,
+            nbDonnes: 0,
+            totaux: new Array(tirage.joueurs.length).fill(0),
+          };
+          setTablesIndex((idx) => [resume, ...idx]);
+        } catch (e) {
+          console.error("Création de la table impossible", e);
+        }
+        navigate(`/partie/${id}`);
       }}
       onRetourTirage={() => {
         setTirage(null);
