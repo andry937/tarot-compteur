@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "../lib/stockage";
+import { resumerDonnees } from "../utils/regles";
+import type { Donne } from "../utils/regles";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree, ArchiveRecord } from "../types";
 import ArchiveFeuille from "../components/ArchiveFeuille";
@@ -11,9 +13,10 @@ interface HistoriqueProps {
   roster: Fiche[];
   onRetour: () => void;
   onSupprimer: (id: string) => void;
+  onModifierDonneArchive: (id: string, totaux: number[]) => void;
 }
 
-export default function Historique({ index, roster, onRetour, onSupprimer }: HistoriqueProps) {
+export default function Historique({ index, roster, onRetour, onSupprimer, onModifierDonneArchive }: HistoriqueProps) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [record, setRecord] = useState<ArchiveRecord | null>(null);
@@ -29,6 +32,22 @@ export default function Historique({ index, roster, onRetour, onSupprimer }: His
     }
     setConfirmerSuppression(false);
     onSupprimer(id);
+  };
+
+  const surModifierDonne = async (donneIndex: number, d: Donne) => {
+    if (!id || !record) return;
+    const nouveau: ArchiveRecord = {
+      ...record,
+      donnes: record.donnes.map((old, k) => (k === donneIndex ? d : old)),
+    };
+    setRecord(nouveau); // affichage immédiat
+    try {
+      await window.storage.set(cleArchive(id), JSON.stringify(nouveau));
+      const { totaux } = resumerDonnees(nouveau.donnes, nouveau.joueursId.length);
+      onModifierDonneArchive(id, totaux);
+    } catch (e) {
+      console.error("Modification de la donne archivée impossible", e);
+    }
   };
 
   useEffect(() => {
@@ -69,7 +88,7 @@ export default function Historique({ index, roster, onRetour, onSupprimer }: His
           }
         />
         {chargement && <p className="text-sm text-slate-400">Chargement de la feuille…</p>}
-        {record && <ArchiveFeuille record={record} roster={roster} />}
+        {record && <ArchiveFeuille record={record} roster={roster} onModifierDonne={surModifierDonne} />}
       </Page>
     );
   }

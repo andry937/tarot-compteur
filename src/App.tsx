@@ -223,6 +223,18 @@ export default function App() {
     navigate("/historique");
   };
 
+  /** Resynchronise le résumé en cache (totaux) après modification d'une donne archivée
+   * — le reste (stats, Elo) se recalcule déjà à la volée depuis `donnes`. */
+  const modifierDonneArchive = (id: string, totaux: number[]) => {
+    setHistoriqueIndex((idx) => {
+      const suivant = idx.map((h) => (h.id === id ? { ...h, totaux } : h));
+      window.storage
+        .set(CLE_HISTORIQUE, JSON.stringify(suivant))
+        .catch((e) => console.error("Sauvegarde de l'historique impossible", e));
+      return suivant;
+    });
+  };
+
   if (!pret) return <div className="min-h-screen bg-slate-950" />;
 
   return (
@@ -292,6 +304,7 @@ export default function App() {
       onNouvellePartie={nouvellePartie}
       onQuitterPartie={quitterPartie}
       onSupprimerPartie={supprimerPartie}
+      onModifierDonneArchive={modifierDonneArchive}
     />
   );
 }

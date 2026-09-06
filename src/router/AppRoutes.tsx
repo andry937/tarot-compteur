@@ -45,6 +45,7 @@ export interface AppRoutesProps {
   onNouvellePartie: () => void;
   onQuitterPartie: () => void;
   onSupprimerPartie: (id: string) => void;
+  onModifierDonneArchive: (id: string, totaux: number[]) => void;
 }
 
 function RouteTirage({
@@ -139,6 +140,7 @@ export default function AppRoutes({
   onNouvellePartie,
   onQuitterPartie,
   onSupprimerPartie,
+  onModifierDonneArchive,
 }: AppRoutesProps) {
   const joueursIndisponibles = [...joueursActuellementAssis(tablesIndex)].map((id) =>
     resoudreNom(id, roster, "?")
@@ -174,6 +176,7 @@ export default function AppRoutes({
               roster={roster}
               onRetour={onRetourHistorique}
               onSupprimer={onSupprimerPartie}
+              onModifierDonneArchive={onModifierDonneArchive}
             />
           }
         />
@@ -185,6 +188,7 @@ export default function AppRoutes({
               roster={roster}
               onRetour={onRetourHistorique}
               onSupprimer={onSupprimerPartie}
+              onModifierDonneArchive={onModifierDonneArchive}
             />
           }
         />
