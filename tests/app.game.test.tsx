@@ -69,6 +69,30 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(totaux).toEqual(["200", "-50", "-50", "-50", "-50"]);
   });
 
+  it("affiche le classement en cours et le repère « en tête » même sans rotation", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await lancerPartieJusquaLaFeuille(u);
+
+    // 5 joueurs / 5 par donne (setup par défaut) : aucune rotation, le
+    // classement doit quand même être visible (avant ce correctif, il ne
+    // s'affichait que s'il y avait des joueurs au repos).
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    expect(screen.getByText(/En tête :/)).toBeInTheDocument();
+    const infoAndry = screen.getByText(/En tête :/).closest("dd") as HTMLElement;
+    expect(within(infoAndry).getByText("Andry")).toBeInTheDocument();
+    expect(within(infoAndry).getByText("+200")).toBeInTheDocument();
+
+    const lignesClassement = screen.getAllByTestId("classement-row");
+    expect(lignesClassement).toHaveLength(5);
+    const premiere = within(lignesClassement[0]);
+    expect(premiere.getByText("Andry")).toBeInTheDocument();
+    expect(premiere.getByText("200")).toBeInTheDocument();
+  });
+
   it("une misère fait payer 10 points par les autres joueurs, y compris les coéquipiers", async () => {
     const u = await ouvrirSetup();
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);

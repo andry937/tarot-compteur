@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { tableDeLaDonne } from "../utils/regles";
+import { tableDeLaDonne, fmt } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Annulation } from "../types";
 import Saisie from "../components/Saisie";
@@ -100,6 +100,12 @@ export default function Feuille({
           <b className="font-semibold text-slate-100">{joueurs[prochaine[0]]}</b> distribue ·{" "}
           <b className="font-semibold text-slate-100">{joueurs[prochaine[1]]}</b> entame
         </dd>
+        {donnes.length > 0 && (
+          <dd className="mt-1.5 text-xs text-slate-400">
+            En tête : <b className="font-semibold text-amber-400">{classement[0].nom}</b>{" "}
+            <span className="font-mono">{fmt(classement[0].pts)}</span>
+          </dd>
+        )}
         <dd className="mt-1.5 text-xs text-slate-400">À la table : {prochaine.map((i) => joueurs[i]).join(", ")}</dd>
         {auRepos.length > 0 && (
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
@@ -201,10 +207,18 @@ export default function Feuille({
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
       <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
-      {rotation && donnes.length > 0 && (
+      {donnes.length > 0 && (
         <Section title="Classement">
           {classement.map((c, r) => (
-            <RankRow key={c.i} rang={r + 1} nom={c.nom} meta={`${c.n} donnes`} valeur={c.pts} negatif={c.pts < 0} />
+            <RankRow
+              key={c.i}
+              rang={r + 1}
+              nom={c.nom}
+              meta={`${c.n} donnes`}
+              valeur={c.pts}
+              negatif={c.pts < 0}
+              testId="classement-row"
+            />
           ))}
         </Section>
       )}
