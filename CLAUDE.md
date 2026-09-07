@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (80 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (81 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -108,7 +108,7 @@ tests/
   stats.test.ts                unitaires : utils/stats.ts (9 tests)
   elo.test.ts                  unitaires : utils/elo.ts (8 tests)
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
-  app.game.test.tsx           intégration : parcours complet d'une partie (8 tests)
+  app.game.test.tsx           intégration : parcours complet d'une partie (9 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
   authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
   eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
@@ -294,6 +294,23 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :
+la section « Classement » de la partie en cours n'était affichée que si
+`rotation` était vrai (`nbTotal > parDonne`, joueurs au repos qui tournent)
+— or la composition par défaut (5 joueurs à table, 5 par donne) n'a jamais
+de rotation, donc le classement en cours ne s'affichait quasiment jamais en
+pratique, contrairement à `ArchiveFeuille.tsx` (partie close) qui affiche
+toujours un « Classement final ». Condition alignée sur celle de l'archive
+(`donnes.length > 0` seul, plus de `rotation &&`), avec `testId="classement-row"`
+posé sur les lignes pour cohérence avec l'archive. Ajout d'un repère
+« En tête : {nom} {points} » directement dans le bloc d'info en haut de
+l'écran (juste après « X distribue · Y entame ») pour une visibilité
+immédiate sans avoir à faire défiler jusqu'à la section détaillée —
+réutilise le `classement` déjà calculé pour cette section, `fmt()` pour le
+préfixe `+`. En cas d'égalité, le premier de `classement` (ordre stable)
+est affiché sans mention d'égalité, cohérent avec le traitement des
+égalités ailleurs dans l'app (ex. l'aperçu « meneur » d'`Historique.tsx`).
 
 **Modifier une donne d'une partie archivée** (`components/ArchiveFeuille.tsx`,
 `pages/Historique.tsx`) : jusqu'ici « Modifier cette donne » n'existait que
