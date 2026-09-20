@@ -146,7 +146,7 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
     await screen.findByText(/Noter la donne 2/);
 
-    await u.click(screen.getByRole("button", { name: "Nouvelle" }));
+    await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     // De retour à la liste : table A archivée et disparue, table B toujours ouverte.
@@ -154,6 +154,30 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     expect(screen.queryByText("Andry, Bob, Chloé, Denis, Eva")).not.toBeInTheDocument();
     expect(screen.getByText("Fara, Gina, Hugo")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Historique \(1\)/ })).toBeInTheDocument();
+  }, 15000);
+
+  it("Accueil laisse la table A ouverte sans toucher la table B", async () => {
+    preseeder([tableA, tableB]);
+
+    const u = userEvent.setup();
+    renderApp(["/partie/tA"]);
+    await screen.findByText(/Noter la donne 1/);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+    await screen.findByText(/Noter la donne 2/);
+
+    // "Accueil" : un seul clic, aucune confirmation, rien n'est supprimé.
+    await u.click(screen.getByRole("button", { name: "Accueil" }));
+
+    await screen.findByText("Feuille de marque");
+    const lignes = screen.getAllByTestId("table-row");
+    expect(lignes).toHaveLength(2);
+    const ligneA = screen.getByText("Andry, Bob, Chloé, Denis, Eva").closest('[data-testid="table-row"]') as HTMLElement;
+    expect(within(ligneA).getByText("1 donnes")).toBeInTheDocument();
+    expect(screen.getByText("Fara, Gina, Hugo")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Historique \(/ })).not.toBeInTheDocument();
   }, 15000);
 
   it("migre l'ancienne partie unique (legacy) en table ouverte au démarrage", async () => {

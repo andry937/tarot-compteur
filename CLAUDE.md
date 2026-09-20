@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (81 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (82 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -113,7 +113,8 @@ tests/
   authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
   eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
-                                fermeture isolée, migration de l'ancienne partie unique (4 tests)
+                                fermeture isolée, Accueil non destructif, migration de l'ancienne
+                                partie unique (5 tests)
   archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
                                 persistance et resynchronisation de l'historique (2 tests)
 ```
@@ -617,13 +618,28 @@ ont déjà partagé une table — supprimer la dernière partie commune entre
 deux joueurs peut donc réautoriser une fusion qui aurait dû rester
 bloquée.
 
-**Bouton « Accueil » dans l'écran Partie** (`Feuille.tsx`) : permet de
-quitter la table sans l'archiver dans l'historique (contrairement à
-« Nouvelle », qui archive avant de fermer). Même pattern de confirmation en
-deux clics. `App.tsx::quitterPartie`/`nouvellePartie` réutilisent toutes
-deux `fermerTable(archiver)` (retire la table de `tarot:tables` + supprime
-`tarot:table:{id}` + retour à `/`, désormais la liste des tables ouvertes),
-la seule différence étant l'étape d'archivage préalable.
+**Boutons « Accueil » / « Clôturer » dans l'écran Partie** (`Feuille.tsx`,
+`App.tsx`) : à l'introduction du système de plusieurs tables, les deux
+boutons de sortie de l'écran Partie appelaient tous deux le même
+`fermerTable(archiver)`, qui supprimait *toujours* `tarot:table:{id}` —
+que `archiver` soit vrai ou faux. Autrement dit, « Accueil » (qui devait
+être un simple retour sans conséquence) supprimait en réalité
+définitivement la table et ses donnes non archivées, un reliquat de
+l'ancien système à une seule table (où quitter signifiait forcément
+archiver ou tout perdre) resté incohérent avec le nouveau système où une
+table peut rester ouverte indéfiniment. Corrigé en deux fonctions
+distinctes dans `App.tsx` :
+- `quitterPartie` (« Accueil ») : ne touche à rien, remet juste l'état
+  local à zéro et retourne à `/` — la table reste ouverte en base,
+  reprenable plus tard depuis la liste. Un seul clic, sans confirmation
+  (rien n'est perdu).
+- `cloturerPartie` (« Clôturer », renommé depuis « Nouvelle » — le
+  bouton ne démarre d'ailleurs pas une nouvelle table directement, il
+  retourne à la liste comme « Accueil » ; seule la clôture/archivage
+  change) : archive la table si des donnes ont été jouées, puis supprime
+  `tarot:table:{id}` et retire l'entrée de `tarot:tables`. Garde le
+  pattern de confirmation en deux clics (« Confirmer ? »), cohérent avec
+  `Supprimer` dans `Historique.tsx`.
 
 **Statistiques par joueur** (`utils/stats.ts`, écran `FicheJoueur.tsx`,
 route `/joueurs/:id`, lien « Stats » depuis `Configuration.tsx`) : décision
