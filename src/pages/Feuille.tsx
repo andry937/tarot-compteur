@@ -22,7 +22,7 @@ interface FeuilleProps {
   onModifierDonne: (i: number, d: Donne) => void;
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
-  onNouvellePartie: () => void;
+  onCloturerPartie: () => void;
   onQuitterPartie: () => void;
 }
 
@@ -39,14 +39,13 @@ export default function Feuille({
   onModifierDonne,
   onEffacerDonne,
   onAjouterAnnulation,
-  onNouvellePartie,
+  onCloturerPartie,
   onQuitterPartie,
 }: FeuilleProps) {
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
-  const [confirmer, setConfirmer] = useState(false);
-  const [confirmerQuitter, setConfirmerQuitter] = useState(false);
+  const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
@@ -54,24 +53,14 @@ export default function Feuille({
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
-  const surNouvellePartie = () => {
-    if (!confirmer) {
-      setConfirmer(true);
-      setTimeout(() => setConfirmer(false), 4000);
+  const surCloturer = () => {
+    if (!confirmerCloture) {
+      setConfirmerCloture(true);
+      setTimeout(() => setConfirmerCloture(false), 4000);
       return;
     }
-    setConfirmer(false);
-    onNouvellePartie();
-  };
-
-  const surQuitterPartie = () => {
-    if (!confirmerQuitter) {
-      setConfirmerQuitter(true);
-      setTimeout(() => setConfirmerQuitter(false), 4000);
-      return;
-    }
-    setConfirmerQuitter(false);
-    onQuitterPartie();
+    setConfirmerCloture(false);
+    onCloturerPartie();
   };
 
   const classement = joueurs
@@ -86,8 +75,8 @@ export default function Feuille({
         actions={
           <>
             <GhostLink to="/historique">Historique</GhostLink>
-            <GhostButton onClick={surQuitterPartie}>{confirmerQuitter ? "Confirmer ?" : "Accueil"}</GhostButton>
-            <GhostButton onClick={surNouvellePartie}>{confirmer ? "Confirmer ?" : "Nouvelle"}</GhostButton>
+            <GhostButton onClick={onQuitterPartie}>Accueil</GhostButton>
+            <GhostButton onClick={surCloturer}>{confirmerCloture ? "Confirmer ?" : "Clôturer"}</GhostButton>
           </>
         }
       />
