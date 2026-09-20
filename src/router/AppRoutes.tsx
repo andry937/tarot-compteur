@@ -42,7 +42,7 @@ export interface AppRoutesProps {
   onModifierDonne: (i: number, d: Donne) => void;
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
-  onNouvellePartie: () => void;
+  onCloturerPartie: () => void;
   onQuitterPartie: () => void;
   onSupprimerPartie: (id: string) => void;
   onModifierDonneArchive: (id: string, totaux: number[]) => void;
@@ -82,7 +82,7 @@ function RoutePartie({
   onModifierDonne: (i: number, d: Donne) => void;
   onEffacerDonne: (i: number) => void;
   onAjouterAnnulation: (a: Annulation) => void;
-  onNouvellePartie: () => void;
+  onCloturerPartie: () => void;
   onQuitterPartie: () => void;
 }) {
   const { id } = useParams();
@@ -106,7 +106,7 @@ function RoutePartie({
       onModifierDonne={feuilleProps.onModifierDonne}
       onEffacerDonne={feuilleProps.onEffacerDonne}
       onAjouterAnnulation={feuilleProps.onAjouterAnnulation}
-      onNouvellePartie={feuilleProps.onNouvellePartie}
+      onCloturerPartie={feuilleProps.onCloturerPartie}
       onQuitterPartie={feuilleProps.onQuitterPartie}
     />
   );
@@ -137,7 +137,7 @@ export default function AppRoutes({
   onModifierDonne,
   onEffacerDonne,
   onAjouterAnnulation,
-  onNouvellePartie,
+  onCloturerPartie,
   onQuitterPartie,
   onSupprimerPartie,
   onModifierDonneArchive,
@@ -224,7 +224,7 @@ export default function AppRoutes({
               onModifierDonne={onModifierDonne}
               onEffacerDonne={onEffacerDonne}
               onAjouterAnnulation={onAjouterAnnulation}
-              onNouvellePartie={onNouvellePartie}
+              onCloturerPartie={onCloturerPartie}
               onQuitterPartie={onQuitterPartie}
             />
           }

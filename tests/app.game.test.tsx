@@ -141,8 +141,8 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Cœur" }));
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
-    // "Nouvelle" -> confirmation -> clôture
-    await u.click(screen.getByRole("button", { name: "Nouvelle" }));
+    // "Clôturer" -> confirmation -> archivage
+    await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     // De retour à la liste des tables, l'historique affiche 1 partie
@@ -159,7 +159,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(premiere.getByText("200")).toBeInTheDocument();
   }, 15000);
 
-  it("Accueil quitte la partie en cours sans l'archiver dans l'historique", async () => {
+  it("Accueil revient à la liste sans clôturer la table, qui reste ouverte", async () => {
     const u = await ouvrirSetup();
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
     await lancerPartieJusquaLaFeuille(u);
@@ -168,14 +168,22 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Cœur" }));
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
-    // "Accueil" -> confirmation -> abandon sans archivage
+    // "Accueil" : un seul clic, aucune confirmation (rien n'est perdu)
     await u.click(screen.getByRole("button", { name: "Accueil" }));
-    await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     await screen.findByText("Feuille de marque");
-    expect(screen.getByText("Aucune table ouverte pour l'instant.")).toBeInTheDocument();
+    const lignes = screen.getAllByTestId("table-row");
+    expect(lignes).toHaveLength(1);
+    expect(within(lignes[0]).getByText(/Andry/)).toBeInTheDocument();
+    expect(within(lignes[0]).getByText("1 donnes")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Historique" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Historique \(/ })).not.toBeInTheDocument();
+
+    // La table est toujours ouverte : on peut la rouvrir et retrouver sa donne.
+    await u.click(lignes[0]);
+    await screen.findByText(/Noter la donne 2/);
+    const totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
+    expect(totaux).toEqual(["200", "-50", "-50", "-50", "-50"]);
   });
 
   it("modifie une donne déjà saisie et recalcule les totaux sans en ajouter une nouvelle", async () => {
@@ -219,7 +227,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Cœur" }));
     await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
 
-    await u.click(screen.getByRole("button", { name: "Nouvelle" }));
+    await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
     await u.click(await screen.findByRole("link", { name: /Historique \(1\)/ }));

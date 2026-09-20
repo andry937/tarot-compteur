@@ -171,11 +171,20 @@ export default function App() {
     return ids;
   };
 
-  /** Ferme la table active dans cet onglet : l'archive d'abord si demandé, puis la retire des tables ouvertes. */
-  const fermerTable = async (archiver: boolean) => {
+  /** Retour à l'accueil sans rien modifier : la table reste ouverte, reprenable plus tard. */
+  const quitterPartie = () => {
+    setPartie(null);
+    setDonnes([]);
+    setAnnulations([]);
+    setTableActiveId(null);
+    navigate("/");
+  };
+
+  /** Clôture la table active dans cet onglet : l'archive si des donnes ont été jouées, puis la retire des tables ouvertes. */
+  const cloturerPartie = async () => {
     const id = tableActiveId;
     if (id && partie) {
-      if (archiver && donnes.length > 0) {
+      if (donnes.length > 0) {
         const resume: HistoriqueEntree = {
           id,
           date: new Date().toISOString(),
@@ -207,9 +216,6 @@ export default function App() {
     setTableActiveId(null);
     navigate("/");
   };
-
-  const nouvellePartie = () => fermerTable(true);
-  const quitterPartie = () => fermerTable(false);
 
   const supprimerPartie = async (id: string) => {
     try {
@@ -301,7 +307,7 @@ export default function App() {
       onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
       onAjouterAnnulation={(a) => setAnnulations((arr) => [...arr, a])}
-      onNouvellePartie={nouvellePartie}
+      onCloturerPartie={cloturerPartie}
       onQuitterPartie={quitterPartie}
       onSupprimerPartie={supprimerPartie}
       onModifierDonneArchive={modifierDonneArchive}
