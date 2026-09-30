@@ -2,10 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { calculerClassementElo } from "../utils/elo";
 import type { ClassementElo } from "../utils/elo";
-import type { PartieAnalysee } from "../utils/stats";
 import type { Fiche } from "../utils/identite";
-import type { HistoriqueEntree, ArchiveRecord } from "../types";
-import { cleArchive } from "../lib/stockage";
+import type { HistoriqueEntree } from "../types";
+import { chargerParties } from "../lib/archives";
 import { Page, Header, GhostLink, Section, RankRow, Empty } from "../components/ui";
 import ExplicationElo from "../components/ExplicationElo";
 
@@ -22,21 +21,7 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
   useEffect(() => {
     setChargement(true);
     (async () => {
-      const parties: PartieAnalysee[] = [];
-      for (const h of historiqueIndex) {
-        try {
-          const r = await window.storage.get(cleArchive(h.id));
-          const record: ArchiveRecord = JSON.parse(r.value);
-          parties.push({
-            archiveId: h.id,
-            date: h.date,
-            joueursId: record.joueursId,
-            donnes: record.donnes,
-          });
-        } catch (e) {
-          console.error("Lecture de l'archive impossible", e);
-        }
-      }
+      const parties = await chargerParties(historiqueIndex);
       setClassement(calculerClassementElo(parties, roster));
       setChargement(false);
     })();

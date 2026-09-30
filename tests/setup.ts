@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
+import { viderCacheArchives } from "../src/lib/archives";
 import type { WindowStorage } from "../src/lib/window-storage";
 
 /**
@@ -34,4 +35,5 @@ function creerFauxStorage(): WindowStorage {
 
 beforeEach(() => {
   window.storage = creerFauxStorage();
+  viderCacheArchives();
 });
