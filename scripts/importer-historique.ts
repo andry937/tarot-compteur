@@ -27,7 +27,11 @@ const env = loadEnv("development", process.cwd(), "VITE_");
 const COLLECTION = "tarotStorage";
 
 interface Src { numero: number; date: string; joueurs: string[]; parDonne: number; depart: number; tours: number; totauxSource: number[]; donnes: Donne[]; complete: boolean }
-const sources: Src[] = JSON.parse(readFileSync("scripts/historique-tarot.json", "utf8"));
+// Seules les parties dont TOUTES les donnes ont été reconstituées (et retombent
+// exactement sur les totaux) sont importées : pas de partie sans détail.
+const toutes: Src[] = JSON.parse(readFileSync("scripts/historique-tarot.json", "utf8"));
+const sources = toutes.filter((s) => s.complete);
+const ignorees = toutes.length - sources.length;
 
 let db: ReturnType<typeof getFirestore> | null = null;
 if (ecrire) {
@@ -85,6 +89,6 @@ const fusion = [...entrees, ...existant.filter((e) => !ids.has(e.id))].sort((a, 
 await ecr("tarot:joueurs:v2", roster);
 await ecr("tarot:historique", fusion);
 
-console.log(`${ecrire ? "ÉCRIT" : "SIMULATION"} : ${entrees.length} parties (${sansDetail} sans détail des donnes), ` +
+console.log(`${ecrire ? "ÉCRIT" : "SIMULATION"} : ${entrees.length} parties (${ignorees} parties sans détail complet ignorées),` +
   `${roster.length - nbAvant} nouvelles fiches joueurs, index final ${fusion.length} entrées.`);
 process.exit(0);
