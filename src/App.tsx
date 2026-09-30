@@ -4,6 +4,7 @@ import { resumerDonnees } from "./utils/regles";
 import type { Donne } from "./utils/regles";
 import { resoudreNom, resoudreOuCreerFiches, genId } from "./utils/identite";
 import type { Fiche } from "./utils/identite";
+import { invaliderArchive } from "./lib/archives";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable } from "./lib/stockage";
 import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "./types";
 import AppRoutes from "./router/AppRoutes";
@@ -195,6 +196,7 @@ export default function App() {
           totaux,
         };
         try {
+          invaliderArchive(id);
           await window.storage.set(cleArchive(id), JSON.stringify({ ...partie, donnes, annulations }));
           const suivant = [resume, ...historiqueIndex];
           await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
@@ -219,6 +221,7 @@ export default function App() {
 
   const supprimerPartie = async (id: string) => {
     try {
+      invaliderArchive(id);
       await window.storage.delete(cleArchive(id));
       const suivant = historiqueIndex.filter((h) => h.id !== id);
       await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));

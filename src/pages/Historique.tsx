@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "../lib/stockage";
+import { invaliderArchive } from "../lib/archives";
 import { resumerDonnees } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Fiche } from "../utils/identite";
@@ -42,6 +43,7 @@ export default function Historique({ index, roster, onRetour, onSupprimer, onMod
     };
     setRecord(nouveau); // affichage immédiat
     try {
+      invaliderArchive(id);
       await window.storage.set(cleArchive(id), JSON.stringify(nouveau));
       const { totaux } = resumerDonnees(nouveau.donnes, nouveau.joueursId.length);
       onModifierDonneArchive(id, totaux);
