@@ -3,9 +3,9 @@ import { useParams, useNavigate } from "react-router-dom";
 import { resoudreFiche } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
 import { calculerStatsJoueur } from "../utils/stats";
-import type { PartieAnalysee, Role, StatsJoueur } from "../utils/stats";
-import type { HistoriqueEntree, ArchiveRecord } from "../types";
-import { cleArchive } from "../lib/stockage";
+import type { Role, StatsJoueur } from "../utils/stats";
+import type { HistoriqueEntree } from "../types";
+import { chargerParties } from "../lib/archives";
 import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "../utils/regles";
 import type { Bout } from "../utils/regles";
 import { calculerClassementElo } from "../utils/elo";
@@ -59,21 +59,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
     }
     setChargement(true);
     (async () => {
-      const toutesLesParties: PartieAnalysee[] = [];
-      for (const h of historiqueIndex) {
-        try {
-          const r = await window.storage.get(cleArchive(h.id));
-          const record: ArchiveRecord = JSON.parse(r.value);
-          toutesLesParties.push({
-            archiveId: h.id,
-            date: h.date,
-            joueursId: record.joueursId,
-            donnes: record.donnes,
-          });
-        } catch (e) {
-          console.error("Lecture de l'archive impossible", e);
-        }
-      }
+      const toutesLesParties = await chargerParties(historiqueIndex);
 
       const parties = toutesLesParties.filter((p) =>
         (p.joueursId || []).some((pid) => cluster.includes(pid))
