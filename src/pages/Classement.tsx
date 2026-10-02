@@ -22,7 +22,9 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
     setChargement(true);
     (async () => {
       const parties = await chargerParties(historiqueIndex);
-      setClassement(calculerClassementElo(parties, roster));
+      // Les joueurs sans nom (« ∅ », anciens joueurs importés) pèsent dans le calcul
+      // des Elo des autres mais n'ont pas leur place dans l'affichage du classement.
+      setClassement(calculerClassementElo(parties, roster).filter((c) => c.nom.trim() !== "" && c.nom.trim() !== "∅"));
       setChargement(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
