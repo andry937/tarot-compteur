@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
 import type { HistoriqueEntree } from "@/domain/types";
-import { Page, Header, GhostButton, GhostLink, Label, Chip, Cta, Lien } from "@/components/ui";
+import { Page, Header, GhostButton, Label, Chip, Cta, Lien } from "@/components/ui";
 
 interface ConfigurationProps {
   roster: Fiche[];
