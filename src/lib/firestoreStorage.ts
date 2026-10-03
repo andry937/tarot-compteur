@@ -28,6 +28,7 @@ import {
   where,
 } from "firebase/firestore";
 import { db } from "./firebase";
+import { CleIntrouvable } from "./stockage";
 import type { WindowStorage } from "./window-storage";
 
 const COLLECTION = "tarotStorage";
@@ -46,7 +47,7 @@ export function creerStorageFirestore(): WindowStorage {
   return {
     async get(key) {
       const snap = await avecDelai(getDoc(doc(db, COLLECTION, key)), DELAI_MS);
-      if (!snap.exists()) throw new Error(`clé introuvable: ${key}`);
+      if (!snap.exists()) throw new CleIntrouvable(key);
       return { key, value: snap.data().value as string, shared: true };
     },
 

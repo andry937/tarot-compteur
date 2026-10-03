@@ -5,13 +5,18 @@ import type { Donne } from "./utils/regles";
 import { resoudreNom, resoudreOuCreerFiches, genId } from "./utils/identite";
 import type { Fiche } from "./utils/identite";
 import { invaliderArchive } from "./lib/archives";
-import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable } from "./lib/stockage";
+import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "./lib/stockage";
 import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "./types";
 import AppRoutes from "./router/AppRoutes";
+import { Cta } from "./components/ui";
 
 export default function App() {
   const navigate = useNavigate();
   const [pret, setPret] = useState(false);
+  // Une lecture a échoué au démarrage (≠ clé absente) : on n'écrit RIEN tant que
+  // les données n'ont pas été relues, sinon l'état vide écraserait les vraies.
+  const [erreurChargement, setErreurChargement] = useState(false);
+  const [avertissement, setAvertissement] = useState<string | null>(null);
   const [tablesIndex, setTablesIndex] = useState<HistoriqueEntree[]>([]);
   const [tableActiveId, setTableActiveId] = useState<string | null>(null);
   const [partie, setPartie] = useState<Partie | null>(null);
@@ -27,76 +32,54 @@ export default function App() {
     /** Migration unique : l'ancien emplacement à une seule table active
      * devient une table ouverte parmi d'autres, puis est abandonné. */
     const migrerAncienneTable = async () => {
-      try {
-        const r = await window.storage.get(CLE_PARTIE);
-        const p = JSON.parse(r.value);
-        if (!p?.joueursId?.length) return;
-        const id = genId();
-        const joueursId: string[] = p.joueursId;
-        const joueursNomFige: string[] = p.joueursNomFige || joueursId.map(() => "?");
-        const record: ArchiveRecord = {
-          joueursId,
-          joueursNomFige,
-          parDonne: p.parDonne || joueursId.length,
-          depart: p.depart || 0,
-          donnes: p.donnes || [],
-          annulations: p.annulations || [],
-        };
-        await window.storage.set(cleTable(id), JSON.stringify(record));
-        const { totaux } = resumerDonnees(record.donnes, joueursId.length);
-        const resume: HistoriqueEntree = {
-          id,
-          date: new Date().toISOString(),
-          joueurs: joueursNomFige,
-          joueursId,
-          parDonne: record.parDonne,
-          nbDonnes: record.donnes.length,
-          totaux,
-        };
-        let indexActuel: HistoriqueEntree[] = [];
-        try {
-          const rt = await window.storage.get(CLE_TABLES);
-          indexActuel = JSON.parse(rt.value);
-        } catch (e) {
-          /* pas encore de tables ouvertes */
-        }
-        await window.storage.set(CLE_TABLES, JSON.stringify([resume, ...indexActuel]));
-        await window.storage.delete(CLE_PARTIE);
-      } catch (e) {
-        /* rien à migrer */
-      }
-    };
-    const chargerTablesOuvertes = async () => {
-      try {
-        const rt = await window.storage.get(CLE_TABLES);
-        setTablesIndex(JSON.parse(rt.value));
-      } catch (e) {
-        /* aucune table ouverte, ou stockage indisponible */
-      }
-    };
-    const chargerRoster = async () => {
-      try {
-        const rj = await window.storage.get(CLE_ROSTER);
-        setRoster(JSON.parse(rj.value));
-      } catch (e) {
-        /* pas encore de trombinoscope, ou stockage indisponible */
-      }
-    };
-    const chargerHistorique = async () => {
-      try {
-        const rh = await window.storage.get(CLE_HISTORIQUE);
-        setHistoriqueIndex(JSON.parse(rh.value));
-      } catch (e) {
-        /* pas encore d'historique, ou stockage indisponible */
-      }
+      const p = await lireJson<Partial<ArchiveRecord>>(CLE_PARTIE); // absent : rien à migrer
+      if (!p?.joueursId?.length) return;
+      const id = genId();
+      const joueursId: string[] = p.joueursId;
+      const joueursNomFige: string[] = p.joueursNomFige || joueursId.map(() => "?");
+      const record: ArchiveRecord = {
+        joueursId,
+        joueursNomFige,
+        parDonne: p.parDonne || joueursId.length,
+        depart: p.depart || 0,
+        donnes: p.donnes || [],
+        annulations: p.annulations || [],
+      };
+      await window.storage.set(cleTable(id), JSON.stringify(record));
+      const { totaux } = resumerDonnees(record.donnes, joueursId.length);
+      const resume: HistoriqueEntree = {
+        id,
+        date: new Date().toISOString(),
+        joueurs: joueursNomFige,
+        joueursId,
+        parDonne: record.parDonne,
+        nbDonnes: record.donnes.length,
+        totaux,
+      };
+      const indexActuel = (await lireJson<HistoriqueEntree[]>(CLE_TABLES)) ?? [];
+      await window.storage.set(CLE_TABLES, JSON.stringify([resume, ...indexActuel]));
+      await window.storage.delete(CLE_PARTIE);
     };
 
     (async () => {
-      await migrerAncienneTable();
-      // En parallèle : un stockage lent ou mal configuré ne doit bloquer
-      // l'affichage que d'un délai, pas de trois mis bout à bout.
-      await Promise.all([chargerTablesOuvertes(), chargerRoster(), chargerHistorique()]);
-      setPret(true);
+      try {
+        await migrerAncienneTable();
+        // En parallèle : un stockage lent ou mal configuré ne doit bloquer
+        // l'affichage que d'un délai, pas de trois mis bout à bout.
+        const [tables, ros, hist] = await Promise.all([
+          lireJson<HistoriqueEntree[]>(CLE_TABLES),
+          lireJson<Fiche[]>(CLE_ROSTER),
+          lireJson<HistoriqueEntree[]>(CLE_HISTORIQUE),
+        ]);
+        // null = clé absente (premier lancement) : on garde l'état vide d'origine.
+        if (tables) setTablesIndex(tables);
+        if (ros) setRoster(ros);
+        if (hist) setHistoriqueIndex(hist);
+        setPret(true);
+      } catch (e) {
+        console.error("Lecture du stockage impossible", e);
+        setErreurChargement(true);
+      }
     })();
   }, []);
 
@@ -208,7 +191,11 @@ export default function App() {
           await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
           setHistoriqueIndex(suivant);
         } catch (e) {
+          // Surtout ne pas supprimer la table : l'archive n'existe peut-être pas,
+          // et ce serait la seule copie des donnes. Elle reste ouverte, on réessaie.
           console.error("Archivage impossible", e);
+          setAvertissement("Archivage impossible : la table reste ouverte, réessayez la clôture une fois la connexion rétablie.");
+          return;
         }
       }
       try {
@@ -252,9 +239,31 @@ export default function App() {
     });
   };
 
+  if (erreurChargement)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
+        <div className="w-full max-w-xs text-center">
+          <p className="mb-2 font-serif text-xl font-bold text-slate-100">Données inaccessibles</p>
+          <p className="mb-5 text-sm text-slate-400">
+            Impossible de lire le stockage (connexion coupée ou trop lente). Rien n'a été modifié.
+          </p>
+          <Cta onClick={() => window.location.reload()}>Réessayer</Cta>
+        </div>
+      </div>
+    );
+
   if (!pret) return <div className="min-h-screen bg-slate-950" />;
 
   return (
+    <>
+      {avertissement && (
+        <div role="alert" className="fixed inset-x-0 top-0 z-50 flex items-start gap-3 bg-rose-900 px-4 py-3 text-sm text-rose-50">
+          <span className="flex-1">{avertissement}</span>
+          <button type="button" aria-label="Fermer l'avertissement" onClick={() => setAvertissement(null)}>
+            ✕
+          </button>
+        </div>
+      )}
     <AppRoutes
       tablesIndex={tablesIndex}
       tableActiveId={tableActiveId}
@@ -345,5 +354,6 @@ export default function App() {
       onSupprimerPartie={supprimerPartie}
       onModifierDonneArchive={modifierDonneArchive}
     />
+    </>
   );
 }
