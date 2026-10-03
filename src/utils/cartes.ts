@@ -9,7 +9,7 @@
  */
 
 import { NOM_ROI, ROMAINS } from "./regles";
-import type { Roi, Donne } from "./regles";
+import type { Roi, Donne, Bout, PetitAuBout } from "./regles";
 
 export const COULEURS: Roi[] = ["coeur", "carreau", "trefle", "pique"];
 
@@ -139,4 +139,94 @@ export function deriverPlis(table: number[], entame: number, cartes: string[]): 
 export function entameDeLaDonne(d: Donne): number {
   const t = d.table;
   return t.length > 1 ? t[(t.indexOf(d.donneur ?? t[0]) + 1) % t.length] : t[0];
+}
+
+/** Valeur en points d'une carte (total du jeu : 91) : bouts et rois 4,5 ; dame 3,5 ; cavalier 2,5 ; valet 1,5 ; le reste 0,5. */
+export function valeurCarte(id: string): number {
+  if (estBout(id)) return 4.5;
+  const c = decoder(id);
+  if (c.famille === "atout") return 0.5;
+  return ({ 14: 4.5, 13: 3.5, 12: 2.5, 11: 1.5 } as Record<number, number>)[c.rang] ?? 0.5;
+}
+
+export interface DeductionAttaque {
+  /** Points de l'attaque (écart du preneur compris quand la main est complète). */
+  points: number;
+  bouts: 0 | 1 | 2 | 3;
+  boutsPrecis: Bout[];
+  petitAuBout: PetitAuBout;
+  /** L'attaque a remporté tous les plis. */
+  chelem: boolean;
+  /** Tous les plis sont notés : le total est alors exact (hors approximation de l'Excuse). */
+  complet: boolean;
+  /** L'Excuse a été jouée : le total est alors approximatif (échange d'une carte à 0,5 point ignoré). */
+  excuseJouee: boolean;
+}
+
+const BOUT_DE_CARTE: Record<string, Bout> = { "atout-1": "petit", "atout-21": "21", [EXCUSE]: "excuse" };
+
+/**
+ * Déduit ce que l'attaque a marqué d'après les cartes notées (jamais stocké : voir `Saisie.tsx`).
+ * Un pli revient au camp de son gagnant ; l'Excuse reste au camp du joueur qui l'a jouée ;
+ * quand la main est complète, les cartes jamais jouées forment l'écart du preneur (attaque),
+ * sauf en Garde contre où le chien va à la défense. Simplification : l'Excuse vaut 4,5 sans
+ * l'échange d'une carte à 0,5 point. `null` si aucune carte n'est notée.
+ */
+export function deduireAttaque(args: {
+  table: number[];
+  entame: number;
+  cartes: string[];
+  preneur: number;
+  appele: number | null;
+  contrat: string;
+}): DeductionAttaque | null {
+  const { table, entame, cartes, preneur, appele, contrat } = args;
+  if (cartes.length === 0) return null;
+  const attaque = new Set<number>([preneur]);
+  if (appele !== null) attaque.add(appele);
+  const { plis, termine } = deriverPlis(table, entame, cartes);
+
+  let points = 0;
+  let petitAuBout: PetitAuBout = "aucun";
+  let excuseJouee = false;
+  const bouts = new Set<Bout>();
+  const prendre = (carte: string) => {
+    points += valeurCarte(carte);
+    const b = BOUT_DE_CARTE[carte];
+    if (b) bouts.add(b);
+  };
+
+  plis.forEach((p, k) => {
+    if (p.gagnant === null) return; // pli en cours : pas encore attribué
+    const gagnantAttaque = attaque.has(p.gagnant);
+    const idxGagnante = gagnantDuPli(p.cartes);
+    p.cartes.forEach((c, j) => {
+      if (c === EXCUSE) {
+        excuseJouee = true;
+        if (attaque.has(p.joueurs[j])) prendre(c);
+      } else if (gagnantAttaque) prendre(c);
+    });
+    if (k === nbPlis(table.length) - 1 && p.cartes[idxGagnante] === idAtout(1)) {
+      petitAuBout = gagnantAttaque ? "attaque" : "defense";
+    }
+  });
+
+  const tousLesPlis = plis.length > 0 && plis.every((p) => p.gagnant !== null) && termine;
+  if (tousLesPlis && contrat !== "garde_contre") {
+    // Cartes jamais jouées = écart du preneur, qui compte pour l'attaque.
+    const jouees = new Set(cartes);
+    toutesLesCartes().filter((c) => !jouees.has(c)).forEach(prendre);
+  }
+
+  const chelem = tousLesPlis && plis.every((p) => attaque.has(p.gagnant as number));
+  const nb = Math.min(3, bouts.size) as 0 | 1 | 2 | 3;
+  return {
+    points: Math.round(points * 2) / 2,
+    bouts: nb,
+    boutsPrecis: (["petit", "21", "excuse"] as Bout[]).filter((b) => bouts.has(b)),
+    petitAuBout,
+    chelem,
+    complet: tousLesPlis,
+    excuseJouee,
+  };
 }

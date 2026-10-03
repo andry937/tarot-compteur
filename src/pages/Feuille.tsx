@@ -2,18 +2,19 @@ import { useState } from "react";
 import { tableDeLaDonne, fmt } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Annulation } from "../types";
-import { useParams } from "react-router-dom";
 import Saisie from "../components/Saisie";
 import ScoreGrid from "../components/ScoreGrid";
 import StatsPartie from "../components/StatsPartie";
 import GraphiqueComparatif from "../components/GraphiqueComparatif";
 import { entameDeLaDonne } from "../utils/cartes";
-import EditeurCartesDonne from "../components/EditeurCartesDonne";
 import JournalPlis from "../components/JournalPlis";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
 interface FeuilleProps {
-  cartesEnCours?: number;
+  cartesEnCours: string[];
+  chienEnCours: string[];
+  onModifierCartes: (cartes: string[]) => void;
+  onModifierChien: (chien: string[]) => void;
   joueurs: string[];
   nbTotal: number;
   parDonne: number;
@@ -32,7 +33,10 @@ interface FeuilleProps {
 }
 
 export default function Feuille({
-  cartesEnCours = 0,
+  cartesEnCours,
+  chienEnCours,
+  onModifierCartes,
+  onModifierChien,
   joueurs,
   nbTotal,
   parDonne,
@@ -48,11 +52,9 @@ export default function Feuille({
   onCloturerPartie,
   onQuitterPartie,
 }: FeuilleProps) {
-  const { id } = useParams();
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
-  const [editionCartes, setEditionCartes] = useState<number | null>(null);
   const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
@@ -108,12 +110,6 @@ export default function Feuille({
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
         )}
       </dl>
-
-      <div className="mb-3">
-        <GhostLink to={`/partie/${id}/cartes`} data-testid="lien-cartes">
-          Cartes jouées{cartesEnCours > 0 ? ` (${cartesEnCours})` : ""}
-        </GhostLink>
-      </div>
 
       <div className="mb-4">
         {!petitSecOuvert ? (
@@ -213,15 +209,6 @@ export default function Feuille({
             </button>
             <button
               type="button"
-              className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
-              onClick={() => setEditionCartes(ouverte)}
-            >
-              {donnes[ouverte as number]?.cartesJouees?.length || donnes[ouverte as number]?.chien?.length
-                ? "Modifier les cartes"
-                : "Noter les cartes"}
-            </button>
-            <button
-              type="button"
               className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
               onClick={() => {
                 onEffacerDonne(ouverte as number);
@@ -298,19 +285,6 @@ export default function Feuille({
         <Cta onClick={() => setSaisie({ index: null })}>Noter la donne {donnes.length + 1}</Cta>
       </Bar>
 
-      {editionCartes !== null && donnes[editionCartes] && (
-        <EditeurCartesDonne
-          joueurs={joueurs}
-          donne={donnes[editionCartes]}
-          numero={editionCartes + 1}
-          onFermer={() => setEditionCartes(null)}
-          onValider={(d) => {
-            onModifierDonne(editionCartes, d);
-            setEditionCartes(null);
-          }}
-        />
-      )}
-
       {saisie && (
         <Saisie
           joueurs={joueurs}
@@ -319,6 +293,11 @@ export default function Feuille({
           total={nbTotal}
           numero={saisie.index !== null ? saisie.index + 1 : donnes.length + 1}
           donneInitiale={saisie.index !== null ? donnes[saisie.index] : undefined}
+          brouillon={
+            saisie.index === null
+              ? { cartes: cartesEnCours, chien: chienEnCours, onCartes: onModifierCartes, onChien: onModifierChien }
+              : undefined
+          }
           onFermer={() => setSaisie(null)}
           onValider={(d) => {
             if (saisie.index !== null) {
