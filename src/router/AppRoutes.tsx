@@ -30,6 +30,8 @@ export interface AppRoutesProps {
   annulations: Annulation[];
   cartesEnCours: string[];
   onModifierCartes: (cartes: string[]) => void;
+  chienEnCours: string[];
+  onModifierChien: (chien: string[]) => void;
   joueurs: string[];
   nbTotal: number;
   totaux: number[];
@@ -126,6 +128,8 @@ function RouteCartes({
   nbDonnes,
   cartes,
   onModifier,
+  chien,
+  onModifierChien,
 }: {
   tableActiveId: string | null;
   onEntrer: (id: string) => void;
@@ -134,6 +138,8 @@ function RouteCartes({
   nbDonnes: number;
   cartes: string[];
   onModifier: (cartes: string[]) => void;
+  chien: string[];
+  onModifierChien: (chien: string[]) => void;
 }) {
   const { id } = useParams();
   useEffect(() => {
@@ -149,6 +155,8 @@ function RouteCartes({
       cartes={cartes}
       idTable={tableActiveId}
       onModifier={onModifier}
+      chien={chien}
+      onModifierChien={onModifierChien}
     />
   );
 }
@@ -164,6 +172,8 @@ export default function AppRoutes({
   annulations,
   cartesEnCours,
   onModifierCartes,
+  chienEnCours,
+  onModifierChien,
   joueurs,
   nbTotal,
   totaux,
@@ -260,6 +270,8 @@ export default function AppRoutes({
               nbDonnes={donnes.length}
               cartes={cartesEnCours}
               onModifier={onModifierCartes}
+              chien={chienEnCours}
+              onModifierChien={onModifierChien}
             />
           }
         />

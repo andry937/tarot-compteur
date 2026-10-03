@@ -21,6 +21,7 @@ export default function App() {
   const [historiqueIndex, setHistoriqueIndex] = useState<HistoriqueEntree[]>([]);
   const [annulations, setAnnulations] = useState<Annulation[]>([]);
   const [cartesEnCours, setCartesEnCours] = useState<string[]>([]);
+  const [chienEnCours, setChienEnCours] = useState<string[]>([]);
 
   useEffect(() => {
     /** Migration unique : l'ancien emplacement à une seule table active
@@ -114,6 +115,7 @@ export default function App() {
       setDonnes(rec.donnes || []);
       setAnnulations(rec.annulations || []);
       setCartesEnCours(rec.cartesEnCours || []);
+      setChienEnCours(rec.chienEnCours || []);
       setTableActiveId(id);
     } catch (e) {
       navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
@@ -124,12 +126,12 @@ export default function App() {
     if (!pret || !partie || !tableActiveId) return;
     (async () => {
       try {
-        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations, cartesEnCours }));
+        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations, cartesEnCours, chienEnCours }));
       } catch (e) {
         console.error("Sauvegarde impossible", e);
       }
     })();
-  }, [partie, donnes, annulations, cartesEnCours, pret, tableActiveId]);
+  }, [partie, donnes, annulations, cartesEnCours, chienEnCours, pret, tableActiveId]);
 
   const joueurs = partie
     ? partie.joueursId.map((id, i) => resoudreNom(id, roster, partie.joueursNomFige[i]))
@@ -180,6 +182,7 @@ export default function App() {
     setDonnes([]);
     setAnnulations([]);
     setCartesEnCours([]);
+    setChienEnCours([]);
     setTableActiveId(null);
     navigate("/");
   };
@@ -219,6 +222,7 @@ export default function App() {
     setDonnes([]);
     setAnnulations([]);
     setCartesEnCours([]);
+    setChienEnCours([]);
     setTableActiveId(null);
     navigate("/");
   };
@@ -288,6 +292,7 @@ export default function App() {
         setDonnes([]);
         setAnnulations([]);
         setCartesEnCours([]);
+    setChienEnCours([]);
         setTableActiveId(id);
         setTirage(null);
         try {
@@ -313,16 +318,27 @@ export default function App() {
       }}
       cartesEnCours={cartesEnCours}
       onModifierCartes={setCartesEnCours}
+      chienEnCours={chienEnCours}
+      onModifierChien={setChienEnCours}
       onAjouterDonne={(d) => {
         // Les cartes notées pendant la main sont rattachées à la donne inscrite.
-        setDonnes((ds) => [...ds, cartesEnCours.length ? { ...d, cartesJouees: cartesEnCours } : d]);
+        setDonnes((ds) => [
+          ...ds,
+          {
+            ...d,
+            ...(cartesEnCours.length ? { cartesJouees: cartesEnCours } : {}),
+            ...(chienEnCours.length ? { chien: chienEnCours } : {}),
+          },
+        ]);
         setCartesEnCours([]);
+    setChienEnCours([]);
       }}
       onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
       onAjouterAnnulation={(a) => {
         setAnnulations((arr) => [...arr, a]);
-        setCartesEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
+        setCartesEnCours([]);
+    setChienEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
       }}
       onCloturerPartie={cloturerPartie}
       onQuitterPartie={quitterPartie}

@@ -38,4 +38,6 @@ export interface ArchiveRecord extends Partie {
   annulations: Annulation[];
   /** Brouillon de la main en cours (cartes notées avant l'inscription de la donne). */
   cartesEnCours?: string[];
+  /** Brouillon du chien de la main en cours. */
+  chienEnCours?: string[];
 }
