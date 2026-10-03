@@ -9,6 +9,8 @@ import ScoreGrid from "./ScoreGrid";
 import StatsPartie from "./StatsPartie";
 import GraphiqueComparatif from "./GraphiqueComparatif";
 import Saisie from "./Saisie";
+import JournalPlis from "./JournalPlis";
+import { entameDeLaDonne } from "../utils/cartes";
 
 interface ArchiveFeuilleProps {
   record: ArchiveRecord & { joueurs?: string[] };
@@ -44,6 +46,23 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
         ouverte={ouverte}
         onOuvrir={setOuverte}
         detailExtra={
+          <>
+          {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+            <details className="mt-2.5">
+              <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                Cartes jouées ({donnes[ouverte].cartesJouees!.length})
+              </summary>
+              <div className="mt-1.5">
+                <JournalPlis
+                  clair
+                  joueurs={joueurs}
+                  table={donnes[ouverte].table}
+                  entame={entameDeLaDonne(donnes[ouverte])}
+                  cartes={donnes[ouverte].cartesJouees!}
+                />
+              </div>
+            </details>
+          ) : null}
           <button
             type="button"
             className="mt-2.5 rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
@@ -51,6 +70,7 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
           >
             Modifier cette donne
           </button>
+          </>
         }
       />
 

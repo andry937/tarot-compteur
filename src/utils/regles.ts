@@ -78,6 +78,9 @@ export interface Donne {
   chelem: string;
   miseres: Misere[];
   roiAppele?: Roi;
+  /** Cartes jouées pendant la main, dans l'ordre de jeu (identifiants de `utils/cartes.ts`).
+   * Purement informatif — n'intervient pas dans `calculer()`. */
+  cartesJouees?: string[];
 }
 
 export interface ResultatDonne {
