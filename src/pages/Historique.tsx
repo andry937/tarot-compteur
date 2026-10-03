@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { cleArchive } from "../lib/stockage";
-import { invaliderArchive } from "../lib/archives";
-import { resumerDonnees } from "../utils/regles";
-import type { Donne } from "../utils/regles";
-import type { Fiche } from "../utils/identite";
-import type { HistoriqueEntree, ArchiveRecord } from "../types";
-import ArchiveFeuille from "../components/ArchiveFeuille";
-import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "../components/ui";
+import { cleArchive } from "@/lib/storage/stockage";
+import { invaliderArchive } from "@/lib/storage/archives";
+import { resumerDonnees } from "@/domain/score/regles";
+import type { Donne } from "@/domain/score/regles";
+import type { Fiche } from "@/domain/joueurs/identite";
+import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
+import ArchiveFeuille from "@/components/feuille/ArchiveFeuille";
+import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "@/components/ui";
 
 interface HistoriqueProps {
   index: HistoriqueEntree[];

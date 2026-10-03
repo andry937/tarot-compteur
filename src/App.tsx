@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { resumerDonnees } from "./utils/regles";
-import type { Donne } from "./utils/regles";
-import { resoudreNom, resoudreOuCreerFiches, genId } from "./utils/identite";
-import type { Fiche } from "./utils/identite";
-import { invaliderArchive } from "./lib/archives";
-import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "./lib/stockage";
-import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "./types";
-import AppRoutes from "./router/AppRoutes";
-import { Cta } from "./components/ui";
+import { resumerDonnees } from "@/domain/score/regles";
+import type { Donne } from "@/domain/score/regles";
+import { resoudreNom, resoudreOuCreerFiches, genId } from "@/domain/joueurs/identite";
+import type { Fiche } from "@/domain/joueurs/identite";
+import { invaliderArchive } from "@/lib/storage/archives";
+import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "@/lib/storage/stockage";
+import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "@/domain/types";
+import AppRoutes from "@/app/AppRoutes";
+import { Cta } from "@/components/ui";
 
 export default function App() {
   const navigate = useNavigate();

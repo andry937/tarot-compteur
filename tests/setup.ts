@@ -1,8 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
-import { viderCacheArchives } from "../src/lib/archives";
-import { CleIntrouvable } from "../src/lib/stockage";
-import type { WindowStorage } from "../src/lib/window-storage";
+import { viderCacheArchives } from "@/lib/storage/archives";
+import { CleIntrouvable } from "@/lib/storage/stockage";
+import type { WindowStorage } from "@/lib/storage/window-storage";
 
 /**
  * Reproduit l'API window.storage (get/set/delete/list) utilisée par l'app,
