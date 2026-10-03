@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  toutesLesCartes, valeurCarte, deduireAttaque, libelleCarte, libelleCourt, nbPlis, gagnantDuPli, deriverPlis, entameDeLaDonne, estBout,
+  toutesLesCartes, valeurCarte, deduireAttaque, deduireMains, trierCartes, libelleCarte, libelleCourt, nbPlis, gagnantDuPli, deriverPlis, entameDeLaDonne, estBout,
 } from "../src/utils/cartes";
 import type { Donne } from "../src/utils/regles";
 
@@ -140,5 +140,81 @@ describe("cartes", () => {
       const d = deduireAttaque({ table, entame: 1, cartes, preneur: 1, appele: null, contrat: "garde" })!;
       expect(d.chelem).toBe(d.complet);
     });
+  });
+});
+
+describe("deduireMains", () => {
+  const table = [0, 1, 2, 3, 4];
+  const ecart = ["pique-2", "pique-3", "trefle-2"]; // jamais joués
+  const cartes = toutesLesCartes().filter((c) => !ecart.includes(c));
+  const base = { table, entame: 1, cartes, preneur: 0, contrat: "garde" };
+
+  it("trie une main : atouts décroissants, Excuse, puis ♥ ♦ ♣ ♠ du plus fort au plus faible", () => {
+    expect(trierCartes(["pique-1", "coeur-3", "excuse", "atout-2", "atout-20", "coeur-14", "trefle-5"])).toEqual([
+      "atout-20", "atout-2", "excuse", "coeur-14", "coeur-3", "trefle-5", "pique-1",
+    ]);
+  });
+
+  it("renvoie null sans carte", () => {
+    expect(deduireMains({ ...base, cartes: [] })).toBeNull();
+  });
+
+  it("main complète : 15 cartes par joueur, l'ensemble des mains + l'écart couvre les 78 cartes", () => {
+    const r = deduireMains(base)!;
+    expect(r.complete).toBe(true);
+    expect(r.anomalies).toEqual([]);
+    expect(r.mains.map((m) => m.joueur)).toEqual(table);
+    expect(r.mains.every((m) => m.cartes.length === 15 && m.attendues === 15)).toBe(true);
+    const toutes = [...r.mains.flatMap((m) => m.cartes), ...(r.ecart ?? [])];
+    expect(new Set(toutes).size).toBe(78);
+    expect(r.ecart).toEqual(trierCartes(ecart));
+    expect(r.chienNonVu).toBeNull();
+  });
+
+  it("l'Excuse reste dans la main de celui qui l'a posée", () => {
+    const r = deduireMains(base)!;
+    const { plis } = deriverPlis(table, 1, cartes);
+    const pli = plis.find((p) => p.cartes.includes("excuse"))!;
+    const joueur = pli.joueurs[pli.cartes.indexOf("excuse")];
+    expect(r.mains.find((m) => m.joueur === joueur)!.cartes).toContain("excuse");
+    expect(r.mains.filter((m) => m.cartes.includes("excuse"))).toHaveLength(1);
+  });
+
+  it("reconstitue la main de départ du preneur : jouées + écart − chien", () => {
+    const sa = deduireMains(base)!.mains.find((m) => m.joueur === 0)!.cartes;
+    const chien = [ecart[0], sa[0], sa[1]];
+    const r = deduireMains({ ...base, chien })!;
+    expect(r.departPreneur).toHaveLength(15);
+    expect(r.departPreneur).not.toContain(chien[0]);
+    expect(r.departPreneur).not.toContain(sa[0]);
+    expect(r.departPreneur).toContain(ecart[1]); // écart non repris du chien : il était dans la main de départ
+    expect(deduireMains(base)!.departPreneur).toBeNull(); // chien non noté
+  });
+
+  it("Garde sans/contre : les cartes jamais jouées sont le chien non vu, pas un écart", () => {
+    for (const contrat of ["garde_sans", "garde_contre"]) {
+      const r = deduireMains({ ...base, contrat, chien: ecart })!;
+      expect(r.ecart).toBeNull();
+      expect(r.chienNonVu).toEqual(trierCartes(ecart));
+      expect(r.departPreneur).toBeNull();
+    }
+  });
+
+  it("main incomplète : cartes déjà jouées seulement, pas d'écart", () => {
+    const r = deduireMains({ ...base, cartes: cartes.slice(0, 7) })!;
+    expect(r.complete).toBe(false);
+    expect(r.ecart).toBeNull();
+    expect(r.mains.reduce((t, m) => t + m.cartes.length, 0)).toBe(7);
+  });
+
+  it("signale sans planter une carte en double ou un chien absent de la main du preneur", () => {
+    const double = deduireMains({ ...base, cartes: ["atout-5", "atout-5", ...cartes.slice(2)] })!;
+    expect(double.anomalies.some((a) => a.includes("plusieurs fois"))).toBe(true);
+    const sa = deduireMains(base)!.mains.find((m) => m.joueur === 0)!.cartes;
+    const autre = deduireMains(base)!.mains.find((m) => m.joueur === 1)!.cartes[0];
+    expect(sa).not.toContain(autre);
+    const absent = deduireMains({ ...base, chien: [autre] })!;
+    expect(absent.anomalies.some((a) => a.includes("Chien absent"))).toBe(true);
+    expect(absent.departPreneur).toBeNull();
   });
 });

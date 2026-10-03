@@ -8,6 +8,7 @@ import StatsPartie from "../components/StatsPartie";
 import GraphiqueComparatif from "../components/GraphiqueComparatif";
 import { entameDeLaDonne } from "../utils/cartes";
 import JournalPlis from "../components/JournalPlis";
+import EcranMains from "../components/EcranMains";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
 interface FeuilleProps {
@@ -55,6 +56,7 @@ export default function Feuille({
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
+  const [mainsOuvert, setMainsOuvert] = useState<number | null>(null);
   const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
@@ -199,7 +201,16 @@ export default function Feuille({
                 </div>
               </details>
             ) : null}
-          <div className="mt-2.5 flex gap-2">
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+              <button
+                type="button"
+                className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+                onClick={() => setMainsOuvert(ouverte)}
+              >
+                Voir les mains
+              </button>
+            ) : null}
             <button
               type="button"
               className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
@@ -284,6 +295,15 @@ export default function Feuille({
       <Bar>
         <Cta onClick={() => setSaisie({ index: null })}>Noter la donne {donnes.length + 1}</Cta>
       </Bar>
+
+      {mainsOuvert !== null && donnes[mainsOuvert] && (
+        <EcranMains
+          joueurs={joueurs}
+          donne={donnes[mainsOuvert]}
+          numero={mainsOuvert + 1}
+          onFermer={() => setMainsOuvert(null)}
+        />
+      )}
 
       {saisie && (
         <Saisie
