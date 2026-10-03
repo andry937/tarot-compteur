@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { deduireAttaque } from "../utils/cartes";
+import EcranCartes from "./EcranCartes";
 import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, NOM_BOUT, calculer } from "../utils/regles";
 import type { Bout, Donne, Misere, PetitAuBout, PoigneeDeclaree, Roi } from "../utils/regles";
 import { Field, Label, Chip, Cta } from "./ui";
@@ -13,6 +15,15 @@ interface SaisieProps {
   total: number;
   numero: number;
   donneInitiale?: Donne;
+  /** Nouvelle donne : brouillon des cartes de la main en cours, édité en direct dans `App.tsx`
+   * (survit à la fermeture de la saisie). Absent pour la modification d'une donne existante,
+   * qui travaille sur une copie locale. */
+  brouillon?: {
+    cartes: string[];
+    chien: string[];
+    onCartes: (cartes: string[]) => void;
+    onChien: (chien: string[]) => void;
+  };
   onFermer: () => void;
   onValider: (d: Donne) => void;
 }
@@ -24,6 +35,7 @@ export default function Saisie({
   total,
   numero,
   donneInitiale,
+  brouillon,
   onFermer,
   onValider,
 }: SaisieProps) {
@@ -40,6 +52,13 @@ export default function Saisie({
   const [poignees, setPoignees] = useState<PoigneeDeclaree[]>(donneInitiale?.poignees ?? []);
   const [chelem, setChelem] = useState(donneInitiale?.chelem ?? "aucun");
   const [miseres, setMiseres] = useState<Misere[]>(donneInitiale?.miseres ?? []);
+  const [cartesLocales, setCartesLocales] = useState<string[]>(donneInitiale?.cartesJouees ?? []);
+  const [chienLocal, setChienLocal] = useState<string[]>(donneInitiale?.chien ?? []);
+  const [cartesOuvert, setCartesOuvert] = useState(false);
+  const cartes = brouillon ? brouillon.cartes : cartesLocales;
+  const chien = brouillon ? brouillon.chien : chienLocal;
+  const setCartes = brouillon ? brouillon.onCartes : setCartesLocales;
+  const setChien = brouillon ? brouillon.onChien : setChienLocal;
 
   const roiRequis = table.length === 5;
   const complete =
@@ -47,11 +66,15 @@ export default function Saisie({
   const donne: Donne = {
     table, donneur, preneur, appele, contrat, bouts, boutsPrecis, points, petitAuBout, poignees, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
-    cartesJouees: donneInitiale?.cartesJouees,
-    chien: donneInitiale?.chien,
+    cartesJouees: cartes.length ? cartes : undefined,
+    chien: chien.length ? chien : undefined,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
   const res = calculer(donne, joueurs.length);
+  const deduction =
+    entame !== null && table.length > 1
+      ? deduireAttaque({ table, entame, cartes, preneur, appele, contrat })
+      : null;
   const seuil = SEUILS[bouts];
   const cadrer = (v: number) => Math.min(91, Math.max(0, Math.round(v * 2) / 2));
 
@@ -133,6 +156,17 @@ export default function Saisie({
               </Chip>
             ))}
           </div>
+        </Field>
+
+        <Field>
+          <button
+            type="button"
+            data-testid="ouvrir-cartes"
+            className="w-full rounded-lg border border-dashed border-slate-700 py-2.5 text-center font-mono text-[11px] uppercase tracking-wide text-slate-300 hover:border-slate-500"
+            onClick={() => setCartesOuvert(true)}
+          >
+            Cartes jouées{cartes.length + chien.length > 0 ? ` (${cartes.length}${chien.length ? ` · chien ${chien.length}` : ""})` : ""}
+          </button>
         </Field>
 
         <Field>
@@ -225,6 +259,46 @@ export default function Saisie({
 
         <Field>
           <Label>Points de l'attaque</Label>
+          {deduction && (
+            <div className="mb-3 rounded-lg border border-sky-500/40 bg-sky-950/30 p-3" data-testid="deduction">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-sky-300">
+                Déduit des cartes notées
+              </div>
+              {deduction.complet ? (
+                <>
+                  <p className="mt-1 text-sm text-slate-100">
+                    L'attaque a <b className="font-mono text-amber-400">{deduction.points}</b> pts · {deduction.bouts} bout
+                    {deduction.bouts > 1 ? "s" : ""}
+                    {deduction.petitAuBout !== "aucun" && ` · petit au bout pour ${deduction.petitAuBout === "attaque" ? "l'attaque" : "la défense"}`}
+                    {deduction.chelem && " · tous les plis pour l'attaque"}
+                  </p>
+                  {deduction.excuseJouee && (
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      L'Excuse est comptée 4,5 pts pour son camp, sans l'échange d'une carte à 0,5 pt : le total peut
+                      varier de 4 pts.
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    className="mt-2 rounded-full border border-sky-400 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-sky-200 hover:bg-sky-900/40"
+                    onClick={() => {
+                      setPoints(cadrer(deduction.points));
+                      setBouts(deduction.bouts);
+                      setBoutsPrecis(deduction.boutsPrecis);
+                      setPetitAuBout(deduction.petitAuBout);
+                    }}
+                  >
+                    Utiliser ces valeurs
+                  </button>
+                </>
+              ) : (
+                <p className="mt-1 text-[12px] text-slate-400">
+                  Main incomplète ({cartes.length} carte{cartes.length > 1 ? "s" : ""} notée
+                  {cartes.length > 1 ? "s" : ""}) : notez tous les plis pour déduire les points.
+                </p>
+              )}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -438,6 +512,21 @@ export default function Saisie({
           </div>
         </div>
       </div>
+      {cartesOuvert && entame !== null && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <EcranCartes
+            joueurs={joueurs}
+            table={table}
+            numero={numero}
+            entame={entame}
+            cartes={cartes}
+            chien={chien}
+            onCartes={setCartes}
+            onChien={setChien}
+            onFermer={() => setCartesOuvert(false)}
+          />
+        </div>
+      )}
     </div>
   );
 }
