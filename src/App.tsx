@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { resumerDonnees } from "./utils/regles";
-import type { Donne } from "./utils/regles";
-import { resoudreNom, resoudreOuCreerFiches, genId } from "./utils/identite";
-import type { Fiche } from "./utils/identite";
-import { invaliderArchive } from "./lib/archives";
-import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "./lib/stockage";
-import type { Partie, TirageEnCours, HistoriqueEntree, Annulation, ArchiveRecord } from "./types";
-import AppRoutes from "./router/AppRoutes";
-import { Cta } from "./components/ui";
+import { resumerDonnees } from "@/domain/score/regles";
+import { resoudreNom, genId } from "@/domain/joueurs/identite";
+import type { Fiche } from "@/domain/joueurs/identite";
+import { invaliderArchive } from "@/lib/storage/archives";
+import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "@/lib/storage/stockage";
+import type { Partie, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
+import AppRoutes from "@/app/AppRoutes";
+import { Cta } from "@/components/ui";
+import { useRegistre } from "@/hooks/useRegistre";
+import { useTable } from "@/hooks/useTable";
 
 export default function App() {
   const navigate = useNavigate();
@@ -18,15 +19,15 @@ export default function App() {
   const [erreurChargement, setErreurChargement] = useState(false);
   const [avertissement, setAvertissement] = useState<string | null>(null);
   const [tablesIndex, setTablesIndex] = useState<HistoriqueEntree[]>([]);
-  const [tableActiveId, setTableActiveId] = useState<string | null>(null);
-  const [partie, setPartie] = useState<Partie | null>(null);
   const [tirage, setTirage] = useState<TirageEnCours | null>(null);
-  const [donnes, setDonnes] = useState<Donne[]>([]);
-  const [roster, setRoster] = useState<Fiche[]>([]);
+  const { roster, setRoster, persisterRoster, majRoster } = useRegistre();
   const [historiqueIndex, setHistoriqueIndex] = useState<HistoriqueEntree[]>([]);
-  const [annulations, setAnnulations] = useState<Annulation[]>([]);
-  const [cartesEnCours, setCartesEnCours] = useState<string[]>([]);
-  const [chienEnCours, setChienEnCours] = useState<string[]>([]);
+
+  const {
+    tableActiveId, partie, donnes, annulations, cartesEnCours, chienEnCours,
+    setCartesEnCours, setChienEnCours, activer, desactiver, chargerTable,
+    ajouterDonne, modifierDonne, effacerDonne, ajouterAnnulation,
+  } = useTable(pret);
 
   useEffect(() => {
     /** Migration unique : l'ancien emplacement à une seule table active
@@ -81,40 +82,7 @@ export default function App() {
         setErreurChargement(true);
       }
     })();
-  }, []);
-
-  /** Charge à la demande la table `id` (route /partie/:id) si elle n'est pas déjà active dans cet onglet. */
-  const chargerTable = async (id: string) => {
-    if (tableActiveId === id) return;
-    try {
-      const r = await window.storage.get(cleTable(id));
-      const rec: ArchiveRecord = JSON.parse(r.value);
-      setPartie({
-        joueursId: rec.joueursId,
-        joueursNomFige: rec.joueursNomFige,
-        parDonne: rec.parDonne,
-        depart: rec.depart || 0,
-      });
-      setDonnes(rec.donnes || []);
-      setAnnulations(rec.annulations || []);
-      setCartesEnCours(rec.cartesEnCours || []);
-      setChienEnCours(rec.chienEnCours || []);
-      setTableActiveId(id);
-    } catch (e) {
-      navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
-    }
-  };
-
-  useEffect(() => {
-    if (!pret || !partie || !tableActiveId) return;
-    (async () => {
-      try {
-        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations, cartesEnCours, chienEnCours }));
-      } catch (e) {
-        console.error("Sauvegarde impossible", e);
-      }
-    })();
-  }, [partie, donnes, annulations, cartesEnCours, chienEnCours, pret, tableActiveId]);
+  }, [setRoster]); // setRoster est un setState : identité stable, l'effet ne tourne qu'une fois
 
   const joueurs = partie
     ? partie.joueursId.map((id, i) => resoudreNom(id, roster, partie.joueursNomFige[i]))
@@ -143,30 +111,9 @@ export default function App() {
       .catch((e) => console.error("Sauvegarde de l'index des tables impossible", e));
   }, [tablesIndex, pret]);
 
-  const persisterRoster = async (suivant: Fiche[]) => {
-    setRoster(suivant);
-    try {
-      await window.storage.set(CLE_ROSTER, JSON.stringify(suivant));
-    } catch (e) {
-      console.error("Sauvegarde du trombinoscope impossible", e);
-    }
-  };
-
-  /** Rapproche ou crée les fiches pour ces noms, persiste le registre, renvoie les identifiants. */
-  const majRoster = async (noms: string[]): Promise<string[]> => {
-    const { ids, roster: suivant } = resoudreOuCreerFiches(noms, roster);
-    await persisterRoster(suivant);
-    return ids;
-  };
-
   /** Retour à l'accueil sans rien modifier : la table reste ouverte, reprenable plus tard. */
   const quitterPartie = () => {
-    setPartie(null);
-    setDonnes([]);
-    setAnnulations([]);
-    setCartesEnCours([]);
-    setChienEnCours([]);
-    setTableActiveId(null);
+    desactiver();
     navigate("/");
   };
 
@@ -205,12 +152,7 @@ export default function App() {
       }
       setTablesIndex((idx) => idx.filter((h) => h.id !== id));
     }
-    setPartie(null);
-    setDonnes([]);
-    setAnnulations([]);
-    setCartesEnCours([]);
-    setChienEnCours([]);
-    setTableActiveId(null);
+    desactiver();
     navigate("/");
   };
 
@@ -297,12 +239,7 @@ export default function App() {
           parDonne: tirage.parDonne,
           depart,
         };
-        setPartie(nouvelle);
-        setDonnes([]);
-        setAnnulations([]);
-        setCartesEnCours([]);
-        setChienEnCours([]);
-        setTableActiveId(id);
+        activer(id, nouvelle);
         setTirage(null);
         try {
           await window.storage.set(cleTable(id), JSON.stringify({ ...nouvelle, donnes: [], annulations: [] }));
@@ -329,26 +266,10 @@ export default function App() {
       onModifierCartes={setCartesEnCours}
       chienEnCours={chienEnCours}
       onModifierChien={setChienEnCours}
-      onAjouterDonne={(d) => {
-        // Les cartes notées pendant la main sont rattachées à la donne inscrite.
-        setDonnes((ds) => [
-          ...ds,
-          {
-            ...d,
-            ...(cartesEnCours.length ? { cartesJouees: cartesEnCours } : {}),
-            ...(chienEnCours.length ? { chien: chienEnCours } : {}),
-          },
-        ]);
-        setCartesEnCours([]);
-        setChienEnCours([]);
-      }}
-      onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
-      onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
-      onAjouterAnnulation={(a) => {
-        setAnnulations((arr) => [...arr, a]);
-        setCartesEnCours([]);
-        setChienEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
-      }}
+      onAjouterDonne={ajouterDonne}
+      onModifierDonne={modifierDonne}
+      onEffacerDonne={effacerDonne}
+      onAjouterAnnulation={ajouterAnnulation}
       onCloturerPartie={cloturerPartie}
       onQuitterPartie={quitterPartie}
       onSupprimerPartie={supprimerPartie}
