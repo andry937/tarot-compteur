@@ -2,13 +2,18 @@ import { useState } from "react";
 import { tableDeLaDonne, fmt } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Annulation } from "../types";
+import { useParams } from "react-router-dom";
 import Saisie from "../components/Saisie";
 import ScoreGrid from "../components/ScoreGrid";
 import StatsPartie from "../components/StatsPartie";
 import GraphiqueComparatif from "../components/GraphiqueComparatif";
+import { entameDeLaDonne } from "../utils/cartes";
+import EditeurCartesDonne from "../components/EditeurCartesDonne";
+import JournalPlis from "../components/JournalPlis";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
 interface FeuilleProps {
+  cartesEnCours?: number;
   joueurs: string[];
   nbTotal: number;
   parDonne: number;
@@ -27,6 +32,7 @@ interface FeuilleProps {
 }
 
 export default function Feuille({
+  cartesEnCours = 0,
   joueurs,
   nbTotal,
   parDonne,
@@ -42,9 +48,11 @@ export default function Feuille({
   onCloturerPartie,
   onQuitterPartie,
 }: FeuilleProps) {
+  const { id } = useParams();
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
+  const [editionCartes, setEditionCartes] = useState<number | null>(null);
   const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
@@ -100,6 +108,12 @@ export default function Feuille({
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
         )}
       </dl>
+
+      <div className="mb-3">
+        <GhostLink to={`/partie/${id}/cartes`} data-testid="lien-cartes">
+          Cartes jouées{cartesEnCours > 0 ? ` (${cartesEnCours})` : ""}
+        </GhostLink>
+      </div>
 
       <div className="mb-4">
         {!petitSecOuvert ? (
@@ -171,6 +185,24 @@ export default function Feuille({
           </div>
         }
         detailExtra={
+          <>
+            {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length) ? (
+              <details className="mt-2.5">
+                <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                  Cartes jouées ({donnes[ouverte].cartesJouees?.length ?? 0}{donnes[ouverte].chien?.length ? " · chien" : ""})
+                </summary>
+                <div className="mt-1.5">
+                  <JournalPlis
+                    clair
+                    joueurs={joueurs}
+                    table={donnes[ouverte].table}
+                    entame={entameDeLaDonne(donnes[ouverte])}
+                    cartes={donnes[ouverte].cartesJouees ?? []}
+                    chien={donnes[ouverte].chien}
+                  />
+                </div>
+              </details>
+            ) : null}
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
@@ -178,6 +210,15 @@ export default function Feuille({
               onClick={() => setSaisie({ index: ouverte })}
             >
               Modifier cette donne
+            </button>
+            <button
+              type="button"
+              className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+              onClick={() => setEditionCartes(ouverte)}
+            >
+              {donnes[ouverte as number]?.cartesJouees?.length || donnes[ouverte as number]?.chien?.length
+                ? "Modifier les cartes"
+                : "Noter les cartes"}
             </button>
             <button
               type="button"
@@ -190,6 +231,7 @@ export default function Feuille({
               Effacer cette donne
             </button>
           </div>
+          </>
         }
       />
 
@@ -255,6 +297,19 @@ export default function Feuille({
       <Bar>
         <Cta onClick={() => setSaisie({ index: null })}>Noter la donne {donnes.length + 1}</Cta>
       </Bar>
+
+      {editionCartes !== null && donnes[editionCartes] && (
+        <EditeurCartesDonne
+          joueurs={joueurs}
+          donne={donnes[editionCartes]}
+          numero={editionCartes + 1}
+          onFermer={() => setEditionCartes(null)}
+          onValider={(d) => {
+            onModifierDonne(editionCartes, d);
+            setEditionCartes(null);
+          }}
+        />
+      )}
 
       {saisie && (
         <Saisie
