@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (82 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (93 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -59,6 +59,8 @@ src/
     stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans
                               React ; expose aussi `trajectoire` (axe personnel dense pour le graphique)
     elo.ts                     classement général Elo, recalculé à la volée depuis les archives — pur, sans React
+    cartes.ts                   carnet des cartes jouées : identifiants de cartes, gagnant d'un pli,
+                                déduction des plis depuis une liste ordonnée — pur, sans React
     statsPartie.ts              statistiques sur les donnes d'une seule partie (roi/joueur appelé,
                                 réussites/chutes, mains appelées) — pur, sans React
   lib/
@@ -80,6 +82,7 @@ src/
     Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
     FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
     Classement.tsx              classement général Elo (route /classement)
+    CartesJouees.tsx            aide-mémoire des cartes tombées pendant une main (route /partie/:id/cartes)
   components/                pièces rendues à l'intérieur d'un écran, jamais routées
     ui.tsx                     primitives visuelles Tailwind partagées (Page, Header, GhostButton,
                                 Chip, Cta, Field, Label, Section, RankRow, ArchiveRow, Lien, …)
@@ -95,6 +98,9 @@ src/
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
     ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
                                 partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
+    EditeurCartesDonne.tsx      plein écran pour noter/corriger les cartes et le chien d'une donne déjà inscrite
+                                (feuille ou archive) ; réutilise l'écran CartesJouees sur une copie locale
+    JournalPlis.tsx             liste en lecture seule des plis déduits (page Cartes jouées, détail d'une donne)
     Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
                                 tant qu'aucun utilisateur Firebase Auth n'est connecté
   App.tsx                     composant racine : état partagé, effets de persistance
@@ -115,6 +121,8 @@ tests/
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
                                 fermeture isolée, Accueil non destructif, migration de l'ancienne
                                 partie unique (5 tests)
+  cartes.test.ts               unitaires : utils/cartes.ts (6 tests)
+  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup (5 tests)
   archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
                                 persistance et resynchronisation de l'historique (2 tests)
 ```
@@ -295,6 +303,28 @@ sur la fiche joueur (avec bouts précis), refonte visuelle Tailwind
 suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
+
+**Carnet des cartes jouées** (`utils/cartes.ts`, `pages/CartesJouees.tsx`,
+`components/JournalPlis.tsx`) : aide-mémoire pour savoir quelles cartes sont
+déjà tombées (atouts et bouts surtout) pendant une main. On note seulement
+la suite des cartes **dans l'ordre de jeu** (identifiants `"atout-12"`,
+`"excuse"`, `"coeur-14"`…) : l'entame est connue (le joueur après le
+donneur) et les joueurs jouent dans l'ordre de la table, donc l'app **déduit**
+qui a posé chaque carte et qui remporte chaque pli (plus fort atout, sinon
+plus forte carte de la couleur d'entame, l'Excuse ne gagne jamais) ; le
+gagnant entame le pli suivant. Seule la liste plate est stockée — plis,
+gagnants, compteurs sont recalculés à l'affichage (même philosophie que
+`stats.ts`/`elo.ts`) ; annuler = retirer la dernière carte. Brouillon de la
+main en cours dans `cartesEnCours` de `tarot:table:{id}` (`ArchiveRecord`),
+rattaché à la donne (`Donne.cartesJouees`, optionnel, purement informatif,
+n'intervient pas dans `calculer()`) à son inscription puis vidé ; vidé aussi
+par un Petit sec (la donne est rejouée). Route `/partie/:id/cartes`, lien
+« Cartes jouées (n) » sur la feuille ; journal repliable dans le détail
+d'une donne (feuille et archive). `Saisie.tsx` recopie `cartesJouees` de la
+donne éditée pour que la modification ne les perde pas. Hors périmètre :
+validation « fournir/couper », écart du preneur, Excuse perdue au dernier pli.
+**Après coup** : « Noter les cartes » / « Modifier les cartes » dans le détail d'une donne (feuille et archive) ouvre `EditeurCartesDonne` — même écran que `/partie/:id/cartes` (props `entame` et `actions`, entame déduite du donneur de la donne), travaillant sur une copie locale (« Annuler » n'enregistre rien, « Enregistrer » passe par `onModifierDonne`, donc le circuit de modification existant, y compris la persistance de l'archive). Listes vides → champs retirés de la donne. Le score n'est jamais touché.
+**Chien** : un second mode de la même page (« Chien (n/3) », 3 cartes à 5 joueurs, 6 à 3 ou 4 — `tailleChien`) note les cartes retournées au chien (Petite ou Garde) ; brouillon `chienEnCours` puis `Donne.chien`, affiché en tête du journal. Les cartes du chien restent jouables (le preneur peut les garder) et sont repérées en bleu.
 
 **Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :
 la section « Classement » de la partie en cours n'était affichée que si

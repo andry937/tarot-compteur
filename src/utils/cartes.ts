@@ -1,0 +1,142 @@
+/**
+ * Carnet des cartes jouées : identifiants de cartes et déduction des plis.
+ * Aucune dépendance React : testable isolément.
+ *
+ * On ne stocke qu'une liste plate ordonnée de cartes (dans l'ordre de jeu) ;
+ * qui a posé chaque carte, qui remporte chaque pli et qui entame le suivant
+ * se déduisent à l'affichage — pas d'agrégat stocké, annuler = retirer la
+ * dernière carte.
+ */
+
+import { NOM_ROI, ROMAINS } from "./regles";
+import type { Roi, Donne } from "./regles";
+
+export const COULEURS: Roi[] = ["coeur", "carreau", "trefle", "pique"];
+
+export const SYMBOLE_COULEUR: Record<Roi, string> = {
+  coeur: "♥",
+  carreau: "♦",
+  trefle: "♣",
+  pique: "♠",
+};
+
+const RANGS_COULEUR = ["As", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Valet", "Cavalier", "Dame", "Roi"];
+
+/** Identifiants : "atout-1".."atout-21", "excuse", "coeur-1".."coeur-14" (idem autres couleurs ; 11 Valet … 14 Roi). */
+export const EXCUSE = "excuse";
+export const idAtout = (n: number): string => `atout-${n}`;
+export const idCouleur = (c: Roi, rang: number): string => `${c}-${rang}`;
+
+export function toutesLesCartes(): string[] {
+  return [
+    ...Array.from({ length: 21 }, (_, i) => idAtout(i + 1)),
+    EXCUSE,
+    ...COULEURS.flatMap((c) => Array.from({ length: 14 }, (_, i) => idCouleur(c, i + 1))),
+  ];
+}
+
+interface CarteDecodee {
+  famille: "atout" | "excuse" | Roi;
+  rang: number;
+}
+
+export function decoder(id: string): CarteDecodee {
+  if (id === EXCUSE) return { famille: "excuse", rang: 0 };
+  const [famille, rang] = id.split("-");
+  return { famille: famille as CarteDecodee["famille"], rang: Number(rang) };
+}
+
+export function estBout(id: string): boolean {
+  return id === EXCUSE || id === idAtout(1) || id === idAtout(21);
+}
+
+export function libelleCarte(id: string): string {
+  const c = decoder(id);
+  if (c.famille === "excuse") return "L'Excuse";
+  if (c.famille === "atout") return ROMAINS[c.rang];
+  return `${RANGS_COULEUR[c.rang - 1]} de ${NOM_ROI[c.famille].toLowerCase()}`;
+}
+
+/** Libellé court affiché sur une touche : rang + symbole de la couleur, chiffre romain pour un atout. */
+export function libelleCourt(id: string): string {
+  const c = decoder(id);
+  if (c.famille === "excuse") return "Exc.";
+  if (c.famille === "atout") return ROMAINS[c.rang];
+  const r = c.rang <= 10 ? String(c.rang) : ["V", "C", "D", "R"][c.rang - 11];
+  return `${c.rang === 1 ? "A" : r}${SYMBOLE_COULEUR[c.famille]}`;
+}
+
+/** Taille du chien : 3 cartes à 5 joueurs, 6 à 3 ou 4. */
+export function tailleChien(nbJoueurs: number): number {
+  return nbJoueurs >= 5 ? 3 : 6;
+}
+
+/** Nombre de plis d'une main : (78 − chien) / joueurs à table — 15 à 5, 18 à 4, 24 à 3. */
+export function nbPlis(nbJoueurs: number): number {
+  return (78 - tailleChien(nbJoueurs)) / nbJoueurs;
+}
+
+/** Index (dans le pli) de la carte gagnante : le plus fort atout, sinon la plus forte carte de la couleur d'entame ; l'Excuse ne gagne jamais. */
+export function gagnantDuPli(cartes: string[]): number {
+  const dec = cartes.map(decoder);
+  let meilleur = -1;
+  const atouts = dec.map((c, i) => (c.famille === "atout" ? i : -1)).filter((i) => i >= 0);
+  if (atouts.length) {
+    meilleur = atouts.reduce((a, b) => (dec[b].rang > dec[a].rang ? b : a));
+    return meilleur;
+  }
+  // Couleur d'entame = celle de la première carte qui n'est pas l'Excuse.
+  const entame = dec.find((c) => c.famille !== "excuse");
+  if (!entame) return 0;
+  const memeCouleur = dec.map((c, i) => (c.famille === entame.famille ? i : -1)).filter((i) => i >= 0);
+  return memeCouleur.reduce((a, b) => (dec[b].rang > dec[a].rang ? b : a));
+}
+
+export interface PliDeduit {
+  /** Joueurs (index de siège) dans l'ordre où ils ont joué. */
+  joueurs: number[];
+  cartes: string[];
+  /** Siège gagnant, ou null tant que le pli n'est pas complet. */
+  gagnant: number | null;
+}
+
+export interface PlisDeduits {
+  plis: PliDeduit[];
+  /** Prochain joueur à poser une carte, ou null si la main est terminée. */
+  prochainJoueur: number | null;
+  termine: boolean;
+}
+
+/**
+ * Déduit les plis d'une liste ordonnée de cartes. `table` = sièges à table
+ * dans l'ordre de jeu (le donneur en premier, comme `tableDeLaDonne`),
+ * `entame` = siège qui entame le premier pli ; ensuite, le gagnant entame.
+ */
+export function deriverPlis(table: number[], entame: number, cartes: string[]): PlisDeduits {
+  const n = table.length;
+  const total = nbPlis(n);
+  const plis: PliDeduit[] = [];
+  let premier = entame;
+  for (let k = 0; k < total && k * n < cartes.length; k++) {
+    const du = cartes.slice(k * n, k * n + n);
+    const depart = table.indexOf(premier);
+    const joueurs = du.map((_, j) => table[(depart + j) % n]);
+    const complet = du.length === n;
+    const gagnant = complet ? joueurs[gagnantDuPli(du)] : null;
+    plis.push({ joueurs, cartes: du, gagnant });
+    if (gagnant !== null) premier = gagnant;
+  }
+  const termine = cartes.length >= total * n;
+  const dernier = plis[plis.length - 1];
+  let prochainJoueur: number | null;
+  if (termine) prochainJoueur = null;
+  else if (!dernier || dernier.gagnant !== null) prochainJoueur = premier;
+  else prochainJoueur = table[(table.indexOf(dernier.joueurs[0]) + dernier.cartes.length) % n];
+  return { plis, prochainJoueur, termine };
+}
+
+/** Siège qui a entamé la main d'une donne inscrite : le joueur après le donneur. */
+export function entameDeLaDonne(d: Donne): number {
+  const t = d.table;
+  return t.length > 1 ? t[(t.indexOf(d.donneur ?? t[0]) + 1) % t.length] : t[0];
+}
