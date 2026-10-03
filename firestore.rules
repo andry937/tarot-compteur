@@ -1,6 +1,6 @@
 // Règles de référence — à copier dans la console Firebase (Firestore Database
-// > Règles) : ce dépôt ne les déploie pas automatiquement. Remplacer
-// UID_DU_COMPTE_TABLE par l'UID du compte partagé (Authentication > Users).
+// > Règles) : ce dépôt ne les déploie pas automatiquement. L'UID est celui du
+// compte partagé de la table (Authentication > Users) — pas un secret.
 //
 // `request.auth != null` seul ne suffit PAS : tant que l'inscription libre est
 // active (par défaut avec le fournisseur Email/Password), n'importe qui peut
@@ -11,9 +11,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /tarotStorage/{document} {
       allow read, delete: if request.auth != null
-        && request.auth.uid == "UID_DU_COMPTE_TABLE";
+        && request.auth.uid == "0ADF5ngIipRZsrZwqTJLefq84E63";
       allow create, update: if request.auth != null
-        && request.auth.uid == "UID_DU_COMPTE_TABLE"
+        && request.auth.uid == "0ADF5ngIipRZsrZwqTJLefq84E63"
         && request.resource.data.keys().hasOnly(["value"])
         && request.resource.data.value is string
         && request.resource.data.value.size() < 900000;
