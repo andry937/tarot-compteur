@@ -11,6 +11,7 @@ import CompositionTable from "../pages/CompositionTable";
 import Classement from "../pages/Classement";
 import Tables from "../pages/Tables";
 import CartesJouees from "../pages/CartesJouees";
+import { GhostLink } from "../components/ui";
 
 // Chargées à la demande : ces trois écrans importent Recharts (via
 // GraphiqueComparatif/GraphiquePersonnel), la plus grosse dépendance du
@@ -153,7 +154,7 @@ function RouteCartes({
       table={tableDeLaDonne(nbDonnes, joueurs.length, partie.parDonne, partie.depart || 0)}
       numero={nbDonnes + 1}
       cartes={cartes}
-      idTable={tableActiveId}
+      actions={<GhostLink to={`/partie/${tableActiveId}`}>Feuille</GhostLink>}
       onModifier={onModifier}
       chien={chien}
       onModifierChien={onModifierChien}

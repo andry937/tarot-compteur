@@ -8,6 +8,7 @@ import ScoreGrid from "../components/ScoreGrid";
 import StatsPartie from "../components/StatsPartie";
 import GraphiqueComparatif from "../components/GraphiqueComparatif";
 import { entameDeLaDonne } from "../utils/cartes";
+import EditeurCartesDonne from "../components/EditeurCartesDonne";
 import JournalPlis from "../components/JournalPlis";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
@@ -51,6 +52,7 @@ export default function Feuille({
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
+  const [editionCartes, setEditionCartes] = useState<number | null>(null);
   const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
@@ -211,6 +213,15 @@ export default function Feuille({
             </button>
             <button
               type="button"
+              className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+              onClick={() => setEditionCartes(ouverte)}
+            >
+              {donnes[ouverte as number]?.cartesJouees?.length || donnes[ouverte as number]?.chien?.length
+                ? "Modifier les cartes"
+                : "Noter les cartes"}
+            </button>
+            <button
+              type="button"
               className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
               onClick={() => {
                 onEffacerDonne(ouverte as number);
@@ -286,6 +297,19 @@ export default function Feuille({
       <Bar>
         <Cta onClick={() => setSaisie({ index: null })}>Noter la donne {donnes.length + 1}</Cta>
       </Bar>
+
+      {editionCartes !== null && donnes[editionCartes] && (
+        <EditeurCartesDonne
+          joueurs={joueurs}
+          donne={donnes[editionCartes]}
+          numero={editionCartes + 1}
+          onFermer={() => setEditionCartes(null)}
+          onValider={(d) => {
+            onModifierDonne(editionCartes, d);
+            setEditionCartes(null);
+          }}
+        />
+      )}
 
       {saisie && (
         <Saisie
