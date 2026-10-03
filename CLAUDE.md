@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (111 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (114 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -524,6 +524,23 @@ partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
   (échec fermé, cohérent avec l'objectif de sécurité) plutôt que de rester
   bloqué ; si le callback finit par arriver plus tard, il met quand même à
   jour l'état normalement.
+
+**Robustesse du stockage** (`lib/stockage.ts`, `App.tsx`,
+`components/ErrorBoundary.tsx`) : `window.storage.get` lève `CleIntrouvable`
+sur une clé absente (cas normal au premier lancement) ; toute autre erreur
+(réseau, délai) est une panne. `lireJson` rend `null` pour le premier cas et
+relance le second. Avant, les deux étaient avalés pareil : une lecture ratée
+donnait un état vide, aussitôt réécrit par les effets de sauvegarde — l'index
+des tables, l'historique ou le trombinoscope pouvaient être effacés. Désormais
+un échec de lecture au démarrage affiche « Données inaccessibles » (bouton
+Réessayer) et **n'écrit rien**. `cloturerPartie` ne supprime plus la table si
+l'archivage échoue (bandeau d'avertissement, la table reste ouverte).
+`ErrorBoundary` (autour de `AuthGate` dans `main.tsx`) remplace la page
+blanche par un écran « Recharger », typique après un déploiement quand
+l'`import()` d'un chunk paresseux échoue. Tout nouvel adaptateur de stockage
+et le faux storage des tests doivent lever `CleIntrouvable`, pas une `Error`
+générique. Limite connue, non traitée : deux appareils écrivent chacun les
+index entiers (`tarot:tables`, `tarot:historique`), le dernier écrase l'autre.
 
 **Durcissement sécurité** (`firestore.rules`, `vercel.json`, `pages/Tables.tsx`) :
 une revue a montré que la règle `request.auth != null` ne protégeait pas
