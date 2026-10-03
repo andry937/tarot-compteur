@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (93 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (101 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -82,7 +82,8 @@ src/
     Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
     FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
     Classement.tsx              classement général Elo (route /classement)
-    CartesJouees.tsx            aide-mémoire des cartes tombées pendant une main (route /partie/:id/cartes)
+    CartesJouees.tsx            aide-mémoire des cartes tombées pendant une main (pas de route : affiché en
+                                écran superposé par EcranCartes depuis Saisie)
   components/                pièces rendues à l'intérieur d'un écran, jamais routées
     ui.tsx                     primitives visuelles Tailwind partagées (Page, Header, GhostButton,
                                 Chip, Cta, Field, Label, Section, RankRow, ArchiveRow, Lien, …)
@@ -98,8 +99,7 @@ src/
     ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
     ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
                                 partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
-    EditeurCartesDonne.tsx      plein écran pour noter/corriger les cartes et le chien d'une donne déjà inscrite
-                                (feuille ou archive) ; réutilise l'écran CartesJouees sur une copie locale
+    EcranCartes.tsx             écran superposé à « Inscrire la donne » (Saisie) : habille CartesJouees
     JournalPlis.tsx             liste en lecture seule des plis déduits (page Cartes jouées, détail d'une donne)
     Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
                                 tant qu'aucun utilisateur Firebase Auth n'est connecté
@@ -121,8 +121,8 @@ tests/
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
                                 fermeture isolée, Accueil non destructif, migration de l'ancienne
                                 partie unique (5 tests)
-  cartes.test.ts               unitaires : utils/cartes.ts (6 tests)
-  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup (5 tests)
+  cartes.test.ts               unitaires : utils/cartes.ts (12 tests)
+  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup, déduction des points (7 tests)
   archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
                                 persistance et resynchronisation de l'historique (2 tests)
 ```
@@ -318,12 +318,14 @@ gagnants, compteurs sont recalculés à l'affichage (même philosophie que
 main en cours dans `cartesEnCours` de `tarot:table:{id}` (`ArchiveRecord`),
 rattaché à la donne (`Donne.cartesJouees`, optionnel, purement informatif,
 n'intervient pas dans `calculer()`) à son inscription puis vidé ; vidé aussi
-par un Petit sec (la donne est rejouée). Route `/partie/:id/cartes`, lien
-« Cartes jouées (n) » sur la feuille ; journal repliable dans le détail
-d'une donne (feuille et archive). `Saisie.tsx` recopie `cartesJouees` de la
+par un Petit sec (la donne est rejouée). Bouton « Cartes jouées » **dans le formulaire « Inscrire la donne »**
+(`Saisie.tsx`), qui ouvre `EcranCartes` par-dessus sans quitter la saisie
+(plus de route dédiée) ; journal repliable dans le détail d'une donne
+(feuille et archive). `Saisie.tsx` recopie `cartesJouees` de la
 donne éditée pour que la modification ne les perde pas. Hors périmètre :
 validation « fournir/couper », écart du preneur, Excuse perdue au dernier pli.
-**Après coup** : « Noter les cartes » / « Modifier les cartes » dans le détail d'une donne (feuille et archive) ouvre `EditeurCartesDonne` — même écran que `/partie/:id/cartes` (props `entame` et `actions`, entame déduite du donneur de la donne), travaillant sur une copie locale (« Annuler » n'enregistre rien, « Enregistrer » passe par `onModifierDonne`, donc le circuit de modification existant, y compris la persistance de l'archive). Listes vides → champs retirés de la donne. Le score n'est jamais touché.
+**Après coup** : « Modifier cette donne » (feuille et archive) rouvre `Saisie` avec le même bouton « Cartes jouées » ; sur une donne existante, `Saisie` travaille sur une copie locale des cartes/du chien (rien n'est enregistré avant « Inscrire la donne », qui passe par `onModifierDonne` — circuit de modification existant, y compris la persistance de l'archive), alors que sur une nouvelle donne il écrit en direct dans le brouillon d'`App.tsx` (prop `brouillon`) pour survivre à « Fermer » et à un rechargement. Listes vides → champs retirés de la donne.
+**Points déduits** (`deduireAttaque`, `utils/cartes.ts`, bloc « Déduit des cartes notées » de `Saisie.tsx`) : quand tous les plis (15/18/24) sont notés, l'app calcule les points de l'attaque — plis remportés par preneur/appelé, l'Excuse restant au camp de celui qui l'a jouée, les cartes jamais jouées formant l'écart du preneur (attaque, sauf Garde contre où le chien va à la défense) — ainsi que les bouts, lesquels, le petit au bout (Petit gagnant du dernier pli) et le chelem. Valeurs 4,5/3,5/2,5/1,5/0,5 (total 91, `valeurCarte`). Le bouton « Utiliser ces valeurs » **propose** (remplit points, bouts, bouts précis, petit au bout) sans rien imposer ni stocker ; `calculer()` inchangé. Main incomplète : message seulement. Limite : l'Excuse vaut 4,5 sans l'échange d'une carte à 0,5 pt (écart possible de 4 pts, signalé dans l'interface) ; une carte mal saisie fausse la déduction.
 **Chien** : un second mode de la même page (« Chien (n/3) », 3 cartes à 5 joueurs, 6 à 3 ou 4 — `tailleChien`) note les cartes retournées au chien (Petite ou Garde) ; brouillon `chienEnCours` puis `Donne.chien`, affiché en tête du journal. Les cartes du chien restent jouables (le preneur peut les garder) et sont repérées en bleu.
 
 **Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :
