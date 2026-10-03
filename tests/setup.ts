@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { beforeEach } from "vitest";
 import { viderCacheArchives } from "../src/lib/archives";
+import { CleIntrouvable } from "../src/lib/stockage";
 import type { WindowStorage } from "../src/lib/window-storage";
 
 /**
@@ -11,7 +12,7 @@ function creerFauxStorage(): WindowStorage {
   const magasin = new Map<string, string>();
   return {
     async get(key) {
-      if (!magasin.has(key)) throw new Error(`clé introuvable: ${key}`);
+      if (!magasin.has(key)) throw new CleIntrouvable(key);
       return { key, value: magasin.get(key)!, shared: false };
     },
     async set(key, value) {
