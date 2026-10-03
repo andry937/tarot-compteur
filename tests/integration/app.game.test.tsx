@@ -117,6 +117,34 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(totaux.reduce((a, b) => a + Number(b), 0)).toBe(0);
   });
 
+  it("une poignée montrée par un défenseur profite à la défense (choix du joueur, de la taille, retrait)", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await lancerPartieJusquaLaFeuille(u);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByText("+ Ajouter une poignée"));
+    // La ligne de poignée est la dernière rangée de pastilles « Fara » du formulaire.
+    const chipsFara = screen.getAllByRole("button", { name: "Fara" });
+    await u.click(chipsFara[chipsFara.length - 1]);
+    await u.click(screen.getByRole("button", { name: /^Double/ }));
+
+    // Une seconde déclaration ajoutée puis retirée ne doit rien changer.
+    await u.click(screen.getByText("+ Ajouter une poignée"));
+    expect(screen.getByText("2 déclarées")).toBeInTheDocument();
+    const retirer = screen.getAllByRole("button", { name: "Retirer" });
+    await u.click(retirer[retirer.length - 1]);
+    expect(screen.getByText("1 déclarée")).toBeInTheDocument();
+
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+
+    const totaux = screen.getAllByTestId("score-total").map((el) => el.textContent);
+    // Garde réussie de 0 : base 50 ; la double (30) va à la défense quel que soit le
+    // résultat du contrat : base 20 -> Andry 4×20, chacun des 4 autres -20.
+    expect(totaux).toEqual(["80", "-20", "-20", "-20", "-20"]);
+  });
+
   it("le Petit sec annule la donne sans toucher au score ni à la rotation", async () => {
     const u = await ouvrirSetup();
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);

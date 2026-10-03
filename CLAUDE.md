@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (117 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (118 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
