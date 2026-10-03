@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { useConfirmation } from "@/hooks/useConfirmation";
 import { COULEURS, SYMBOLE_COULEUR, EXCUSE, idAtout, idCouleur, libelleCourt, libelleCarte, estBout, nbPlis, deriverPlis, tailleChien } from "@/domain/cartes/cartes";
 import { NOM_ROI } from "@/domain/score/regles";
 import { Page, Header, GhostButton, Section, Label, Chip } from "@/components/ui";
@@ -21,7 +22,6 @@ interface CartesJoueesProps {
 
 /** Aide-mémoire : on note les cartes dans l'ordre de jeu, l'app déduit qui les a posées et qui remporte chaque pli. */
 export default function CartesJouees({ joueurs, table, numero, entame: entameImposee, cartes, actions, onModifier, chien, onModifierChien }: CartesJoueesProps) {
-  const [confirmerEffacer, setConfirmerEffacer] = useState(false);
   const [modeChien, setModeChien] = useState(false);
   const tailleDuChien = tailleChien(table.length);
   const auChien = new Set(chien);
@@ -42,15 +42,7 @@ export default function CartesJouees({ joueurs, table, numero, entame: entameImp
     onModifier([...cartes, id]);
   };
 
-  const surEffacer = () => {
-    if (!confirmerEffacer) {
-      setConfirmerEffacer(true);
-      setTimeout(() => setConfirmerEffacer(false), 4000);
-      return;
-    }
-    setConfirmerEffacer(false);
-    onModifier([]);
-  };
+  const { enAttente: confirmerEffacer, declencher: surEffacer } = useConfirmation(() => onModifier([]));
 
   const touche = (id: string) => {
     const tombee = jouees.has(id);

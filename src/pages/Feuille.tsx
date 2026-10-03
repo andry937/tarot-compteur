@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
 import type { Annulation } from "@/domain/types";
@@ -57,7 +58,6 @@ export default function Feuille({
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
   const [mainsOuvert, setMainsOuvert] = useState<number | null>(null);
-  const [confirmerCloture, setConfirmerCloture] = useState(false);
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
@@ -65,15 +65,7 @@ export default function Feuille({
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
-  const surCloturer = () => {
-    if (!confirmerCloture) {
-      setConfirmerCloture(true);
-      setTimeout(() => setConfirmerCloture(false), 4000);
-      return;
-    }
-    setConfirmerCloture(false);
-    onCloturerPartie();
-  };
+  const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(onCloturerPartie);
 
   const classement = joueurs
     .map((nom, i) => ({ nom, i, pts: totaux[i], n: jouees[i] }))

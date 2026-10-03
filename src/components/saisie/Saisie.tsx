@@ -1,9 +1,13 @@
 import { useState } from "react";
 import { deduireAttaque } from "@/domain/cartes/cartes";
 import EcranCartes from "@/components/cartes/EcranCartes";
-import { CONTRATS, SEUILS, POIGNEES, CHELEMS, NOM_ROI, NOM_BOUT, calculer } from "@/domain/score/regles";
+import { CONTRATS, SEUILS, CHELEMS, NOM_ROI, NOM_BOUT, calculer } from "@/domain/score/regles";
 import type { Bout, Donne, Misere, PetitAuBout, PoigneeDeclaree, Roi } from "@/domain/score/regles";
 import { Field, Label, Chip, Cta } from "@/components/ui";
+import ChoixJoueur from "./ChoixJoueur";
+import PointsAttaque from "./PointsAttaque";
+import DeclarationsPoignees from "./DeclarationsPoignees";
+import DeclarationsMiseres from "./DeclarationsMiseres";
 
 const ROIS = (Object.entries(NOM_ROI) as [Roi, string][]).map(([id, nom]) => ({ id, nom }));
 const BOUTS_PRECIS = (Object.entries(NOM_BOUT) as [Bout, string][]).map(([id, nom]) => ({ id, nom }));
@@ -81,21 +85,6 @@ export default function Saisie({
   const toggleBoutPrecis = (b: Bout) =>
     setBoutsPrecis((arr) => (arr.includes(b) ? arr.filter((x) => x !== b) : [...arr, b]));
 
-  const ajouterMisere = () =>
-    setMiseres((m) => [
-      ...m,
-      { id: `${Date.now()}-${m.length}`, joueur: table[0], type: "atout", aTort: false },
-    ]);
-  const majMisere = (idx: number, patch: Partial<Misere>) =>
-    setMiseres((m) => m.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
-  const retirerMisere = (idx: number) => setMiseres((m) => m.filter((_, i) => i !== idx));
-
-  const ajouterPoignee = () =>
-    setPoignees((p) => [...p, { id: `${Date.now()}-${p.length}`, joueur: table[0], taille: "simple" }]);
-  const majPoignee = (idx: number, patch: Partial<PoigneeDeclaree>) =>
-    setPoignees((p) => p.map((x, i) => (i === idx ? { ...x, ...patch } : x)));
-  const retirerPoignee = (idx: number) => setPoignees((p) => p.filter((_, i) => i !== idx));
-
   // On conserve l'ordre du tour de table, en partant du donneur.
   const basculer = (i: number) => {
     const brut = table.includes(i) ? table.filter((x) => x !== i) : [...table, i];
@@ -149,13 +138,7 @@ export default function Saisie({
             <span>Donneur</span>
             {entame !== null && <em className="not-italic text-amber-400">{joueurs[entame]} entame</em>}
           </Label>
-          <div className="flex flex-wrap gap-2">
-            {table.map((i) => (
-              <Chip key={i} on={donneur === i} onClick={() => setDonneur(i)}>
-                {joueurs[i]}
-              </Chip>
-            ))}
-          </div>
+          <ChoixJoueur indices={table} joueurs={joueurs} actif={donneur} onChoisir={setDonneur} />
         </Field>
 
         <Field>
@@ -171,20 +154,15 @@ export default function Saisie({
 
         <Field>
           <Label>Preneur</Label>
-          <div className="flex flex-wrap gap-2">
-            {table.map((i) => (
-              <Chip
-                key={i}
-                on={preneur === i}
-                onClick={() => {
-                  setPreneur(i);
-                  if (appele === i) setAppele(null);
-                }}
-              >
-                {joueurs[i]}
-              </Chip>
-            ))}
-          </div>
+          <ChoixJoueur
+            indices={table}
+            joueurs={joueurs}
+            actif={preneur}
+            onChoisir={(i) => {
+              setPreneur(i);
+              if (appele === i) setAppele(null);
+            }}
+          />
         </Field>
 
         {table.length === 5 && (
@@ -257,96 +235,20 @@ export default function Saisie({
           </div>
         </Field>
 
-        <Field>
-          <Label>Points de l'attaque</Label>
-          {deduction && (
-            <div className="mb-3 rounded-lg border border-sky-500/40 bg-sky-950/30 p-3" data-testid="deduction">
-              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-sky-300">
-                Déduit des cartes notées
-              </div>
-              {deduction.complet ? (
-                <>
-                  <p className="mt-1 text-sm text-slate-100">
-                    L'attaque a <b className="font-mono text-amber-400">{deduction.points}</b> pts · {deduction.bouts} bout
-                    {deduction.bouts > 1 ? "s" : ""}
-                    {deduction.petitAuBout !== "aucun" && ` · petit au bout pour ${deduction.petitAuBout === "attaque" ? "l'attaque" : "la défense"}`}
-                    {deduction.chelem && " · tous les plis pour l'attaque"}
-                  </p>
-                  {deduction.excuseJouee && (
-                    <p className="mt-1 text-[11px] text-slate-400">
-                      L'Excuse est comptée 4,5 pts pour son camp, sans l'échange d'une carte à 0,5 pt : le total peut
-                      varier de 4 pts.
-                    </p>
-                  )}
-                  <button
-                    type="button"
-                    className="mt-2 rounded-full border border-sky-400 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-sky-200 hover:bg-sky-900/40"
-                    onClick={() => {
-                      setPoints(cadrer(deduction.points));
-                      setBouts(deduction.bouts);
-                      setBoutsPrecis(deduction.boutsPrecis);
-                      setPetitAuBout(deduction.petitAuBout);
-                    }}
-                  >
-                    Utiliser ces valeurs
-                  </button>
-                </>
-              ) : (
-                <p className="mt-1 text-[12px] text-slate-400">
-                  Main incomplète ({cartes.length} carte{cartes.length > 1 ? "s" : ""} notée
-                  {cartes.length > 1 ? "s" : ""}) : notez tous les plis pour déduire les points.
-                </p>
-              )}
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
-              onClick={() => setPoints((p) => cadrer(p - 0.5))}
-              aria-label="Retirer un demi-point"
-            >
-              −
-            </button>
-            <div className="flex-1 text-center">
-              <b className="font-serif text-4xl font-bold tracking-tight">{points}</b>
-              <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
-                sur 91 · défense {91 - points}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="h-12 w-12 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-xl hover:border-slate-500"
-              onClick={() => setPoints((p) => cadrer(p + 0.5))}
-              aria-label="Ajouter un demi-point"
-            >
-              +
-            </button>
-          </div>
-          <input
-            className="mt-3 w-full accent-amber-400"
-            type="range"
-            min="0"
-            max="91"
-            step="0.5"
-            value={points}
-            onChange={(e) => setPoints(parseFloat(e.target.value))}
-          />
-          <div className={`mt-2 text-center font-mono text-[11px] ${res.reussi ? "text-amber-400" : "text-rose-400"}`}>
-            {res.reussi
-              ? `Contrat réussi de ${res.ecart} pt${res.ecart > 1 ? "s" : ""}`
-              : `Chute de ${res.ecart} pt${res.ecart > 1 ? "s" : ""} — il fallait ${seuil}`}
-          </div>
-          {res.defenseurs.length > 0 && (
-            <div className="mt-2 flex items-center justify-between gap-2.5 font-mono text-[11px] text-slate-400">
-              <span>Chaque défenseur</span>
-              <b className="font-medium text-slate-100">
-                {(res.scores[res.defenseurs[0]] as number) > 0 ? "+" : ""}
-                {res.scores[res.defenseurs[0]]}
-              </b>
-            </div>
-          )}
-        </Field>
+        <PointsAttaque
+          points={points}
+          onPoints={setPoints}
+          res={res}
+          seuil={seuil}
+          deduction={deduction}
+          nbCartes={cartes.length}
+          onUtiliserDeduction={(d) => {
+            setPoints(cadrer(d.points));
+            setBouts(d.bouts);
+            setBoutsPrecis(d.boutsPrecis);
+            setPetitAuBout(d.petitAuBout);
+          }}
+        />
 
         <Field>
           <Label>Petit au bout</Label>
@@ -363,47 +265,7 @@ export default function Saisie({
           </div>
         </Field>
 
-        <Field>
-          <Label>
-            <span>Poignée</span>
-            <em className="not-italic text-amber-400">
-              {poignees.length > 0 ? `${poignees.length} déclarée${poignees.length > 1 ? "s" : ""}` : ""}
-            </em>
-          </Label>
-          {poignees.map((p, idx) => (
-            <div key={p.id} className="mb-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
-              <div className="flex flex-wrap gap-2">
-                {table.map((i) => (
-                  <Chip key={i} on={p.joueur === i} onClick={() => majPoignee(idx, { joueur: i })}>
-                    {joueurs[i]}
-                  </Chip>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {POIGNEES.map((o) => (
-                  <Chip key={o.id} on={p.taille === o.id} onClick={() => majPoignee(idx, { taille: o.id })}>
-                    {o.nom}
-                    <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">+{o.val}</small>
-                  </Chip>
-                ))}
-              </div>
-              <button
-                type="button"
-                className="mt-2 font-mono text-[10px] uppercase tracking-wide text-rose-400 hover:text-rose-300"
-                onClick={() => retirerPoignee(idx)}
-              >
-                Retirer
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="w-full rounded-lg border border-dashed border-slate-700 py-2.5 text-center font-mono text-[11px] uppercase tracking-wide text-slate-400 hover:border-slate-500"
-            onClick={ajouterPoignee}
-          >
-            + Ajouter une poignée
-          </button>
-        </Field>
+        <DeclarationsPoignees poignees={poignees} table={table} joueurs={joueurs} onChange={setPoignees} />
 
         <Field>
           <Label>Chelem</Label>
@@ -421,54 +283,7 @@ export default function Saisie({
           </div>
         </Field>
 
-        <Field>
-          <Label>
-            <span>Misère</span>
-            <em className="not-italic text-amber-400">
-              {miseres.length > 0 ? `${miseres.length} déclarée${miseres.length > 1 ? "s" : ""}` : ""}
-            </em>
-          </Label>
-          {miseres.map((m, idx) => (
-            <div key={m.id} className="mb-2 rounded-lg border border-slate-700 bg-slate-900/40 p-3">
-              <div className="flex flex-wrap gap-2">
-                {table.map((i) => (
-                  <Chip key={i} on={m.joueur === i} onClick={() => majMisere(idx, { joueur: i })}>
-                    {joueurs[i]}
-                  </Chip>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {(
-                  [
-                    { id: "atout", nom: "Pas d'atout" },
-                    { id: "tete", nom: "Pas de tête" },
-                  ] as const
-                ).map((o) => (
-                  <Chip key={o.id} on={m.type === o.id} onClick={() => majMisere(idx, { type: o.id })}>
-                    {o.nom}
-                  </Chip>
-                ))}
-                <Chip on={m.aTort} onClick={() => majMisere(idx, { aTort: !m.aTort })}>
-                  Annoncée à tort
-                </Chip>
-              </div>
-              <button
-                type="button"
-                className="mt-2 font-mono text-[10px] uppercase tracking-wide text-rose-400 hover:text-rose-300"
-                onClick={() => retirerMisere(idx)}
-              >
-                Retirer
-              </button>
-            </div>
-          ))}
-          <button
-            type="button"
-            className="w-full rounded-lg border border-dashed border-slate-700 py-2.5 text-center font-mono text-[11px] uppercase tracking-wide text-slate-400 hover:border-slate-500"
-            onClick={ajouterMisere}
-          >
-            + Ajouter une misère
-          </button>
-        </Field>
+        <DeclarationsMiseres miseres={miseres} table={table} joueurs={joueurs} onChange={setMiseres} />
 
         <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur sm:absolute sm:rounded-b-2xl">
           <div className="mx-auto max-w-lg">

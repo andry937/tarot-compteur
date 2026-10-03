@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useConfirmation } from "@/hooks/useConfirmation";
 import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "@/lib/storage/stockage";
 import { invaliderArchive } from "@/lib/storage/archives";
@@ -22,18 +23,10 @@ export default function Historique({ index, roster, onRetour, onSupprimer, onMod
   const navigate = useNavigate();
   const [record, setRecord] = useState<ArchiveRecord | null>(null);
   const [chargement, setChargement] = useState(false);
-  const [confirmerSuppression, setConfirmerSuppression] = useState(false);
 
-  const surSupprimer = () => {
-    if (!id) return;
-    if (!confirmerSuppression) {
-      setConfirmerSuppression(true);
-      setTimeout(() => setConfirmerSuppression(false), 4000);
-      return;
-    }
-    setConfirmerSuppression(false);
-    onSupprimer(id);
-  };
+  const { enAttente: confirmerSuppression, declencher: surSupprimer } = useConfirmation(() => {
+    if (id) onSupprimer(id);
+  });
 
   const surModifierDonne = async (donneIndex: number, d: Donne) => {
     if (!id || !record) return;
