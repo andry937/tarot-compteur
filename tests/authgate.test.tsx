@@ -21,6 +21,9 @@ vi.mock("firebase/auth", () => ({
     return () => {};
   },
   signInWithEmailAndPassword: (...args: unknown[]) => signIn(...args),
+  signOut: async () => {
+    ecouteurs.forEach((cb) => cb(null));
+  },
 }));
 
 // lib/firebase.ts laisse `auth` à null quand VITE_FIREBASE_API_KEY est absent
@@ -87,5 +90,21 @@ describe("AuthGate / Verrou", () => {
     await u.type(await screen.findByPlaceholderText("Passphrase"), "bonpass");
     await u.click(screen.getByRole("button", { name: /Entrer/ }));
     await screen.findByText("Feuille de marque");
+  });
+
+  it("« Verrouiller » déconnecte et réaffiche l'écran de verrouillage", async () => {
+    signIn.mockImplementation(async () => {
+      ecouteurs.forEach((cb) => cb({ uid: "1" }));
+    });
+    const u = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <AuthGate />
+      </MemoryRouter>
+    );
+    await u.type(await screen.findByPlaceholderText("Passphrase"), "bonpass");
+    await u.click(screen.getByRole("button", { name: /Entrer/ }));
+    await u.click(await screen.findByRole("button", { name: "Verrouiller" }));
+    expect(await screen.findByPlaceholderText("Passphrase")).toBeInTheDocument();
   });
 });
