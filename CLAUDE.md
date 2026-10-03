@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (101 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (110 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -100,6 +100,8 @@ src/
     ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
                                 partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
     EcranCartes.tsx             écran superposé à « Inscrire la donne » (Saisie) : habille CartesJouees
+    MainsJoueurs.tsx            mains reconstituées de chaque joueur (lecture seule), affichées par EcranMains
+    EcranMains.tsx              plein écran « Mains des joueurs », ouvert depuis le détail d'une donne
     JournalPlis.tsx             liste en lecture seule des plis déduits (page Cartes jouées, détail d'une donne)
     Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
                                 tant qu'aucun utilisateur Firebase Auth n'est connecté
@@ -121,8 +123,8 @@ tests/
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
                                 fermeture isolée, Accueil non destructif, migration de l'ancienne
                                 partie unique (5 tests)
-  cartes.test.ts               unitaires : utils/cartes.ts (12 tests)
-  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup, déduction des points (7 tests)
+  cartes.test.ts               unitaires : utils/cartes.ts (20 tests)
+  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup, déduction des points, mains reconstituées (8 tests)
   archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
                                 persistance et resynchronisation de l'historique (2 tests)
 ```
@@ -326,6 +328,7 @@ donne éditée pour que la modification ne les perde pas. Hors périmètre :
 validation « fournir/couper », écart du preneur, Excuse perdue au dernier pli.
 **Après coup** : « Modifier cette donne » (feuille et archive) rouvre `Saisie` avec le même bouton « Cartes jouées » ; sur une donne existante, `Saisie` travaille sur une copie locale des cartes/du chien (rien n'est enregistré avant « Inscrire la donne », qui passe par `onModifierDonne` — circuit de modification existant, y compris la persistance de l'archive), alors que sur une nouvelle donne il écrit en direct dans le brouillon d'`App.tsx` (prop `brouillon`) pour survivre à « Fermer » et à un rechargement. Listes vides → champs retirés de la donne.
 **Points déduits** (`deduireAttaque`, `utils/cartes.ts`, bloc « Déduit des cartes notées » de `Saisie.tsx`) : quand tous les plis (15/18/24) sont notés, l'app calcule les points de l'attaque — plis remportés par preneur/appelé, l'Excuse restant au camp de celui qui l'a jouée, les cartes jamais jouées formant l'écart du preneur (attaque, sauf Garde contre où le chien va à la défense) — ainsi que les bouts, lesquels, le petit au bout (Petit gagnant du dernier pli) et le chelem. Valeurs 4,5/3,5/2,5/1,5/0,5 (total 91, `valeurCarte`). Le bouton « Utiliser ces valeurs » **propose** (remplit points, bouts, bouts précis, petit au bout) sans rien imposer ni stocker ; `calculer()` inchangé. Main incomplète : message seulement. Limite : l'Excuse vaut 4,5 sans l'échange d'une carte à 0,5 pt (écart possible de 4 pts, signalé dans l'interface) ; une carte mal saisie fausse la déduction.
+**Mains reconstituées** (`deduireMains`, `utils/cartes.ts`, `components/MainsJoueurs.tsx`, `EcranMains.tsx`) : bouton « Voir les mains » dans le détail d'une donne qui a des cartes notées (feuille et archive), plein écran en lecture seule. Main d'un joueur = les cartes qu'il a posées dans les plis (l'Excuse reste à celui qui l'a jouée) ; plis complets → les cartes jamais jouées sont l'**écart** du preneur (Petite/Garde) ou le chien non retourné (Garde sans/contre). Si le chien est noté, la **main de départ** du preneur = jouées + écart − chien, affichée en plus de sa main après écart. Rien n'est stocké (recalculé à l'affichage) ; les incohérences (carte en double, chien absent de la main du preneur, nombre de cartes jamais jouées anormal) sont signalées dans `anomalies` sans bloquer, et une main incomplète est annoncée comme partielle. Limite : une carte mal saisie fausse la reconstitution.
 **Chien** : un second mode de la même page (« Chien (n/3) », 3 cartes à 5 joueurs, 6 à 3 ou 4 — `tailleChien`) note les cartes retournées au chien (Petite ou Garde) ; brouillon `chienEnCours` puis `Donne.chien`, affiché en tête du journal. Les cartes du chien restent jouables (le preneur peut les garder) et sont repérées en bleu.
 
 **Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :

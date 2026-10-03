@@ -214,4 +214,33 @@ describe("Carnet des cartes jouées (dans « Inscrire la donne »)", () => {
     expect(screen.getByTestId("deduction")).toHaveTextContent(/Main incomplète/);
     expect(screen.queryByRole("button", { name: "Utiliser ces valeurs" })).not.toBeInTheDocument();
   });
+
+  it("affiche les mains reconstituées de chaque joueur depuis le détail d'une donne", async () => {
+    const ecart = ["pique-2", "pique-3", "trefle-2"];
+    const donne = {
+      table: [0, 1, 2, 3, 4], donneur: 0, preneur: 0, appele: null, roiAppele: "coeur", contrat: "garde",
+      bouts: 1, points: 60, petitAuBout: "aucun", chelem: "aucun", miseres: [],
+      cartesJouees: toutesLesCartes().filter((c) => !ecart.includes(c)),
+      chien: ecart, // le preneur reprend les trois cartes du chien et les écarte
+    };
+    seed({ ...record, donnes: [donne] } as ArchiveRecord);
+    const u = userEvent.setup();
+    rendre("/partie/tA");
+    await screen.findByText(/Noter la donne 2/);
+    const grille = document.querySelector("table") as HTMLElement;
+    await u.click(within(grille).getByText("1").closest("tr") as HTMLElement);
+    await u.click(screen.getByRole("button", { name: "Voir les mains" }));
+
+    const mains = screen.getByTestId("mains-joueurs");
+    for (const nom of noms) expect(within(mains).getByText(new RegExp(`^${nom}`))).toBeInTheDocument();
+    expect(within(mains).getByText(/preneur/)).toBeInTheDocument();
+    expect(within(mains).getAllByTestId("resume-main")).toHaveLength(5);
+    within(mains).getAllByTestId("resume-main").forEach((r) => expect(r).toHaveTextContent(/^15 cartes/));
+    expect(within(mains).getByTestId("main-depart")).toBeInTheDocument();
+    expect(within(mains).getByTestId("ecart")).toHaveTextContent("2♠");
+    expect(screen.queryByTestId("anomalies-mains")).not.toBeInTheDocument();
+
+    await u.click(screen.getByRole("button", { name: "Retour" }));
+    expect(screen.queryByTestId("mains-joueurs")).not.toBeInTheDocument();
+  });
 });
