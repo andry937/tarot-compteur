@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { ROMAINS, melangerAtouts, nomAtout } from "../utils/regles";
-import type { Atout } from "../utils/regles";
-import { Page, Header, GhostButton, Chip, Cta, Bar, Lien } from "../components/ui";
+import { ROMAINS, melangerAtouts, nomAtout } from "@/domain/score/regles";
+import type { Atout } from "@/domain/score/regles";
+import { Page, Header, GhostButton, Chip, Cta, Bar, Lien } from "@/components/ui";
 
 interface Tire {
   joueur: number;

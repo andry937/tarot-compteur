@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { normaliser } from "../utils/identite";
-import type { Fiche } from "../utils/identite";
-import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "../components/ui";
+import { normaliser } from "@/domain/joueurs/identite";
+import type { Fiche } from "@/domain/joueurs/identite";
+import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "@/components/ui";
 
 const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
 

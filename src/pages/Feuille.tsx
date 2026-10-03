@@ -1,15 +1,15 @@
 import { useState } from "react";
-import { tableDeLaDonne, fmt } from "../utils/regles";
-import type { Donne } from "../utils/regles";
-import type { Annulation } from "../types";
-import Saisie from "../components/Saisie";
-import ScoreGrid from "../components/ScoreGrid";
-import StatsPartie from "../components/StatsPartie";
-import GraphiqueComparatif from "../components/GraphiqueComparatif";
-import { entameDeLaDonne } from "../utils/cartes";
-import JournalPlis from "../components/JournalPlis";
-import EcranMains from "../components/EcranMains";
-import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
+import { tableDeLaDonne, fmt } from "@/domain/score/regles";
+import type { Donne } from "@/domain/score/regles";
+import type { Annulation } from "@/domain/types";
+import Saisie from "@/components/saisie/Saisie";
+import ScoreGrid from "@/components/feuille/ScoreGrid";
+import StatsPartie from "@/components/stats/StatsPartie";
+import GraphiqueComparatif from "@/components/graphiques/GraphiqueComparatif";
+import { entameDeLaDonne } from "@/domain/cartes/cartes";
+import JournalPlis from "@/components/cartes/JournalPlis";
+import EcranMains from "@/components/cartes/EcranMains";
+import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
 interface FeuilleProps {
   cartesEnCours: string[];
