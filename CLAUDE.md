@@ -193,8 +193,8 @@ dépôt) :
    connaître le passphrase.
 6. Règles Firestore (Firestore Database > Règles) : copier `firestore.rules`
    (à la racine du dépôt, référence versionnée — non déployé
-   automatiquement) en remplaçant `UID_DU_COMPTE_TABLE` par l'UID du compte
-   de l'étape 4 (Authentication > Users). L'accès est restreint à **ce seul
+   automatiquement), qui contient déjà l'UID du compte de l'étape 4
+   (Authentication > Users) — à adapter si ce compte est recréé. L'accès est restreint à **ce seul
    compte** (pas `request.auth != null` seul, contournable tant que
    l'inscription est ouverte), et les écritures sont limitées à un unique
    champ `value` de type chaîne (< 900 000 caractères).
