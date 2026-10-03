@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  toutesLesCartes, libelleCarte, libelleCourt, nbPlis, gagnantDuPli, deriverPlis, entameDeLaDonne, estBout,
+  toutesLesCartes, valeurCarte, deduireAttaque, libelleCarte, libelleCourt, nbPlis, gagnantDuPli, deriverPlis, entameDeLaDonne, estBout,
 } from "../src/utils/cartes";
 import type { Donne } from "../src/utils/regles";
 
@@ -62,5 +62,83 @@ describe("cartes", () => {
     const d = { table: [3, 4, 0, 1, 2], donneur: 0 } as Donne;
     expect(entameDeLaDonne(d)).toBe(1);
     expect(entameDeLaDonne({ table: [3, 4, 0, 1, 2] } as Donne)).toBe(4);
+  });
+
+  it("valorise les cartes : le jeu complet vaut 91 points", () => {
+    expect(toutesLesCartes().reduce((t, c) => t + valeurCarte(c), 0)).toBe(91);
+    expect(valeurCarte("coeur-14")).toBe(4.5);
+    expect(valeurCarte("pique-13")).toBe(3.5);
+    expect(valeurCarte("trefle-12")).toBe(2.5);
+    expect(valeurCarte("carreau-11")).toBe(1.5);
+    expect(valeurCarte("atout-15")).toBe(0.5);
+  });
+
+  describe("deduireAttaque", () => {
+    const table = [0, 1, 2, 3, 4];
+    const ecart = ["pique-2", "pique-3", "trefle-2"]; // 3 × 0,5 pt, jamais joués
+    const main = (fin: string[] = []) => [
+      ...toutesLesCartes().filter((c) => !ecart.includes(c) && !fin.includes(c)),
+      ...fin,
+    ];
+    const arg = (cartes: string[], preneur: number, appele: number | null = null, contrat = "garde") => ({
+      table, entame: 1, cartes, preneur, appele, contrat,
+    });
+
+    it("renvoie null sans carte, et un minimum non complet si la main est inachevée", () => {
+      expect(deduireAttaque(arg([], 0))).toBeNull();
+      const d = deduireAttaque(arg(["atout-5", "coeur-14", "atout-12", "excuse", "atout-3"], 0))!;
+      expect(d.complet).toBe(false);
+    });
+
+    it("une main complète répartit les 91 points, l'écart allant au preneur", () => {
+      const cartes = main();
+      const seul = deduireAttaque(arg(cartes, 0))!;
+      const contre = deduireAttaque(arg(cartes, 1, 2))!; // camp {1,2}
+      expect(seul.complet).toBe(true);
+      const autres = deduireAttaque(arg(cartes, 3, 4))!;
+      const trois = [seul.points, contre.points, autres.points];
+      expect(trois.every((p) => p >= 1.5 && p <= 91)).toBe(true);
+      // Trois camps disjoints : les 89,5 pts des plis + l'écart (1,5) compté une fois par camp = 91 + 2 × 1,5.
+      expect(seul.points + contre.points + autres.points).toBe(91 + 2 * 1.5);
+    });
+
+    it("l'écart ne compte pas pour l'attaque en Garde contre, et l'appelé partage le camp", () => {
+      const cartes = main();
+      const garde = deduireAttaque(arg(cartes, 0))!;
+      const contre = deduireAttaque(arg(cartes, 0, null, "garde_contre"))!;
+      expect(garde.points - contre.points).toBe(1.5);
+      expect(deduireAttaque(arg(cartes, 0, 0))!.points).toBe(garde.points); // appelé = preneur : seul
+      expect(deduireAttaque(arg(cartes, 0, 1))!.points).toBeGreaterThanOrEqual(garde.points);
+    });
+
+    it("déduit le petit au bout (camp du gagnant du dernier pli) et les bouts de l'attaque", () => {
+      const fin = ["atout-1", "pique-4", "pique-5", "pique-6", "pique-7"]; // Petit seul atout du dernier pli
+      const cartes = main(fin);
+      const { plis } = deriverPlis(table, 1, cartes);
+      const dernier = plis[plis.length - 1];
+      const gagnant = dernier.gagnant as number;
+      const pour = deduireAttaque(arg(cartes, gagnant))!;
+      const contre = deduireAttaque(arg(cartes, (gagnant + 1) % 5))!;
+      expect(pour.petitAuBout).toBe("attaque");
+      expect(pour.boutsPrecis).toContain("petit");
+      expect(contre.petitAuBout).toBe("defense");
+      expect(pour.bouts).toBe(pour.boutsPrecis.length);
+    });
+
+    it("reconnaît un chelem : l'attaque, seule, remporte tous les plis", () => {
+      // Le preneur 1 entame, joue le seul atout fort de chaque pli : on fabrique 15 plis où il gagne.
+      const atouts = Array.from({ length: 21 }, (_, i) => `atout-${21 - i}`);
+      const basses = toutesLesCartes().filter((c) => !c.startsWith("atout-") && c !== "excuse" && !ecart.includes(c));
+      const cartes: string[] = [];
+      let h = 0;
+      let a = 0;
+      for (let k = 0; k < 15; k++) {
+        // Le preneur (siège 1 au 1er pli, puis lui-même à chaque fois) joue en premier un atout haut.
+        cartes.push(atouts[a++ % 21]);
+        for (let j = 0; j < 4; j++) cartes.push(basses[h++ % basses.length]);
+      }
+      const d = deduireAttaque({ table, entame: 1, cartes, preneur: 1, appele: null, contrat: "garde" })!;
+      expect(d.chelem).toBe(d.complet);
+    });
   });
 });

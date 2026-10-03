@@ -10,7 +10,6 @@ import StatsPartie from "./StatsPartie";
 import GraphiqueComparatif from "./GraphiqueComparatif";
 import Saisie from "./Saisie";
 import JournalPlis from "./JournalPlis";
-import EditeurCartesDonne from "./EditeurCartesDonne";
 import { entameDeLaDonne } from "../utils/cartes";
 
 interface ArchiveFeuilleProps {
@@ -30,7 +29,6 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [cumule, setCumule] = useState(true);
   const [saisie, setSaisie] = useState<number | null>(null);
-  const [editionCartes, setEditionCartes] = useState<number | null>(null);
 
   const { totaux, jouees } = resumerDonnees(donnes, nbTotal);
   const classement = joueurs
@@ -73,15 +71,6 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
           >
             Modifier cette donne
           </button>
-          <button
-            type="button"
-            className="ml-2 mt-2.5 rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
-            onClick={() => setEditionCartes(ouverte)}
-          >
-            {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length)
-              ? "Modifier les cartes"
-              : "Noter les cartes"}
-          </button>
           </>
         }
       />
@@ -111,19 +100,6 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
             </div>
           ))}
         </Section>
-      )}
-
-      {editionCartes !== null && donnes[editionCartes] && (
-        <EditeurCartesDonne
-          joueurs={joueurs}
-          donne={donnes[editionCartes]}
-          numero={editionCartes + 1}
-          onFermer={() => setEditionCartes(null)}
-          onValider={(d) => {
-            onModifierDonne(editionCartes, d);
-            setEditionCartes(null);
-          }}
-        />
       )}
 
       {saisie !== null && (

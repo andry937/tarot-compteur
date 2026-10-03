@@ -292,7 +292,7 @@ export default function App() {
         setDonnes([]);
         setAnnulations([]);
         setCartesEnCours([]);
-    setChienEnCours([]);
+        setChienEnCours([]);
         setTableActiveId(id);
         setTirage(null);
         try {
@@ -331,14 +331,14 @@ export default function App() {
           },
         ]);
         setCartesEnCours([]);
-    setChienEnCours([]);
+        setChienEnCours([]);
       }}
       onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
       onAjouterAnnulation={(a) => {
         setAnnulations((arr) => [...arr, a]);
         setCartesEnCours([]);
-    setChienEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
+        setChienEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
       }}
       onCloturerPartie={cloturerPartie}
       onQuitterPartie={quitterPartie}
