@@ -82,7 +82,7 @@ export default function App() {
         setErreurChargement(true);
       }
     })();
-  }, []);
+  }, [setRoster]); // setRoster est un setState : identité stable, l'effet ne tourne qu'une fois
 
   const joueurs = partie
     ? partie.joueursId.map((id, i) => resoudreNom(id, roster, partie.joueursNomFige[i]))
