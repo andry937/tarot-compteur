@@ -15,20 +15,14 @@ fichier remplace le besoin de la relire.
 
 ## Démarrer
 
-```bash
-cp .env.example .env    # renseigner la config Firebase (voir Persistance/Firebase)
-npm install
-npm run dev            # serveur de dev Vite
-npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (114 tests, doit passer à 100%) — n'a pas besoin de .env
-npm run test:watch
-npm run build           # tsc -b && vite build
-```
+Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (117 tests,
+doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
 
 `.github/workflows/ci.yml` : sur chaque push sur `master` et chaque pull
-request, exécute `typecheck`, `test` et `build` (dans cet ordre, `npm ci`
+request, exécute `typecheck`, `lint`, `test` et `build` (dans cet ordre, `npm ci`
 d'abord). Aucun secret requis — le build n'a pas besoin de `.env` (voir
 `lib/firebase.ts` : `import.meta.env.VITE_FIREBASE_*` reste simplement
 `undefined` sans `.env`, `initializeApp` ne s'en plaint pas à
@@ -42,97 +36,61 @@ conventionnel, adaptée au contenu réel du projet (pas de dossiers vides
 pour des besoins absents — voir Conventions) :
 
 ```
-.github/workflows/ci.yml    CI : typecheck + test + build sur push master et pull request
+.github/workflows/ci.yml    CI : typecheck + lint + test + build sur push master et pull request
 firestore.rules             règles Firestore de référence (à copier dans la console, voir Persistance)
 vercel.json                 fallback SPA + en-têtes de sécurité HTTP (CSP, X-Frame-Options, HSTS…)
-public/                    vide pour l'instant (pas de favicon/robots.txt/sitemap)
+eslint.config.js            ESLint (typescript-eslint + react-hooks) ; .prettierrc.json pour Prettier
 tailwind.config.js          config Tailwind (content scanning sur src/**)
 postcss.config.js           tailwindcss + autoprefixer
+public/                     favicon.svg
 
-src/
-  vite-env.d.ts             référence des types du client Vite
-  index.css                  point d'entrée CSS : @tailwind base/components/utilities + quelques
-                              réglages globaux (fond, prefers-reduced-motion) ; importé une seule
-                              fois dans main.tsx
-  types.ts                  types d'état partagés entre écrans (Partie, TirageEnCours, …)
-  utils/
-    regles.ts               règles du tarot + moteur de score — pur, sans React
-    identite.ts              registre des joueurs (identités stables, fusion) — pur, sans React
-    stats.ts                  statistiques par joueur, calculées à la volée depuis les archives — pur, sans
-                              React ; expose aussi `trajectoire` (axe personnel dense pour le graphique)
-    elo.ts                     classement général Elo, recalculé à la volée depuis les archives — pur, sans React
-    cartes.ts                   carnet des cartes jouées : identifiants de cartes, gagnant d'un pli,
-                                déduction des plis depuis une liste ordonnée — pur, sans React
-    statsPartie.ts              statistiques sur les donnes d'une seule partie (roi/joueur appelé,
-                                réussites/chutes, mains appelées) — pur, sans React
+src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.ts)
+  main.tsx                  monte <ErrorBoundary><AuthGate/></ErrorBoundary> dans <BrowserRouter>
+  App.tsx                   composant racine : chargement initial, tables ouvertes, historique, clôture
+  index.css                 @tailwind base/components/utilities + réglages globaux
+  app/
+    AuthGate.tsx            connecté/non connecté (Firebase Auth) : Verrou ou <App/>
+    AppRoutes.tsx           arbre de routes (React.lazy pour Feuille/FicheJoueur/Historique)
+    ErrorBoundary.tsx       écran « Recharger » au lieu d'une page blanche
+  hooks/
+    useTable.ts             table active de l'onglet + sauvegarde automatique (tarot:table:{id})
+    useRegistre.ts          trombinoscope (état + persistance)
+    useConfirmation.ts      confirmation en deux clics (4 s), minuteur nettoyé au démontage
+  domain/                   logique métier PURE, sans React
+    types.ts                types d'état partagés (Partie, TirageEnCours, ArchiveRecord…)
+    score/regles.ts         règles du tarot + moteur de score
+    joueurs/identite.ts     registre des joueurs (identités stables, fusion)
+    cartes/cartes.ts        carnet des cartes : identifiants, plis, déductions (points, mains)
+    stats/stats.ts          statistiques par joueur (+ `trajectoire`)
+    stats/statsPartie.ts    statistiques sur les donnes d'une seule partie
+    stats/elo.ts            classement général Elo, recalculé à la volée
   lib/
-    stockage.ts               clés de persistance centralisées (encapsule window.storage)
-    window-storage.d.ts        typage global de l'API window.storage
-    firebase.ts                initialisation Firebase (config lue depuis les VITE_FIREBASE_*) ;
-                                `auth` reste `null` sans VITE_FIREBASE_API_KEY (config absente)
-    firestoreStorage.ts        adaptateur Firestore -> interface WindowStorage ; exporte aussi
-                                DELAI_MS, réutilisé par AuthGate.tsx
-  router/
-    AppRoutes.tsx              arbre de routes, extrait de App.tsx (composant purement présentationnel) ;
-                                charge Feuille/FicheJoueur/Historique via React.lazy (voir Conventions)
-  pages/                     un écran par route
-    Tables.tsx                  liste des tables actuellement ouvertes (route /), point d'entrée de l'app
-    CompositionTable.tsx      composition d'une nouvelle table (route /composition)
-    Tirage.tsx                 tirage du donneur (route /tirage/:id)
-    Feuille.tsx                 feuille de score d'une table ouverte (route /partie/:id)
-    Configuration.tsx          gestion du trombinoscope (route /joueurs)
-    Historique.tsx              liste des parties closes + ouverture d'une archive (route /historique, /historique/:id)
-    FicheJoueur.tsx             statistiques cumulées d'un joueur (route /joueurs/:id)
-    Classement.tsx              classement général Elo (route /classement)
-    CartesJouees.tsx            aide-mémoire des cartes tombées pendant une main (pas de route : affiché en
-                                écran superposé par EcranCartes depuis Saisie)
-  components/                pièces rendues à l'intérieur d'un écran, jamais routées
-    ui.tsx                     primitives visuelles Tailwind partagées (Page, Header, GhostButton,
-                                Chip, Cta, Field, Label, Section, RankRow, ArchiveRow, Lien, …)
-    ScoreGrid.tsx               grille de score partagée par Feuille.tsx (partie en cours) et
-                                ArchiveFeuille.tsx (archive) — évite de dupliquer le tableau
-    StatsPartie.tsx             panneau de stats sur les donnes d'une partie, partagé par les
-                                mêmes deux écrans — distinct de la fiche joueur cumulée
-    GraphiqueComparatif.tsx     vue comparative (Recharts) : tous les joueurs d'une partie
-                                superposés sur l'axe de ses donnes, partagé par les mêmes deux écrans
-    GraphiquePersonnel.tsx      fiche joueur : axe personnel dense (Recharts), dans FicheJoueur.tsx
-    Saisie.tsx                 formulaire modal de saisie d'une donne, aussi utilisé pour en
-                                modifier une existante (prop donneInitiale) — dans Feuille
-    ArchiveFeuille.tsx          feuille en lecture seule d'une partie archivée (dans Historique)
-    ExplicationElo.tsx           bloc repliable expliquant le fonctionnement du classement Elo,
-                                partagé mot pour mot par Classement.tsx et FicheJoueur.tsx
-    EcranCartes.tsx             écran superposé à « Inscrire la donne » (Saisie) : habille CartesJouees
-    MainsJoueurs.tsx            mains reconstituées de chaque joueur (lecture seule), affichées par EcranMains
-    EcranMains.tsx              plein écran « Mains des joueurs », ouvert depuis le détail d'une donne
-    JournalPlis.tsx             liste en lecture seule des plis déduits (page Cartes jouées, détail d'une donne)
-    Verrou.tsx                  écran de verrouillage (passphrase), affiché par AuthGate.tsx
-                                tant qu'aucun utilisateur Firebase Auth n'est connecté
-  App.tsx                     composant racine : état partagé, effets de persistance
-  AuthGate.tsx                  bascule connecté/non connecté (Firebase Auth) : affiche Verrou.tsx
-                                ou <App/> selon onAuthStateChanged — voir Persistance/Firebase
-  main.tsx                    monte <AuthGate /> dans <BrowserRouter>, importe index.css
+    firebase.ts             initialisation Firebase (`auth` = null sans VITE_FIREBASE_API_KEY)
+    storage/stockage.ts     clés de persistance, CleIntrouvable, lireJson
+    storage/firestoreStorage.ts  adaptateur Firestore -> WindowStorage (exporte DELAI_MS)
+    storage/archives.ts     chargement groupé + cache des archives
+    storage/window-storage.d.ts  typage global de window.storage
+  pages/                    un écran par route : Tables (/), CompositionTable, Tirage, Feuille,
+                            Configuration, Historique, FicheJoueur, Classement
+  components/               pièces rendues dans un écran, jamais routées
+    ui/index.tsx            primitives Tailwind (Page, Header, GhostButton, Chip, Cta, Field, …)
+    auth/Verrou.tsx         écran de passphrase
+    feuille/                ScoreGrid (grille partagée Feuille/archive), ArchiveFeuille
+    saisie/                 Saisie (formulaire d'une donne) + ChoixJoueur, PointsAttaque,
+                            DeclarationsPoignees, DeclarationsMiseres
+    cartes/                 CartesJouees, EcranCartes, JournalPlis, MainsJoueurs, EcranMains
+    stats/                  StatsPartie, ExplicationElo
+    graphiques/             GraphiqueComparatif, GraphiquePersonnel (Recharts)
 
 tests/
-  setup.ts                   faux window.storage en mémoire + jest-dom
-  rules.test.ts               unitaires : utils/regles.ts + utils/identite.ts (35 tests)
-  stats.test.ts                unitaires : utils/stats.ts (9 tests)
-  elo.test.ts                  unitaires : utils/elo.ts (8 tests)
-  statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
-  app.game.test.tsx           intégration : parcours complet d'une partie (9 tests)
-  app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
-  authgate.test.tsx            intégration : Verrou/AuthGate + bouton « Verrouiller », firebase/auth mocké (5 tests)
-  eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
-  tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
-                                fermeture isolée, Accueil non destructif, migration de l'ancienne
-                                partie unique (5 tests)
-  cartes.test.ts               unitaires : utils/cartes.ts (20 tests)
-  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien, édition après coup, déduction des points, mains reconstituées (8 tests)
-  archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
-                                persistance et resynchronisation de l'historique (2 tests)
+  setup.ts                  faux window.storage en mémoire + jest-dom
+  unit/                     rules, cartes, stats, elo, statsPartie, useConfirmation
+  integration/              app.game, app.config, authgate, eloAffichage, tables, cartesJouees,
+                            archiveModification, robustesse
 ```
 
-**Règle de dépendance** : `utils/regles.ts` et `utils/identite.ts`
-n'importent jamais React ni les autres modules — c'est ce qui les rend
+**Règle de dépendance** : `domain/` (notamment `score/regles.ts` et
+`joueurs/identite.ts`) n'importe jamais React, ni `components/`, `pages/`, `hooks/` ou `lib/` — c'est ce qui les rend
 testables sans monter de composant.
 
 ## Piège connu (historique — le CSS-in-JS qu'il concernait a depuis été
@@ -184,7 +142,7 @@ dépôt) :
    (`.env.example` — un simple identifiant, pas un secret) et **le mot de
    passe de ce compte = le passphrase partagé** (jamais dans ce dépôt).
    Toute la table se connecte avec ce même compte (voir `AuthGate.tsx`,
-   `components/Verrou.tsx`).
+   `components/auth/Verrou.tsx`).
 5. **Fermer l'inscription libre** : Authentication > Settings > User
    actions > décocher « Enable create (sign-up) » et « Enable delete ».
    Vérifier aussi que le fournisseur « Anonyme » est désactivé. Sans ça,
@@ -230,7 +188,7 @@ résolution d'identité n'intervient qu'à l'affichage. Une table active
 n'accepte aucun siège vide : les 5 (par défaut) noms sont requis avant de
 pouvoir tirer le donneur, deux sièges ne peuvent pas porter le même nom, et
 un joueur déjà assis à une autre table ouverte ne peut pas être repris ici
-(`joueursActuellementAssis`, `utils/identite.ts`). `tarot:partie:v4`
+(`joueursActuellementAssis`, `domain/joueurs/identite.ts`). `tarot:partie:v4`
 (ancien emplacement unique, une seule partie active possible) n'est plus
 écrit : lu une fois au démarrage pour migrer une éventuelle partie en cours
 vers ce nouveau système, puis abandonné.
@@ -305,8 +263,8 @@ suite de tests complète. **Toutes les issues initialement listées sont
 closes** (#7, #8, #9, #10, #11) — pas de backlog ouvert sur le dépôt pour
 l'instant.
 
-**Carnet des cartes jouées** (`utils/cartes.ts`, `pages/CartesJouees.tsx`,
-`components/JournalPlis.tsx`) : aide-mémoire pour savoir quelles cartes sont
+**Carnet des cartes jouées** (`domain/cartes/cartes.ts`, `components/cartes/CartesJouees.tsx`,
+`components/cartes/JournalPlis.tsx`) : aide-mémoire pour savoir quelles cartes sont
 déjà tombées (atouts et bouts surtout) pendant une main. On note seulement
 la suite des cartes **dans l'ordre de jeu** (identifiants `"atout-12"`,
 `"excuse"`, `"coeur-14"`…) : l'entame est connue (le joueur après le
@@ -326,8 +284,8 @@ par un Petit sec (la donne est rejouée). Bouton « Cartes jouées » **dans le 
 donne éditée pour que la modification ne les perde pas. Hors périmètre :
 validation « fournir/couper », écart du preneur, Excuse perdue au dernier pli.
 **Après coup** : « Modifier cette donne » (feuille et archive) rouvre `Saisie` avec le même bouton « Cartes jouées » ; sur une donne existante, `Saisie` travaille sur une copie locale des cartes/du chien (rien n'est enregistré avant « Inscrire la donne », qui passe par `onModifierDonne` — circuit de modification existant, y compris la persistance de l'archive), alors que sur une nouvelle donne il écrit en direct dans le brouillon d'`App.tsx` (prop `brouillon`) pour survivre à « Fermer » et à un rechargement. Listes vides → champs retirés de la donne.
-**Points déduits** (`deduireAttaque`, `utils/cartes.ts`, bloc « Déduit des cartes notées » de `Saisie.tsx`) : quand tous les plis (15/18/24) sont notés, l'app calcule les points de l'attaque — plis remportés par preneur/appelé, l'Excuse restant au camp de celui qui l'a jouée, les cartes jamais jouées formant l'écart du preneur (attaque, sauf Garde contre où le chien va à la défense) — ainsi que les bouts, lesquels, le petit au bout (Petit gagnant du dernier pli) et le chelem. Valeurs 4,5/3,5/2,5/1,5/0,5 (total 91, `valeurCarte`). Le bouton « Utiliser ces valeurs » **propose** (remplit points, bouts, bouts précis, petit au bout) sans rien imposer ni stocker ; `calculer()` inchangé. Main incomplète : message seulement. Limite : l'Excuse vaut 4,5 sans l'échange d'une carte à 0,5 pt (écart possible de 4 pts, signalé dans l'interface) ; une carte mal saisie fausse la déduction.
-**Mains reconstituées** (`deduireMains`, `utils/cartes.ts`, `components/MainsJoueurs.tsx`, `EcranMains.tsx`) : bouton « Voir les mains » dans le détail d'une donne qui a des cartes notées (feuille et archive), plein écran en lecture seule. Main d'un joueur = les cartes qu'il a posées dans les plis (l'Excuse reste à celui qui l'a jouée) ; plis complets → les cartes jamais jouées sont l'**écart** du preneur (Petite/Garde) ou le chien non retourné (Garde sans/contre). Si le chien est noté, la **main de départ** du preneur = jouées + écart − chien, affichée en plus de sa main après écart. Rien n'est stocké (recalculé à l'affichage) ; les incohérences (carte en double, chien absent de la main du preneur, nombre de cartes jamais jouées anormal) sont signalées dans `anomalies` sans bloquer, et une main incomplète est annoncée comme partielle. Limite : une carte mal saisie fausse la reconstitution.
+**Points déduits** (`deduireAttaque`, `domain/cartes/cartes.ts`, bloc « Déduit des cartes notées » de `Saisie.tsx`) : quand tous les plis (15/18/24) sont notés, l'app calcule les points de l'attaque — plis remportés par preneur/appelé, l'Excuse restant au camp de celui qui l'a jouée, les cartes jamais jouées formant l'écart du preneur (attaque, sauf Garde contre où le chien va à la défense) — ainsi que les bouts, lesquels, le petit au bout (Petit gagnant du dernier pli) et le chelem. Valeurs 4,5/3,5/2,5/1,5/0,5 (total 91, `valeurCarte`). Le bouton « Utiliser ces valeurs » **propose** (remplit points, bouts, bouts précis, petit au bout) sans rien imposer ni stocker ; `calculer()` inchangé. Main incomplète : message seulement. Limite : l'Excuse vaut 4,5 sans l'échange d'une carte à 0,5 pt (écart possible de 4 pts, signalé dans l'interface) ; une carte mal saisie fausse la déduction.
+**Mains reconstituées** (`deduireMains`, `domain/cartes/cartes.ts`, `components/cartes/MainsJoueurs.tsx`, `EcranMains.tsx`) : bouton « Voir les mains » dans le détail d'une donne qui a des cartes notées (feuille et archive), plein écran en lecture seule. Main d'un joueur = les cartes qu'il a posées dans les plis (l'Excuse reste à celui qui l'a jouée) ; plis complets → les cartes jamais jouées sont l'**écart** du preneur (Petite/Garde) ou le chien non retourné (Garde sans/contre). Si le chien est noté, la **main de départ** du preneur = jouées + écart − chien, affichée en plus de sa main après écart. Rien n'est stocké (recalculé à l'affichage) ; les incohérences (carte en double, chien absent de la main du preneur, nombre de cartes jamais jouées anormal) sont signalées dans `anomalies` sans bloquer, et une main incomplète est annoncée comme partielle. Limite : une carte mal saisie fausse la reconstitution.
 **Chien** : un second mode de la même page (« Chien (n/3) », 3 cartes à 5 joueurs, 6 à 3 ou 4 — `tailleChien`) note les cartes retournées au chien (Petite ou Garde) ; brouillon `chienEnCours` puis `Donne.chien`, affiché en tête du journal. Les cartes du chien restent jouables (le preneur peut les garder) et sont repérées en bleu.
 
 **Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :
@@ -347,7 +305,7 @@ préfixe `+`. En cas d'égalité, le premier de `classement` (ordre stable)
 est affiché sans mention d'égalité, cohérent avec le traitement des
 égalités ailleurs dans l'app (ex. l'aperçu « meneur » d'`Historique.tsx`).
 
-**Modifier une donne d'une partie archivée** (`components/ArchiveFeuille.tsx`,
+**Modifier une donne d'une partie archivée** (`components/feuille/ArchiveFeuille.tsx`,
 `pages/Historique.tsx`) : jusqu'ici « Modifier cette donne » n'existait que
 sur la partie en cours (`Feuille.tsx`) — une erreur de saisie découverte
 après la clôture d'une partie ne pouvait être corrigée nulle part.
@@ -368,7 +326,7 @@ Reste volontairement scopé à la modification seule : ajouter ou effacer
 une donne reste réservé à la partie en cours (`Feuille.tsx`).
 
 **Système de plusieurs tables ouvertes en même temps** (`pages/Tables.tsx`,
-`App.tsx`, `router/AppRoutes.tsx`) : jusqu'ici une seule partie pouvait être
+`App.tsx`, `app/AppRoutes.tsx`) : jusqu'ici une seule partie pouvait être
 active à la fois (clé de stockage unique `tarot:partie:v4`), rendant
 impossible de suivre deux tables physiques en parallèle (ex. une soirée à
 deux tables, chacune sur son propre appareil, partageant le même compte).
@@ -379,7 +337,7 @@ mène à l'écran de composition, déplacé sur sa propre route
 (`/composition`) ; `/tirage` et `/partie` gagnent chacune un `:id`. Un
 joueur déjà assis à une table ouverte est bloqué s'il est saisi sur une
 autre table en cours de composition (`joueursActuellementAssis`,
-`utils/identite.ts`, résolu via `resoudreNom` puis comparé aux noms
+`domain/joueurs/identite.ts`, résolu via `resoudreNom` puis comparé aux noms
 saisis — même pattern que le blocage « Deux sièges ont le même nom » déjà
 existant). `Historique.tsx`, `FicheJoueur.tsx`, `Classement.tsx` et le
 garde-fou de fusion (`ontDejaJoueEnsemble`) n'ont eu besoin d'aucune
@@ -394,7 +352,7 @@ unique au démarrage : si `tarot:partie:v4` (ancien emplacement) existe
 encore, il est converti en une table ouverte puis supprimé — pour ne pas
 perdre une partie en cours d'un déploiement existant.
 
-**Le preneur gagne/perd plus d'Elo que l'appelé** (`utils/elo.ts`) : jusqu'ici
+**Le preneur gagne/perd plus d'Elo que l'appelé** (`domain/stats/elo.ts`) : jusqu'ici
 le delta d'une donne était appliqué identique au preneur et à l'appelé, alors
 que le preneur porte plus de responsabilité (c'est lui qui annonce le
 contrat) et touche déjà 2 fois plus de points réels que l'appelé
@@ -406,12 +364,12 @@ individuels reste égale au delta du camp (facteur `4/3` pour le preneur,
 change pas, seule sa répartition interne. L'espérance de gain reste
 volontairement une moyenne simple (non pondérée) des Elo du camp — seul le
 résultat a posteriori distingue les deux rôles, pas la prédiction avant la
-donne. `components/ExplicationElo.tsx` documente ce ratio en langage
+donne. `components/stats/ExplicationElo.tsx` documente ce ratio en langage
 courant.
 
 **Explication du classement Elo + Elo affiché sur la fiche joueur**
-(`components/ExplicationElo.tsx`, `pages/Classement.tsx`,
-`pages/FicheJoueur.tsx`) : le classement Elo (`utils/elo.ts`) n'avait
+(`components/stats/ExplicationElo.tsx`, `pages/Classement.tsx`,
+`pages/FicheJoueur.tsx`) : le classement Elo (`domain/stats/elo.ts`) n'avait
 jusqu'ici aucune explication en app de son fonctionnement — seul
 `CLAUDE.md` (lu par les développeurs, pas par les joueurs) documentait la
 logique. Nouveau composant partagé `ExplicationElo.tsx` (même pattern de
@@ -425,8 +383,8 @@ charge désormais tout `historiqueIndex` (l'Elo étant global, son calcul a
 besoin de toutes les donnes archivées, pas seulement celles de ce joueur)
 — même fetch non filtré que fait déjà `Classement.tsx`.
 
-**Bouts précis sur les appels de la fiche joueur** (`utils/regles.ts`,
-`Saisie.tsx`, `utils/stats.ts`, `FicheJoueur.tsx`) : le compte `bouts`
+**Bouts précis sur les appels de la fiche joueur** (`domain/score/regles.ts`,
+`Saisie.tsx`, `domain/stats/stats.ts`, `FicheJoueur.tsx`) : le compte `bouts`
 (0-3) ne dit pas *lesquels* l'attaque détenait (Le Petit ? Le 21 ?
 L'Excuse ?) — ces bouts auraient pu être obtenus dans le chien ou
 capturés en jouant, sans que le simple compte le distingue. Nouveau champ
@@ -437,7 +395,7 @@ volontairement indépendant du compteur `bouts` : pas de validation
 croisée entre les deux champs, cohérent avec le reste de la saisie qui
 fait confiance à l'utilisateur plutôt que de recouper les données
 (`calculer()` n'est pas modifié, ce champ est purement informatif). Ajouté
-à `AppelPreneur` dans `utils/stats.ts` (`d.boutsPrecis ?? []` pour les
+à `AppelPreneur` dans `domain/stats/stats.ts` (`d.boutsPrecis ?? []` pour les
 donnes archivées avant son introduction) et affiché entre parenthèses sur
 chaque ligne des listes « Appels réussis »/« Appels échoués » de la fiche
 joueur (ex. « Garde · 1 bout (Le Petit) »).
@@ -453,7 +411,7 @@ glisser-déposer dans `tests/app.config.test.tsx` nomment désormais
 explicitement le 1er siège (« Andry », par convention conservée dans ces
 deux fichiers) plutôt que de compter sur le défaut disparu.
 
-**Appels réussis/échoués sur la fiche joueur** (`utils/stats.ts`,
+**Appels réussis/échoués sur la fiche joueur** (`domain/stats/stats.ts`,
 `pages/FicheJoueur.tsx`) : remplace « Contrats de prédilection » (un
 classement par type de contrat jugé peu utile) par une vue centrée sur la
 performance des appels — combien de donnes prises comme preneur ont
@@ -477,7 +435,7 @@ derrière un bouton pictogramme (« ⋮ », `aria-label="Plus d'actions"`) qui
 déploie un petit menu ancré à la ligne. Reste local à `Configuration.tsx`
 (nouvel état `menuOuvert: string | null`, même pattern à un seul élément
 ouvert que `renommage`/`fusionDepuis`) plutôt qu'extrait dans
-`components/ui.tsx` : aucun autre écran n'a besoin d'un menu de ce type
+`components/ui/index.tsx` : aucun autre écran n'a besoin d'un menu de ce type
 pour l'instant, donc pas de primitive générique prématurée. Fermeture au
 clic extérieur ou à Échap via un unique effet document-level, actif
 seulement pendant qu'un menu est ouvert. Choisir une action dans le menu
@@ -488,7 +446,7 @@ deux autres). `tests/app.config.test.tsx` ouvre désormais explicitement
 ce menu (clic sur le bouton « Plus d'actions » de la ligne) avant de
 cliquer sur « Renommer »/« Fusionner ».
 
-**Passphrase partagé** (`AuthGate.tsx`, `components/Verrou.tsx`,
+**Passphrase partagé** (`AuthGate.tsx`, `components/auth/Verrou.tsx`,
 `lib/firebase.ts`) : jusqu'ici, les règles Firestore restaient ouvertes en
 lecture/écriture (`allow read, write: if true`) faute d'authentification
 dans l'app — n'importe qui connaissant la config publique du projet
@@ -525,8 +483,19 @@ partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
   bloqué ; si le callback finit par arriver plus tard, il met quand même à
   jour l'état normalement.
 
-**Robustesse du stockage** (`lib/stockage.ts`, `App.tsx`,
-`components/ErrorBoundary.tsx`) : `window.storage.get` lève `CleIntrouvable`
+**Réorganisation des dossiers + découpage** : `utils/` et `router/` ont laissé
+place à `domain/` (logique pure, rangée par sujet), `app/` (AuthGate, routes,
+ErrorBoundary) et `hooks/` ; les composants sont rangés par domaine ; les tests
+sont séparés en `unit/` et `integration/` ; imports via l'alias `@/` (= `src/`).
+Le déplacement a été fait sans toucher à la logique (build identique octet pour
+octet). `App.tsx` délègue la table active à `useTable` et le trombinoscope à
+`useRegistre` ; `Saisie.tsx` délègue ses blocs répétitifs (choix d'un joueur,
+points de l'attaque, poignées, misères) à des sous-composants — l'état du
+formulaire reste dans `Saisie`. ESLint (CI) fait respecter les dépendances
+d'effets ; Prettier est configuré mais pas appliqué au code existant.
+
+**Robustesse du stockage** (`lib/storage/stockage.ts`, `App.tsx`,
+`app/ErrorBoundary.tsx`) : `window.storage.get` lève `CleIntrouvable`
 sur une clé absente (cas normal au premier lancement) ; toute autre erreur
 (réseau, délai) est une panne. `lireJson` rend `null` pour le premier cas et
 relance le second. Avant, les deux étaient avalés pareil : une lecture ratée
@@ -556,7 +525,7 @@ sans moyen de la fermer. `vercel.json` ajoute des en-têtes de sécurité
 `connect-src` limité aux domaines Google/Firebase). Toute nouvelle
 ressource externe (police, CDN, API) doit être ajoutée à la CSP.
 
-**Code-splitting des écrans à Recharts** (`router/AppRoutes.tsx`) : le
+**Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
 imposant Recharts (de loin la plus grosse dépendance) à *tous* les écrans,
 y compris ceux sans le moindre graphique (`/`, `/tirage`, `/joueurs`,
@@ -578,7 +547,7 @@ que l'`import()` se résolve) — déjà le cas pour la plupart des assertions
 existantes, corrigé sur les deux qui ne l'étaient pas
 (`tests/app.game.test.tsx`, recherche de `archive-row`).
 
-**Poignée nominative** (`utils/regles.ts`, `Saisie.tsx`, `ScoreGrid.tsx`) :
+**Poignée nominative** (`domain/score/regles.ts`, `Saisie.tsx`, `ScoreGrid.tsx`) :
 à l'origine, la poignée était une valeur unique par donne (`poignee: string`)
 et son signe suivait mécaniquement la réussite ou la chute du contrat — en
 pratique, ça l'attribuait toujours au camp gagnant, jamais à un joueur
@@ -615,8 +584,8 @@ uniquement (`ArchiveFeuille.tsx` ne reçoit pas ce bouton) ; « Modifier
 cette donne », lui, est aussi disponible sur une partie **archivée**
 (voir plus bas).
 
-**Graphiques de progression** (issue #11, `components/GraphiqueComparatif.tsx`
-et `components/GraphiquePersonnel.tsx`, librairie **Recharts** — choix
+**Graphiques de progression** (issue #11, `components/graphiques/GraphiqueComparatif.tsx`
+et `components/graphiques/GraphiquePersonnel.tsx`, librairie **Recharts** — choix
 explicite de l'utilisateur plutôt que du SVG à la main prévu à l'origine,
 seule exception à la convention « pas de librairie de composants ») : deux
 vues distinctes, comme demandé —
@@ -631,7 +600,7 @@ vues distinctes, comme demandé —
 - **Fiche joueur** (`GraphiquePersonnel.tsx`, dans `FicheJoueur.tsx`) : axe
   personnel dense — uniquement les donnes réellement jouées par ce joueur,
   toutes parties confondues, dans l'ordre chronologique. Nécessite un champ
-  `trajectoire` supplémentaire sur `StatsJoueur` (`utils/stats.ts`),
+  `trajectoire` supplémentaire sur `StatsJoueur` (`domain/stats/stats.ts`),
   calculé par une passe **séparée** du reste de `calculerStatsJoueur` : les
   parties y sont triées par date (`new Date(a.date) - new Date(b.date)`)
   avant d'être parcourues, alors que la boucle principale (qui alimente
@@ -642,7 +611,7 @@ vues distinctes, comme demandé —
   joueur sur une donne, ou `null` s'il est au repos) factorise ce que les
   deux passes ont en commun.
 
-**Statistiques sur les donnes d'une partie** (issue #8, `utils/statsPartie.ts`,
+**Statistiques sur les donnes d'une partie** (issue #8, `domain/stats/statsPartie.ts`,
 écran `StatsPartie.tsx`, affiché dans `Feuille.tsx` et `ArchiveFeuille.tsx`)
 : distinct de la fiche joueur cumulée (`stats.ts`/`FicheJoueur.tsx`, qui
 résout les fusions et agrège sur tout l'historique) — ici on travaille sur
@@ -655,7 +624,7 @@ questions ouvertes de l'issue étaient déjà tranchées par des décisions
 antérieures : le modèle `Donne` a déjà `roiAppele` précis (issue #9), et le
 calcul est à la volée depuis `donnes`, sans agrégat stocké (même
 philosophie que `stats.ts`/`elo.ts`). `NOM_ROI` (libellés des couleurs)
-centralisé dans `utils/regles.ts`, réutilisé par `Saisie.tsx`,
+centralisé dans `domain/score/regles.ts`, réutilisé par `Saisie.tsx`,
 `FicheJoueur.tsx` et `StatsPartie.tsx` plutôt que dupliqué trois fois.
 
 **Refonte visuelle Tailwind** : remplacement complet de l'ancien CSS-in-JS
@@ -663,7 +632,7 @@ centralisé dans `utils/regles.ts`, réutilisé par `Saisie.tsx`,
 notamment débordait sur petit écran) par Tailwind, à la demande explicite
 de l'utilisateur, avec refonte du design (thème sombre épuré, plutôt qu'une
 reconduction à l'identique de l'ancien thème « feutre/papier »). Voir
-Conventions pour le détail de l'organisation (`components/ui.tsx`,
+Conventions pour le détail de l'organisation (`components/ui/index.tsx`,
 `ScoreGrid.tsx`) et le piège d'override de classes à éviter. Les tests
 d'intégration qui s'appuyaient sur les anciennes classes CSS globales
 (`.t-total`, `.t-cl-row`, `.t-archive-row`, `.t-roster-nom`, `.t-roster-row`,
@@ -706,7 +675,7 @@ distinctes dans `App.tsx` :
   pattern de confirmation en deux clics (« Confirmer ? »), cohérent avec
   `Supprimer` dans `Historique.tsx`.
 
-**Statistiques par joueur** (`utils/stats.ts`, écran `FicheJoueur.tsx`,
+**Statistiques par joueur** (`domain/stats/stats.ts`, écran `FicheJoueur.tsx`,
 route `/joueurs/:id`, lien « Stats » depuis `Configuration.tsx`) : décision
 prise de calculer à la volée depuis les archives à chaque ouverture de
 l'écran plutôt que maintenir un agrégat stocké (`tarot:stats:v1` envisagé
@@ -721,7 +690,7 @@ appels réussis/échoués (contrat, bouts, bouts précis si connus, points réal
 fois appelé, meilleure/pire donne, liste des parties avec renvoi vers
 l'archive.
 
-**Classement général Elo** (issue #10, `utils/elo.ts`, écran `Classement.tsx`,
+**Classement général Elo** (issue #10, `domain/stats/elo.ts`, écran `Classement.tsx`,
 route `/classement`, lien depuis `CompositionTable.tsx`) : décisions prises
 en discussion avant développement (le tarot n'étant pas un jeu 1v1, l'Elo
 classique ne s'applique pas directement) —
@@ -764,7 +733,7 @@ classique ne s'applique pas directement) —
 
 `Classement.tsx` et `FicheJoueur.tsx` affichent chacun, en bas d'écran, un
 bloc repliable expliquant ce fonctionnement en langage courant (texte
-partagé, `components/ExplicationElo.tsx`, vulgarisé à partir du rationale
+partagé, `components/stats/ExplicationElo.tsx`, vulgarisé à partir du rationale
 ci-dessus). La fiche joueur affiche en plus l'Elo actuel de ce joueur
 précis (section « Classement Elo », absente jusqu'ici de cet écran) : son
 effet de chargement charge désormais **tout** `historiqueIndex` (pas
@@ -774,22 +743,22 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
 
 ## Conventions
 
-- Les noms de dossiers structurels (`pages`, `components`, `utils`, `lib`,
-  `styles`, `router`, `types`) sont du vocabulaire technique anglais
+- Les noms de dossiers structurels (`app`, `pages`, `components`, `hooks`, `domain`,
+  `lib`) sont du vocabulaire technique anglais
   standard d'un projet Vite — la règle « tout est en français » ci-dessous
   porte sur les identifiants métier, les commentaires et le texte affiché,
   pas sur cette arborescence.
 - Tout est en français : noms de variables, commentaires, texte affiché.
 - TypeScript partout (`.ts`/`.tsx`), `strict` activé. Types partagés entre
   écrans dans `src/types.ts` ; types propres au moteur de score ou au
-  registre des joueurs co-localisés dans `utils/regles.ts`/`utils/identite.ts`.
+  registre des joueurs co-localisés dans `domain/score/regles.ts`/`domain/joueurs/identite.ts`.
 - **Tailwind CSS** pour tout le style (remplace l'ancien CSS-in-JS par
   template string, retiré) : classes utilitaires directement dans le JSX,
   `tailwind.config.js` + `postcss.config.js` à la racine, `src/index.css`
   (`@tailwind base/components/utilities`) importé une seule fois dans
   `main.tsx`. Vocabulaire visuel répété (bouton fantôme, chip, CTA,
   carte/section, ligne de classement…) extrait en primitives dans
-  `components/ui.tsx` plutôt que dupliqué dans chaque écran — équivalent
+  `components/ui/index.tsx` plutôt que dupliqué dans chaque écran — équivalent
   Tailwind des anciennes classes globales `t-*`. Thème sombre (fond
   `slate-950`, accent `amber-400`, négatif `rose-400`) sauf la grille de
   score (`ScoreGrid.tsx`) qui garde une carte « papier » claire pour
@@ -812,7 +781,7 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
   passent tel quel, `ResponsiveContainer` ne plante pas).
   La navigation entre écrans passe par `react-router-dom`
   (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies
-  dans `router/AppRoutes.tsx` :
+  dans `app/AppRoutes.tsx` :
   `/` (liste des tables ouvertes), `/composition` (composition d'une
   nouvelle table), `/tirage/:id` (tirage du donneur pour cette table),
   `/partie/:id` (feuille de score de cette table), `/joueurs` (configuration
@@ -830,5 +799,5 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
 - `window.storage` ne doit jamais être appelé en dehors d'un `try/catch` —
   `get()` lève sur une clé absente, c'est le cas normal au premier lancement
   (et Firestore peut aussi lever sur une erreur réseau). Typé dans
-  `lib/window-storage.d.ts`, implémenté par `lib/firestoreStorage.ts`,
+  `lib/storage/window-storage.d.ts`, implémenté par `lib/storage/firestoreStorage.ts`,
   branché dans `main.tsx` avant le premier rendu.
