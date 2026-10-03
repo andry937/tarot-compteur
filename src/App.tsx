@@ -20,6 +20,7 @@ export default function App() {
   const [roster, setRoster] = useState<Fiche[]>([]);
   const [historiqueIndex, setHistoriqueIndex] = useState<HistoriqueEntree[]>([]);
   const [annulations, setAnnulations] = useState<Annulation[]>([]);
+  const [cartesEnCours, setCartesEnCours] = useState<string[]>([]);
 
   useEffect(() => {
     /** Migration unique : l'ancien emplacement à une seule table active
@@ -112,6 +113,7 @@ export default function App() {
       });
       setDonnes(rec.donnes || []);
       setAnnulations(rec.annulations || []);
+      setCartesEnCours(rec.cartesEnCours || []);
       setTableActiveId(id);
     } catch (e) {
       navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
@@ -122,12 +124,12 @@ export default function App() {
     if (!pret || !partie || !tableActiveId) return;
     (async () => {
       try {
-        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations }));
+        await window.storage.set(cleTable(tableActiveId), JSON.stringify({ ...partie, donnes, annulations, cartesEnCours }));
       } catch (e) {
         console.error("Sauvegarde impossible", e);
       }
     })();
-  }, [partie, donnes, annulations, pret, tableActiveId]);
+  }, [partie, donnes, annulations, cartesEnCours, pret, tableActiveId]);
 
   const joueurs = partie
     ? partie.joueursId.map((id, i) => resoudreNom(id, roster, partie.joueursNomFige[i]))
@@ -177,6 +179,7 @@ export default function App() {
     setPartie(null);
     setDonnes([]);
     setAnnulations([]);
+    setCartesEnCours([]);
     setTableActiveId(null);
     navigate("/");
   };
@@ -215,6 +218,7 @@ export default function App() {
     setPartie(null);
     setDonnes([]);
     setAnnulations([]);
+    setCartesEnCours([]);
     setTableActiveId(null);
     navigate("/");
   };
@@ -283,6 +287,7 @@ export default function App() {
         setPartie(nouvelle);
         setDonnes([]);
         setAnnulations([]);
+        setCartesEnCours([]);
         setTableActiveId(id);
         setTirage(null);
         try {
@@ -306,10 +311,19 @@ export default function App() {
         setTirage(null);
         navigate("/");
       }}
-      onAjouterDonne={(d) => setDonnes((ds) => [...ds, d])}
+      cartesEnCours={cartesEnCours}
+      onModifierCartes={setCartesEnCours}
+      onAjouterDonne={(d) => {
+        // Les cartes notées pendant la main sont rattachées à la donne inscrite.
+        setDonnes((ds) => [...ds, cartesEnCours.length ? { ...d, cartesJouees: cartesEnCours } : d]);
+        setCartesEnCours([]);
+      }}
       onModifierDonne={(i, d) => setDonnes((ds) => ds.map((old, k) => (k === i ? d : old)))}
       onEffacerDonne={(i) => setDonnes((ds) => ds.filter((_, k) => k !== i))}
-      onAjouterAnnulation={(a) => setAnnulations((arr) => [...arr, a])}
+      onAjouterAnnulation={(a) => {
+        setAnnulations((arr) => [...arr, a]);
+        setCartesEnCours([]); // la donne est rejouée : le brouillon n'a plus de sens
+      }}
       onCloturerPartie={cloturerPartie}
       onQuitterPartie={quitterPartie}
       onSupprimerPartie={supprimerPartie}

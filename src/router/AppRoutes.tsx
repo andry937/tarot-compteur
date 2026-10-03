@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useParams } from "react-router-dom";
 import { resoudreNom, joueursActuellementAssis } from "../utils/identite";
 import type { Fiche } from "../utils/identite";
+import { tableDeLaDonne } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Partie, TirageEnCours, HistoriqueEntree, Annulation } from "../types";
 import Tirage from "../pages/Tirage";
@@ -9,6 +10,7 @@ import Configuration from "../pages/Configuration";
 import CompositionTable from "../pages/CompositionTable";
 import Classement from "../pages/Classement";
 import Tables from "../pages/Tables";
+import CartesJouees from "../pages/CartesJouees";
 
 // Chargées à la demande : ces trois écrans importent Recharts (via
 // GraphiqueComparatif/GraphiquePersonnel), la plus grosse dépendance du
@@ -26,6 +28,8 @@ export interface AppRoutesProps {
   roster: Fiche[];
   historiqueIndex: HistoriqueEntree[];
   annulations: Annulation[];
+  cartesEnCours: string[];
+  onModifierCartes: (cartes: string[]) => void;
   joueurs: string[];
   nbTotal: number;
   totaux: number[];
@@ -75,6 +79,7 @@ function RoutePartie({
   nbTotal: number;
   donnes: Donne[];
   annulations: Annulation[];
+  cartesEnCours: string[];
   totaux: number[];
   jouees: number[];
   cumuls: number[][];
@@ -102,12 +107,48 @@ function RoutePartie({
       totaux={feuilleProps.totaux}
       jouees={feuilleProps.jouees}
       cumuls={feuilleProps.cumuls}
+      cartesEnCours={feuilleProps.cartesEnCours.length}
       onAjouterDonne={feuilleProps.onAjouterDonne}
       onModifierDonne={feuilleProps.onModifierDonne}
       onEffacerDonne={feuilleProps.onEffacerDonne}
       onAjouterAnnulation={feuilleProps.onAjouterAnnulation}
       onCloturerPartie={feuilleProps.onCloturerPartie}
       onQuitterPartie={feuilleProps.onQuitterPartie}
+    />
+  );
+}
+
+function RouteCartes({
+  tableActiveId,
+  onEntrer,
+  partie,
+  joueurs,
+  nbDonnes,
+  cartes,
+  onModifier,
+}: {
+  tableActiveId: string | null;
+  onEntrer: (id: string) => void;
+  partie: Partie | null;
+  joueurs: string[];
+  nbDonnes: number;
+  cartes: string[];
+  onModifier: (cartes: string[]) => void;
+}) {
+  const { id } = useParams();
+  useEffect(() => {
+    if (id) onEntrer(id);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (tableActiveId !== id || !partie) return <div className="min-h-screen bg-slate-950" />;
+  return (
+    <CartesJouees
+      joueurs={joueurs}
+      table={tableDeLaDonne(nbDonnes, joueurs.length, partie.parDonne, partie.depart || 0)}
+      numero={nbDonnes + 1}
+      cartes={cartes}
+      idTable={tableActiveId}
+      onModifier={onModifier}
     />
   );
 }
@@ -121,6 +162,8 @@ export default function AppRoutes({
   roster,
   historiqueIndex,
   annulations,
+  cartesEnCours,
+  onModifierCartes,
   joueurs,
   nbTotal,
   totaux,
@@ -207,6 +250,20 @@ export default function AppRoutes({
           element={<RouteTirage tirage={tirage} onValider={onValiderTirage} onRetour={onRetourTirage} />}
         />
         <Route
+          path="/partie/:id/cartes"
+          element={
+            <RouteCartes
+              tableActiveId={tableActiveId}
+              onEntrer={onEntrerTable}
+              partie={partie}
+              joueurs={joueurs}
+              nbDonnes={donnes.length}
+              cartes={cartesEnCours}
+              onModifier={onModifierCartes}
+            />
+          }
+        />
+        <Route
           path="/partie/:id"
           element={
             <RoutePartie
@@ -217,6 +274,7 @@ export default function AppRoutes({
               nbTotal={nbTotal}
               donnes={donnes}
               annulations={annulations}
+              cartesEnCours={cartesEnCours}
               totaux={totaux}
               jouees={jouees}
               cumuls={cumuls}

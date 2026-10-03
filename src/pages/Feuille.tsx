@@ -2,13 +2,17 @@ import { useState } from "react";
 import { tableDeLaDonne, fmt } from "../utils/regles";
 import type { Donne } from "../utils/regles";
 import type { Annulation } from "../types";
+import { useParams } from "react-router-dom";
 import Saisie from "../components/Saisie";
 import ScoreGrid from "../components/ScoreGrid";
 import StatsPartie from "../components/StatsPartie";
 import GraphiqueComparatif from "../components/GraphiqueComparatif";
+import { entameDeLaDonne } from "../utils/cartes";
+import JournalPlis from "../components/JournalPlis";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "../components/ui";
 
 interface FeuilleProps {
+  cartesEnCours?: number;
   joueurs: string[];
   nbTotal: number;
   parDonne: number;
@@ -27,6 +31,7 @@ interface FeuilleProps {
 }
 
 export default function Feuille({
+  cartesEnCours = 0,
   joueurs,
   nbTotal,
   parDonne,
@@ -42,6 +47,7 @@ export default function Feuille({
   onCloturerPartie,
   onQuitterPartie,
 }: FeuilleProps) {
+  const { id } = useParams();
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
@@ -100,6 +106,12 @@ export default function Feuille({
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
         )}
       </dl>
+
+      <div className="mb-3">
+        <GhostLink to={`/partie/${id}/cartes`} data-testid="lien-cartes">
+          Cartes jouées{cartesEnCours > 0 ? ` (${cartesEnCours})` : ""}
+        </GhostLink>
+      </div>
 
       <div className="mb-4">
         {!petitSecOuvert ? (
@@ -171,6 +183,23 @@ export default function Feuille({
           </div>
         }
         detailExtra={
+          <>
+            {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+              <details className="mt-2.5">
+                <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                  Cartes jouées ({donnes[ouverte].cartesJouees!.length})
+                </summary>
+                <div className="mt-1.5">
+                  <JournalPlis
+                    clair
+                    joueurs={joueurs}
+                    table={donnes[ouverte].table}
+                    entame={entameDeLaDonne(donnes[ouverte])}
+                    cartes={donnes[ouverte].cartesJouees!}
+                  />
+                </div>
+              </details>
+            ) : null}
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
@@ -190,6 +219,7 @@ export default function Feuille({
               Effacer cette donne
             </button>
           </div>
+          </>
         }
       />
 
