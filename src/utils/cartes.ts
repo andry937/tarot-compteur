@@ -230,3 +230,95 @@ export function deduireAttaque(args: {
     excuseJouee,
   };
 }
+
+/** Tri d'affichage d'une main : atouts décroissants, Excuse, puis ♥ ♦ ♣ ♠ du plus fort au plus faible. */
+export function trierCartes(cartes: string[]): string[] {
+  const ordre = (id: string): number => {
+    const c = decoder(id);
+    if (c.famille === "atout") return 100 - c.rang;
+    if (c.famille === "excuse") return 200;
+    return 300 + COULEURS.indexOf(c.famille) * 20 + (15 - c.rang);
+  };
+  return [...cartes].sort((a, b) => ordre(a) - ordre(b));
+}
+
+export interface MainDeduite {
+  /** Siège du joueur. */
+  joueur: number;
+  /** Cartes qu'il a posées (sa main après écart), triées. */
+  cartes: string[];
+  /** Nombre de cartes attendues si tous les plis sont notés (15 à 5 joueurs…). */
+  attendues: number;
+}
+
+export interface MainsDeduites {
+  /** Une main par joueur, dans l'ordre de la table. */
+  mains: MainDeduite[];
+  /** Tous les plis sont notés : les mains sont alors complètes. */
+  complete: boolean;
+  /** Cartes jamais jouées = écart du preneur (Petite/Garde, main complète) ; `null` sinon. */
+  ecart: string[] | null;
+  /** Garde sans/contre : le chien n'est pas pris, les cartes jamais jouées sont ce chien non vu ; `null` sinon. */
+  chienNonVu: string[] | null;
+  /** Main du preneur avant de prendre le chien (jouées + écart − chien) ; `null` si le chien n'est pas noté ou la main incomplète. */
+  departPreneur: string[] | null;
+  /** Incohérences détectées dans la saisie (carte en double, chien absent de la main…), à signaler sans bloquer. */
+  anomalies: string[];
+}
+
+/**
+ * Reconstitue la main de chaque joueur d'après les cartes posées : une main = les cartes qu'il a jouées
+ * (l'Excuse reste à celui qui l'a posée). Quand tous les plis sont notés, les cartes jamais jouées sont
+ * l'écart du preneur, ce qui permet — si le chien est noté — de retrouver sa main de départ.
+ * `null` si aucune carte n'est notée. Ne lève jamais : les incohérences sont listées dans `anomalies`.
+ */
+export function deduireMains(args: {
+  table: number[];
+  entame: number;
+  cartes: string[];
+  preneur: number;
+  chien?: string[];
+  contrat: string;
+}): MainsDeduites | null {
+  const { table, entame, cartes, preneur, chien = [], contrat } = args;
+  if (cartes.length === 0) return null;
+  const n = table.length;
+  const attendues = nbPlis(n);
+  const { plis, termine } = deriverPlis(table, entame, cartes);
+  const anomalies: string[] = [];
+
+  const doublons = cartes.filter((c, i) => cartes.indexOf(c) !== i);
+  if (doublons.length) anomalies.push(`Carte notée plusieurs fois : ${[...new Set(doublons)].map(libelleCarte).join(", ")}.`);
+
+  const parJoueur = new Map<number, string[]>(table.map((j) => [j, []]));
+  plis.forEach((p) => p.cartes.forEach((c, j) => parJoueur.get(p.joueurs[j])?.push(c)));
+  const mains = table.map((joueur) => ({ joueur, cartes: trierCartes(parJoueur.get(joueur) ?? []), attendues }));
+  const complete = termine && plis.every((p) => p.gagnant !== null);
+
+  let ecart: string[] | null = null;
+  let chienNonVu: string[] | null = null;
+  let departPreneur: string[] | null = null;
+  if (complete) {
+    const jouees = new Set(cartes);
+    const jamais = trierCartes(toutesLesCartes().filter((c) => !jouees.has(c)));
+    if (jamais.length !== tailleChien(n)) {
+      anomalies.push(`${jamais.length} carte(s) jamais jouée(s) au lieu de ${tailleChien(n)} : vérifiez la saisie.`);
+    }
+    if (contrat === "garde_sans" || contrat === "garde_contre") {
+      chienNonVu = jamais;
+    } else {
+      ecart = jamais;
+      if (chien.length > 0) {
+        const dansMain = new Set([...(parJoueur.get(preneur) ?? []), ...jamais]);
+        const absentes = chien.filter((c) => !dansMain.has(c));
+        if (absentes.length) {
+          anomalies.push(`Chien absent de la main du preneur : ${absentes.map(libelleCarte).join(", ")}.`);
+        } else {
+          const retire = new Set(chien);
+          departPreneur = trierCartes([...dansMain].filter((c) => !retire.has(c)));
+        }
+      }
+    }
+  }
+  return { mains, complete, ecart, chienNonVu, departPreneur, anomalies };
+}
