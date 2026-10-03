@@ -13,6 +13,9 @@ interface ClassementProps {
   historiqueIndex: HistoriqueEntree[];
 }
 
+/** Nombre de donnes jouées requis pour figurer au classement. */
+export const DONNES_MIN = 50;
+
 export default function Classement({ roster, historiqueIndex }: ClassementProps) {
   const navigate = useNavigate();
   const [classement, setClassement] = useState<ClassementElo[] | null>(null);
@@ -22,9 +25,15 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
     setChargement(true);
     (async () => {
       const parties = await chargerParties(historiqueIndex);
+      // Seuls ceux qui ont joué au moins DONNES_MIN donnes figurent au classement,
+      // mais tous pèsent dans le calcul des Elo.
       // Les joueurs sans nom (« ∅ », anciens joueurs importés) pèsent dans le calcul
       // des Elo des autres mais n'ont pas leur place dans l'affichage du classement.
-      setClassement(calculerClassementElo(parties, roster).filter((c) => c.nom.trim() !== "" && c.nom.trim() !== "∅"));
+      setClassement(
+        calculerClassementElo(parties, roster).filter(
+          (c) => c.nom.trim() !== "" && c.nom.trim() !== "∅" && c.matchs >= DONNES_MIN
+        )
+      );
       setChargement(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -37,7 +46,7 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
       {chargement && <p className="text-sm text-slate-400">Calcul du classement…</p>}
 
       {!chargement && classement && classement.length === 0 && (
-        <Empty title="Aucune partie archivée pour l'instant." hint="Le classement apparaîtra ici dès qu'une feuille sera close" />
+        <Empty title="Personne n'a encore atteint le seuil." hint={`Seuls les joueurs ayant joué au moins ${DONNES_MIN} donnes figurent au classement`} />
       )}
 
       {!chargement && classement && classement.length > 0 && (
