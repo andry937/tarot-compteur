@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { resoudreFiche } from "../utils/identite";
-import type { Fiche } from "../utils/identite";
-import { calculerStatsJoueur } from "../utils/stats";
-import type { Role, StatsJoueur } from "../utils/stats";
-import type { HistoriqueEntree } from "../types";
-import { chargerParties } from "../lib/archives";
-import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "../utils/regles";
-import type { Bout } from "../utils/regles";
-import { calculerClassementElo } from "../utils/elo";
-import type { ClassementElo } from "../utils/elo";
-import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "../components/ui";
-import GraphiquePersonnel from "../components/GraphiquePersonnel";
-import ExplicationElo from "../components/ExplicationElo";
+import { resoudreFiche } from "@/domain/joueurs/identite";
+import type { Fiche } from "@/domain/joueurs/identite";
+import { calculerStatsJoueur } from "@/domain/stats/stats";
+import type { Role, StatsJoueur } from "@/domain/stats/stats";
+import type { HistoriqueEntree } from "@/domain/types";
+import { chargerParties } from "@/lib/storage/archives";
+import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "@/domain/score/regles";
+import type { Bout } from "@/domain/score/regles";
+import { calculerClassementElo } from "@/domain/stats/elo";
+import type { ClassementElo } from "@/domain/stats/elo";
+import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "@/components/ui";
+import GraphiquePersonnel from "@/components/graphiques/GraphiquePersonnel";
+import ExplicationElo from "@/components/stats/ExplicationElo";
 
 interface FicheJoueurProps {
   roster: Fiche[];

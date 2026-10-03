@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
-import AuthGate from "./AuthGate";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { creerStorageFirestore } from "./lib/firestoreStorage";
+import AuthGate from "@/app/AuthGate";
+import ErrorBoundary from "@/app/ErrorBoundary";
+import { creerStorageFirestore } from "@/lib/storage/firestoreStorage";
 import "./index.css";
 
 window.storage = creerStorageFirestore();

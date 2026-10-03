@@ -1,9 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
-import { auth } from "../lib/firebase";
-import type { Fiche } from "../utils/identite";
-import type { HistoriqueEntree } from "../types";
-import { Page, Header, GhostLink, GhostButton, Cta, Empty, ArchiveRow } from "../components/ui";
+import { auth } from "@/lib/firebase";
+import type { Fiche } from "@/domain/joueurs/identite";
+import type { HistoriqueEntree } from "@/domain/types";
+import { Page, Header, GhostLink, GhostButton, Cta, Empty, ArchiveRow } from "@/components/ui";
 
 interface TablesProps {
   tablesIndex: HistoriqueEntree[];

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { calculerClassementElo } from "../utils/elo";
-import type { ClassementElo } from "../utils/elo";
-import type { Fiche } from "../utils/identite";
-import type { HistoriqueEntree } from "../types";
-import { chargerParties } from "../lib/archives";
-import { Page, Header, GhostLink, Section, RankRow, Empty } from "../components/ui";
-import ExplicationElo from "../components/ExplicationElo";
+import { calculerClassementElo } from "@/domain/stats/elo";
+import type { ClassementElo } from "@/domain/stats/elo";
+import type { Fiche } from "@/domain/joueurs/identite";
+import type { HistoriqueEntree } from "@/domain/types";
+import { chargerParties } from "@/lib/storage/archives";
+import { Page, Header, GhostLink, Section, RankRow, Empty } from "@/components/ui";
+import ExplicationElo from "@/components/stats/ExplicationElo";
 
 interface ClassementProps {
   roster: Fiche[];
