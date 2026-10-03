@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (110 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (111 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -43,6 +43,8 @@ pour des besoins absents — voir Conventions) :
 
 ```
 .github/workflows/ci.yml    CI : typecheck + test + build sur push master et pull request
+firestore.rules             règles Firestore de référence (à copier dans la console, voir Persistance)
+vercel.json                 fallback SPA + en-têtes de sécurité HTTP (CSP, X-Frame-Options, HSTS…)
 public/                    vide pour l'instant (pas de favicon/robots.txt/sitemap)
 tailwind.config.js          config Tailwind (content scanning sur src/**)
 postcss.config.js           tailwindcss + autoprefixer
@@ -118,7 +120,7 @@ tests/
   statsPartie.test.ts          unitaires : utils/statsPartie.ts (3 tests)
   app.game.test.tsx           intégration : parcours complet d'une partie (9 tests)
   app.config.test.tsx         intégration : drag&drop + écran Joueurs (5 tests)
-  authgate.test.tsx            intégration : Verrou/AuthGate, firebase/auth mocké (4 tests)
+  authgate.test.tsx            intégration : Verrou/AuthGate + bouton « Verrouiller », firebase/auth mocké (5 tests)
   eloAffichage.test.tsx        intégration : bloc d'explication Elo + Elo affiché sur la fiche joueur (2 tests)
   tables.test.tsx              intégration : plusieurs tables ouvertes en parallèle, garde-fou joueurs,
                                 fermeture isolée, Accueil non destructif, migration de l'ancienne
@@ -183,23 +185,20 @@ dépôt) :
    passe de ce compte = le passphrase partagé** (jamais dans ce dépôt).
    Toute la table se connecte avec ce même compte (voir `AuthGate.tsx`,
    `components/Verrou.tsx`).
-5. Règles Firestore (Firestore Database > Règles) — exiger une connexion
-   (n'importe quel compte du projet, donc seulement celui créé ci-dessus) :
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /tarotStorage/{document} {
-         allow read, write: if request.auth != null;
-       }
-     }
-   }
-   ```
-   Sans le compte Auth créé à l'étape 4 (ou avec l'ancienne règle
-   `allow read, write: if true`), n'importe qui connaissant la config du
-   projet peut lire/écrire directement cette collection, hors de l'app —
-   ce que ces règles ferment désormais.
-6. Sur Vercel : Project Settings > Environment Variables, renseigner les
+5. **Fermer l'inscription libre** : Authentication > Settings > User
+   actions > décocher « Enable create (sign-up) » et « Enable delete ».
+   Vérifier aussi que le fournisseur « Anonyme » est désactivé. Sans ça,
+   n'importe qui peut créer son propre compte avec la clé API publique
+   (visible dans le bundle JS) et obtenir `request.auth != null` sans
+   connaître le passphrase.
+6. Règles Firestore (Firestore Database > Règles) : copier `firestore.rules`
+   (à la racine du dépôt, référence versionnée — non déployé
+   automatiquement), qui contient déjà l'UID du compte de l'étape 4
+   (Authentication > Users) — à adapter si ce compte est recréé. L'accès est restreint à **ce seul
+   compte** (pas `request.auth != null` seul, contournable tant que
+   l'inscription est ouverte), et les écritures sont limitées à un unique
+   champ `value` de type chaîne (< 900 000 caractères).
+7. Sur Vercel : Project Settings > Environment Variables, renseigner les
    mêmes `VITE_FIREBASE_*` et `VITE_TAROT_AUTH_EMAIL` que dans
    `.env.example`.
 
@@ -525,6 +524,20 @@ partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
   (échec fermé, cohérent avec l'objectif de sécurité) plutôt que de rester
   bloqué ; si le callback finit par arriver plus tard, il met quand même à
   jour l'état normalement.
+
+**Durcissement sécurité** (`firestore.rules`, `vercel.json`, `pages/Tables.tsx`) :
+une revue a montré que la règle `request.auth != null` ne protégeait pas
+vraiment par le passphrase — l'inscription Email/Password étant ouverte par
+défaut, n'importe qui pouvait créer son propre compte avec la clé API
+publique. Règles désormais restreintes à l'UID du compte partagé (+
+validation de forme des écritures), inscription à fermer en console (voir
+Persistance/Firebase, étapes 5-6). Bouton « Verrouiller » sur l'accueil
+(`signOut`) : la session Firebase persistait indéfiniment sur l'appareil,
+sans moyen de la fermer. `vercel.json` ajoute des en-têtes de sécurité
+(CSP stricte `script-src 'self'` — le build Vite n'a aucun script inline ;
+`style-src 'unsafe-inline'` requis par les styles inline de Recharts ;
+`connect-src` limité aux domaines Google/Firebase). Toute nouvelle
+ressource externe (police, CDN, API) doit être ajoutée à la CSP.
 
 **Code-splitting des écrans à Recharts** (`router/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),

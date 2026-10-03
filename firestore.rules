@@ -1,0 +1,22 @@
+// Règles de référence — à copier dans la console Firebase (Firestore Database
+// > Règles) : ce dépôt ne les déploie pas automatiquement. L'UID est celui du
+// compte partagé de la table (Authentication > Users) — pas un secret.
+//
+// `request.auth != null` seul ne suffit PAS : tant que l'inscription libre est
+// active (par défaut avec le fournisseur Email/Password), n'importe qui peut
+// créer son propre compte avec la clé API publique du bundle, sans connaître
+// le passphrase. On restreint donc au seul compte de la table.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /tarotStorage/{document} {
+      allow read, delete: if request.auth != null
+        && request.auth.uid == "0ADF5ngIipRZsrZwqTJLefq84E63";
+      allow create, update: if request.auth != null
+        && request.auth.uid == "0ADF5ngIipRZsrZwqTJLefq84E63"
+        && request.resource.data.keys().hasOnly(["value"])
+        && request.resource.data.value is string
+        && request.resource.data.value.size() < 900000;
+    }
+  }
+}

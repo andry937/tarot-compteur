@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { signOut } from "firebase/auth";
+import { auth } from "../lib/firebase";
 import type { Fiche } from "../utils/identite";
 import type { HistoriqueEntree } from "../types";
-import { Page, Header, GhostLink, Cta, Empty, ArchiveRow } from "../components/ui";
+import { Page, Header, GhostLink, GhostButton, Cta, Empty, ArchiveRow } from "../components/ui";
 
 interface TablesProps {
   tablesIndex: HistoriqueEntree[];
@@ -28,6 +30,10 @@ export default function Tables({ tablesIndex, roster, historiqueIndex }: TablesP
               Historique{historiqueIndex.length > 0 ? ` (${historiqueIndex.length})` : ""}
             </GhostLink>
             <GhostLink to="/classement">Classement</GhostLink>
+            {/* La session Firebase persiste indéfiniment sur l'appareil : sans ce
+                bouton, un téléphone prêté garderait l'accès. AuthGate repasse
+                sur Verrou via onAuthStateChanged. */}
+            {auth && <GhostButton onClick={() => auth && signOut(auth).catch(() => {})}>Verrouiller</GhostButton>}
           </>
         }
       />
