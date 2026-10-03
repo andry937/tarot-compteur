@@ -184,10 +184,10 @@ export default function Feuille({
         }
         detailExtra={
           <>
-            {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+            {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length) ? (
               <details className="mt-2.5">
                 <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">
-                  Cartes jouées ({donnes[ouverte].cartesJouees!.length})
+                  Cartes jouées ({donnes[ouverte].cartesJouees?.length ?? 0}{donnes[ouverte].chien?.length ? " · chien" : ""})
                 </summary>
                 <div className="mt-1.5">
                   <JournalPlis
@@ -195,7 +195,8 @@ export default function Feuille({
                     joueurs={joueurs}
                     table={donnes[ouverte].table}
                     entame={entameDeLaDonne(donnes[ouverte])}
-                    cartes={donnes[ouverte].cartesJouees!}
+                    cartes={donnes[ouverte].cartesJouees ?? []}
+                    chien={donnes[ouverte].chien}
                   />
                 </div>
               </details>

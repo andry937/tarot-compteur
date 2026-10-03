@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { COULEURS, SYMBOLE_COULEUR, EXCUSE, idAtout, idCouleur, libelleCourt, libelleCarte, estBout, nbPlis, deriverPlis } from "../utils/cartes";
+import { COULEURS, SYMBOLE_COULEUR, EXCUSE, idAtout, idCouleur, libelleCourt, libelleCarte, estBout, nbPlis, deriverPlis, tailleChien } from "../utils/cartes";
 import { NOM_ROI } from "../utils/regles";
-import { Page, Header, GhostButton, Section, Label } from "../components/ui";
+import { Page, Header, GhostButton, Section, Label, Chip } from "../components/ui";
 import JournalPlis from "../components/JournalPlis";
 
 interface CartesJoueesProps {
@@ -13,12 +13,17 @@ interface CartesJoueesProps {
   cartes: string[];
   idTable: string;
   onModifier: (cartes: string[]) => void;
+  chien: string[];
+  onModifierChien: (chien: string[]) => void;
 }
 
 /** Aide-mémoire : on note les cartes dans l'ordre de jeu, l'app déduit qui les a posées et qui remporte chaque pli. */
-export default function CartesJouees({ joueurs, table, numero, cartes, idTable, onModifier }: CartesJoueesProps) {
+export default function CartesJouees({ joueurs, table, numero, cartes, idTable, onModifier, chien, onModifierChien }: CartesJoueesProps) {
   const navigate = useNavigate();
   const [confirmerEffacer, setConfirmerEffacer] = useState(false);
+  const [modeChien, setModeChien] = useState(false);
+  const tailleDuChien = tailleChien(table.length);
+  const auChien = new Set(chien);
   const entame = table.length > 1 ? table[1] : table[0];
   const { prochainJoueur, termine, plis } = deriverPlis(table, entame, cartes);
   const jouees = new Set(cartes);
@@ -26,6 +31,12 @@ export default function CartesJouees({ joueurs, table, numero, cartes, idTable, 
   const pliCourant = Math.min(plis.length || 1, nbPlis(table.length));
 
   const poser = (id: string) => {
+    if (modeChien) {
+      // Retourner / retirer une carte du chien (jusqu'à sa taille réglementaire).
+      if (auChien.has(id)) onModifierChien(chien.filter((c) => c !== id));
+      else if (chien.length < tailleDuChien) onModifierChien([...chien, id]);
+      return;
+    }
     if (termine || jouees.has(id)) return;
     onModifier([...cartes, id]);
   };
@@ -49,11 +60,16 @@ export default function CartesJouees({ joueurs, table, numero, cartes, idTable, 
         data-testid="carte"
         data-carte={id}
         aria-label={libelleCarte(id)}
-        disabled={tombee || termine}
+        disabled={modeChien ? !auChien.has(id) && chien.length >= tailleDuChien : tombee || termine}
+        data-chien={auChien.has(id) ? "oui" : undefined}
         onClick={() => poser(id)}
         className={`rounded-md border px-1 py-2 text-center font-mono text-[12px] transition ${
-          tombee
+          modeChien && auChien.has(id)
+            ? "border-sky-400 bg-sky-950 font-semibold text-sky-300"
+            : tombee
             ? "border-slate-800 bg-slate-950 text-slate-700 line-through"
+            : auChien.has(id)
+              ? "border-sky-500/60 bg-slate-900 text-sky-300 hover:bg-slate-800"
             : estBout(id)
               ? "border-amber-400/70 bg-slate-900 font-semibold text-amber-400 hover:bg-slate-800"
               : "border-slate-700 bg-slate-900/60 text-slate-100 hover:border-slate-500"
@@ -90,6 +106,21 @@ export default function CartesJouees({ joueurs, table, numero, cartes, idTable, 
         </dd>
       </dl>
 
+      <div className="mb-3 flex gap-2" role="group" aria-label="Que noter ?">
+        <Chip on={!modeChien} onClick={() => setModeChien(false)}>
+          Plis
+        </Chip>
+        <Chip on={modeChien} onClick={() => setModeChien(true)}>
+          Chien ({chien.length}/{tailleDuChien})
+        </Chip>
+      </div>
+      {modeChien && (
+        <p className="mb-3 text-xs leading-relaxed text-slate-400" data-testid="aide-chien">
+          Touchez les {tailleDuChien} cartes retournées au chien (Petite ou Garde). Elles restent jouables : le
+          preneur peut les garder en main.
+        </p>
+      )}
+
       <Section title="Atouts">
         <div className="grid grid-cols-6 gap-1.5">
           {Array.from({ length: 21 }, (_, i) => touche(idAtout(i + 1)))}
@@ -112,6 +143,14 @@ export default function CartesJouees({ joueurs, table, numero, cartes, idTable, 
           {confirmerEffacer ? "Confirmer ?" : "Tout effacer"}
         </GhostButton>
       </div>
+
+      {chien.length > 0 && (
+        <Section title="Chien">
+          <p className="text-[12.5px] text-slate-300" data-testid="chien-vu">
+            {chien.map(libelleCarte).join(" · ")}
+          </p>
+        </Section>
+      )}
 
       {plis.length > 0 && (
         <Section title="Plis joués">

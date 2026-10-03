@@ -48,6 +48,7 @@ export default function Saisie({
     table, donneur, preneur, appele, contrat, bouts, boutsPrecis, points, petitAuBout, poignees, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
     cartesJouees: donneInitiale?.cartesJouees,
+    chien: donneInitiale?.chien,
   };
   const entame = table.length > 1 ? table[(table.indexOf(donneur) + 1) % table.length] : null;
   const res = calculer(donne, joueurs.length);

@@ -93,4 +93,32 @@ describe("Carnet des cartes jouées", () => {
     expect(screen.getAllByTestId("pli")[0]).toHaveTextContent("Bob XXI");
     expect(screen.getAllByTestId("pli")[0]).toHaveTextContent("Chloé Exc.");
   });
+
+  it("note le chien (3 cartes à 5 joueurs), le garde dans le brouillon et l'archive avec la donne", async () => {
+    seed();
+    const u = userEvent.setup();
+    rendre("/partie/tA/cartes");
+    await screen.findByText("Cartes jouées");
+
+    await u.click(screen.getByRole("button", { name: /Chien \(0\/3\)/ }));
+    expect(screen.getByTestId("aide-chien")).toHaveTextContent("3 cartes");
+    for (const c of ["atout-1", "coeur-14", "pique-3"]) await u.click(carte(c));
+    // Plafonné à la taille du chien.
+    expect(carte("trefle-2")).toBeDisabled();
+    // Retirer une carte du chien en la retouchant.
+    await u.click(carte("pique-3"));
+    expect(screen.getByRole("button", { name: /Chien \(2\/3\)/ })).toBeInTheDocument();
+    await u.click(carte("trefle-2"));
+    expect(screen.getByTestId("chien-vu")).toHaveTextContent(/I · Roi de cœur · 2 de trèfle/);
+
+    // Inscription de la donne : le chien est rattaché à la donne et le brouillon vidé.
+    await u.click(screen.getByRole("button", { name: "Feuille" }));
+    await u.click(await screen.findByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+    await screen.findByText(/Noter la donne 2/);
+    const sauve = JSON.parse(window.storage.__dump!()[cleTable("tA")]) as ArchiveRecord;
+    expect(sauve.donnes[0].chien).toEqual(["atout-1", "coeur-14", "trefle-2"]);
+    expect(sauve.chienEnCours).toEqual([]);
+  });
 });

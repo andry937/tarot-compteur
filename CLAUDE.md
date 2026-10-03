@@ -20,7 +20,7 @@ cp .env.example .env    # renseigner la config Firebase (voir Persistance/Fireba
 npm install
 npm run dev            # serveur de dev Vite
 npm run typecheck       # tsc -b --noEmit
-npm test              # suite complète (90 tests, doit passer à 100%) — n'a pas besoin de .env
+npm test              # suite complète (91 tests, doit passer à 100%) — n'a pas besoin de .env
 npm run test:watch
 npm run build           # tsc -b && vite build
 ```
@@ -120,7 +120,7 @@ tests/
                                 fermeture isolée, Accueil non destructif, migration de l'ancienne
                                 partie unique (5 tests)
   cartes.test.ts               unitaires : utils/cartes.ts (6 tests)
-  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage (2 tests)
+  cartesJouees.test.tsx        intégration : carnet des cartes jouées, persistance, archivage, chien (3 tests)
   archiveModification.test.tsx intégration : modification d'une donne d'une partie archivée,
                                 persistance et resynchronisation de l'historique (2 tests)
 ```
@@ -320,7 +320,8 @@ par un Petit sec (la donne est rejouée). Route `/partie/:id/cartes`, lien
 « Cartes jouées (n) » sur la feuille ; journal repliable dans le détail
 d'une donne (feuille et archive). `Saisie.tsx` recopie `cartesJouees` de la
 donne éditée pour que la modification ne les perde pas. Hors périmètre :
-cartes du chien, validation « fournir/couper », Excuse perdue au dernier pli.
+validation « fournir/couper », écart du preneur, Excuse perdue au dernier pli.
+**Chien** : un second mode de la même page (« Chien (n/3) », 3 cartes à 5 joueurs, 6 à 3 ou 4 — `tailleChien`) note les cartes retournées au chien (Petite ou Garde) ; brouillon `chienEnCours` puis `Donne.chien`, affiché en tête du journal. Les cartes du chien restent jouables (le preneur peut les garder) et sont repérées en bleu.
 
 **Classement en cours toujours visible + repère « en tête »** (`pages/Feuille.tsx`) :
 la section « Classement » de la partie en cours n'était affichée que si

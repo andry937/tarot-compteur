@@ -66,10 +66,14 @@ export function libelleCourt(id: string): string {
   return `${c.rang === 1 ? "A" : r}${SYMBOLE_COULEUR[c.famille]}`;
 }
 
+/** Taille du chien : 3 cartes à 5 joueurs, 6 à 3 ou 4. */
+export function tailleChien(nbJoueurs: number): number {
+  return nbJoueurs >= 5 ? 3 : 6;
+}
+
 /** Nombre de plis d'une main : (78 − chien) / joueurs à table — 15 à 5, 18 à 4, 24 à 3. */
 export function nbPlis(nbJoueurs: number): number {
-  const chien = nbJoueurs >= 5 ? 3 : 6;
-  return (78 - chien) / nbJoueurs;
+  return (78 - tailleChien(nbJoueurs)) / nbJoueurs;
 }
 
 /** Index (dans le pli) de la carte gagnante : le plus fort atout, sinon la plus forte carte de la couleur d'entame ; l'Excuse ne gagne jamais. */
