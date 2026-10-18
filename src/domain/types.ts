@@ -12,6 +12,8 @@ export interface TirageEnCours {
   joueurs: string[];
   joueursId: string[];
   parDonne: number;
+  /** Sièges (indices de `joueurs`) au repos pour la première donne, quand il y a plus de joueurs que de places. */
+  auRepos: number[];
 }
 
 export interface Annulation {

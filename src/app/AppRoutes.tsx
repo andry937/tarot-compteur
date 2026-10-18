@@ -23,7 +23,7 @@ const RouteTirage = observer(function RouteTirage() {
   if (!tirage || tirage.id !== id) return <Navigate to="/" replace />;
   return (
     <Tirage
-      joueurs={tirage.joueurs}
+      joueurs={tirage.joueurs.filter((_, i) => !(tirage.auRepos ?? []).includes(i))}
       onRetour={() => {
         store.annulerTirage();
         navigate("/");

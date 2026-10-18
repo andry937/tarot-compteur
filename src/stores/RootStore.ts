@@ -160,10 +160,10 @@ export class RootStore {
   }
 
   /** Enregistre les noms au registre et prépare le tirage ; renvoie l'id de la future table. */
-  async validerComposition(noms: string[], parDonne: number): Promise<string> {
+  async validerComposition(noms: string[], parDonne: number, auRepos: number[] = []): Promise<string> {
     const ids = await this.registre.majRoster(noms);
     const id = genId();
-    runInAction(() => (this.tirage = { id, joueurs: noms, joueursId: ids, parDonne }));
+    runInAction(() => (this.tirage = { id, joueurs: noms, joueursId: ids, parDonne, auRepos }));
     return id;
   }
 
@@ -176,11 +176,20 @@ export class RootStore {
     const tirage = this.tirage;
     if (!tirage) return null;
     const id = tirage.id;
+    // `depart` désigne un donneur parmi les joueurs à table (le tirage ne concerne pas
+    // ceux au repos). On réordonne les sièges pour que le donneur ouvre la fenêtre de
+    // la première donne, suivie des joueurs à table dans l'ordre, puis de ceux au repos.
+    const repos = tirage.auRepos ?? [];
+    const jouant = tirage.joueurs.map((_, i) => i).filter((i) => !repos.includes(i));
+    const ordre =
+      repos.length > 0
+        ? [...jouant.slice(depart), ...jouant.slice(0, depart), ...repos]
+        : tirage.joueurs.map((_, i) => i);
     const nouvelle: Partie = {
-      joueursId: tirage.joueursId,
-      joueursNomFige: tirage.joueurs,
+      joueursId: ordre.map((i) => tirage.joueursId[i]),
+      joueursNomFige: ordre.map((i) => tirage.joueurs[i]),
       parDonne: tirage.parDonne,
-      depart,
+      depart: repos.length > 0 ? 0 : depart,
     };
     this.table.activer(id, nouvelle);
     this.tirage = null;
@@ -189,8 +198,8 @@ export class RootStore {
       const resume: HistoriqueEntree = {
         id,
         date: new Date().toISOString(),
-        joueurs: tirage.joueurs,
-        joueursId: tirage.joueursId,
+        joueurs: nouvelle.joueursNomFige,
+        joueursId: nouvelle.joueursId,
         parDonne: tirage.parDonne,
         nbDonnes: 0,
         totaux: new Array(tirage.joueurs.length).fill(0),
