@@ -1,3 +1,8 @@
+/**
+ * Hook de confirmation en deux clics pour les actions destructives.
+ * @module
+ */
+
 import { useCallback, useEffect, useRef, useState } from "react";
 
 const DELAI_CONFIRMATION_MS = 4000;
@@ -9,7 +14,12 @@ const DELAI_CONFIRMATION_MS = 4000;
  * et à chaque nouveau déclenchement, donc rien ne s'exécute sur un composant
  * disparu et les clics répétés n'empilent pas de minuteurs.
  */
-export function useConfirmation(action: () => void): { enAttente: boolean; declencher: () => void } {
+export function useConfirmation(action: () => void): {
+  /** `true` pendant les 4 s qui suivent le premier clic (libellé « Confirmer ? »). */
+  enAttente: boolean;
+  /** À brancher sur le bouton : arme au premier clic, exécute `action` au second. */
+  declencher: () => void;
+} {
   const [enAttente, setEnAttente] = useState(false);
   const minuteur = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(minuteur.current), []);

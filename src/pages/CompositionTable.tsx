@@ -1,3 +1,8 @@
+/**
+ * Écran de composition d'une nouvelle table (`/composition`).
+ * @module
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
@@ -7,6 +12,9 @@ import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "@/compone
 
 const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
 
+/**
+ * Choix du nombre de joueurs, du nombre par donne et des noms (avec suggestions du registre) ; les joueurs déjà assis à une autre table sont refusés.
+ */
 export default observer(function CompositionTable() {
   const store = useStore();
   const navigate = useNavigate();

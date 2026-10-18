@@ -1,3 +1,8 @@
+/**
+ * Journal des plis déduits des cartes notées.
+ * @module
+ */
+
 import { deriverPlis, libelleCourt, estBout } from "@/domain/cartes/cartes";
 
 interface JournalPlisProps {

@@ -1,3 +1,8 @@
+/**
+ * Grille de score partagée entre la feuille en cours et les archives.
+ * @module
+ */
+
 import type { ReactNode } from "react";
 import { CONTRATS, POIGNEES, calculer, resumerDonnees, fmt } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";

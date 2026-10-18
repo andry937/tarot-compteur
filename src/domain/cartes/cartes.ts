@@ -6,13 +6,16 @@
  * qui a posé chaque carte, qui remporte chaque pli et qui entame le suivant
  * se déduisent à l'affichage — pas d'agrégat stocké, annuler = retirer la
  * dernière carte.
+ * @module
  */
 
 import { NOM_ROI, ROMAINS } from "@/domain/score/regles";
 import type { Roi, Donne, Bout, PetitAuBout } from "@/domain/score/regles";
 
+/** Les quatre couleurs, dans l'ordre d'affichage (♥ ♦ ♣ ♠). */
 export const COULEURS: Roi[] = ["coeur", "carreau", "trefle", "pique"];
 
+/** Symbole affiché pour chaque couleur. */
 export const SYMBOLE_COULEUR: Record<Roi, string> = {
   coeur: "♥",
   carreau: "♦",
@@ -24,9 +27,12 @@ const RANGS_COULEUR = ["As", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Vale
 
 /** Identifiants : "atout-1".."atout-21", "excuse", "coeur-1".."coeur-14" (idem autres couleurs ; 11 Valet … 14 Roi). */
 export const EXCUSE = "excuse";
+/** Identifiant de l'atout `n` (1 à 21). */
 export const idAtout = (n: number): string => `atout-${n}`;
+/** Identifiant d'une carte de couleur (rang 1 à 14, 11 = Valet … 14 = Roi). */
 export const idCouleur = (c: Roi, rang: number): string => `${c}-${rang}`;
 
+/** Les 78 identifiants de cartes : 21 atouts, l'Excuse et 4 × 14 cartes de couleur. */
 export function toutesLesCartes(): string[] {
   return [
     ...Array.from({ length: 21 }, (_, i) => idAtout(i + 1)),
@@ -40,16 +46,19 @@ interface CarteDecodee {
   rang: number;
 }
 
+/** Décompose un identifiant de carte en famille (atout, excuse ou couleur) et rang. */
 export function decoder(id: string): CarteDecodee {
   if (id === EXCUSE) return { famille: "excuse", rang: 0 };
   const [famille, rang] = id.split("-");
   return { famille: famille as CarteDecodee["famille"], rang: Number(rang) };
 }
 
+/** `true` pour un bout : le Petit, le 21 ou l'Excuse. */
 export function estBout(id: string): boolean {
   return id === EXCUSE || id === idAtout(1) || id === idAtout(21);
 }
 
+/** Libellé complet d'une carte (« Dame de pique », « XIV », « L'Excuse »). */
 export function libelleCarte(id: string): string {
   const c = decoder(id);
   if (c.famille === "excuse") return "L'Excuse";
@@ -92,18 +101,23 @@ export function gagnantDuPli(cartes: string[]): number {
   return memeCouleur.reduce((a, b) => (dec[b].rang > dec[a].rang ? b : a));
 }
 
+/** Un pli reconstitué à partir de la liste ordonnée des cartes. */
 export interface PliDeduit {
   /** Joueurs (index de siège) dans l'ordre où ils ont joué. */
   joueurs: number[];
+  /** Cartes posées dans le pli, dans l'ordre de jeu. */
   cartes: string[];
   /** Siège gagnant, ou null tant que le pli n'est pas complet. */
   gagnant: number | null;
 }
 
+/** Résultat de `deriverPlis`. */
 export interface PlisDeduits {
+  /** Plis reconstitués, dans l'ordre de jeu (le dernier peut être incomplet). */
   plis: PliDeduit[];
   /** Prochain joueur à poser une carte, ou null si la main est terminée. */
   prochainJoueur: number | null;
+  /** `true` quand tous les plis de la main sont notés. */
   termine: boolean;
 }
 
@@ -149,11 +163,15 @@ export function valeurCarte(id: string): number {
   return ({ 14: 4.5, 13: 3.5, 12: 2.5, 11: 1.5 } as Record<number, number>)[c.rang] ?? 0.5;
 }
 
+/** Ce que l'attaque a marqué, déduit des cartes notées. */
 export interface DeductionAttaque {
   /** Points de l'attaque (écart du preneur compris quand la main est complète). */
   points: number;
+  /** Nombre de bouts de l'attaque. */
   bouts: 0 | 1 | 2 | 3;
+  /** Bouts précis remportés par l'attaque. */
   boutsPrecis: Bout[];
+  /** Camp qui a remporté le dernier pli avec le Petit, ou `aucun`. */
   petitAuBout: PetitAuBout;
   /** L'attaque a remporté tous les plis. */
   chelem: boolean;
@@ -242,6 +260,7 @@ export function trierCartes(cartes: string[]): string[] {
   return [...cartes].sort((a, b) => ordre(a) - ordre(b));
 }
 
+/** Main reconstituée d'un joueur. */
 export interface MainDeduite {
   /** Siège du joueur. */
   joueur: number;
@@ -251,6 +270,7 @@ export interface MainDeduite {
   attendues: number;
 }
 
+/** Mains reconstituées de tous les joueurs d'une donne, par `deduireMains`. */
 export interface MainsDeduites {
   /** Une main par joueur, dans l'ordre de la table. */
   mains: MainDeduite[];

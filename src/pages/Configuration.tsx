@@ -1,3 +1,8 @@
+/**
+ * Écran du trombinoscope des joueurs (`/joueurs`) : renommage, fusion, activation.
+ * @module
+ */
+
 import { useEffect, useRef, useState } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
@@ -6,6 +11,9 @@ import { resoudreNom, ontDejaJoueEnsemble } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
 import { Page, Header, GhostButton, Label, Chip, Cta, Lien } from "@/components/ui";
 
+/**
+ * Liste les joueurs actifs et désactivés, avec un menu d'actions par joueur (renommer, fusionner, désactiver).
+ */
 export default observer(function Configuration() {
   const store = useStore();
   const navigate = useNavigate();

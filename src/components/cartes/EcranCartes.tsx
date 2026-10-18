@@ -1,3 +1,8 @@
+/**
+ * Écran superposé de saisie des cartes jouées et du chien.
+ * @module
+ */
+
 import CartesJouees from "./CartesJouees";
 import { GhostButton } from "@/components/ui";
 

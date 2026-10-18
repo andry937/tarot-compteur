@@ -1,3 +1,8 @@
+/**
+ * Graphique de la trajectoire personnelle d'un joueur (Recharts).
+ * @module
+ */
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { PointTrajectoire } from "@/domain/stats/stats";
 import { fmt } from "@/domain/score/regles";

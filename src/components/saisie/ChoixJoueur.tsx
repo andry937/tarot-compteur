@@ -1,3 +1,8 @@
+/**
+ * Choix d'un joueur parmi ceux de la table.
+ * @module
+ */
+
 import { Chip } from "@/components/ui";
 
 /** Rangée de pastilles pour choisir un joueur parmi ceux de la table (donneur, preneur, auteur d'une poignée…). */

@@ -1,3 +1,8 @@
+/**
+ * Store MobX de la table active : donnes, annulations et brouillon de la main en cours.
+ * @module
+ */
+
 import { makeAutoObservable, observable, runInAction } from "mobx";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
@@ -14,12 +19,19 @@ import type { RegistreStore } from "@/stores/RegistreStore";
  * (bloquée tant que le stockage n'a pas été relu au démarrage).
  */
 export class TableStore {
+  /** Identifiant de la table active, ou `null` si aucune. */
   id: string | null = null;
+  /** Composition de la table active. */
   partie: Partie | null = null;
+  /** Donnes inscrites, dans l'ordre de jeu. */
   donnes: Donne[] = [];
+  /** Donnes annulées par un Petit sec. */
   annulations: Annulation[] = [];
+  /** Brouillon des cartes jouées de la main en cours, rattaché à la donne à son inscription. */
   cartesEnCours: string[] = [];
+  /** Brouillon des cartes du chien de la main en cours. */
   chienEnCours: string[] = [];
+  /** Registre des joueurs, utilisé pour résoudre les noms affichés. */
   readonly registre: RegistreStore;
 
   constructor(registre: RegistreStore) {
@@ -46,6 +58,7 @@ export class TableStore {
     return p ? p.joueursId.map((id, i) => resoudreNom(id, this.registre.roster, p.joueursNomFige[i])) : [];
   }
 
+  /** Nombre de joueurs de la table, au repos compris. */
   get nbTotal() {
     return this.joueurs.length;
   }
@@ -112,14 +125,17 @@ export class TableStore {
     }
   }
 
+  /** Remplace le brouillon des cartes jouées. */
   modifierCartes(cartes: string[]) {
     this.cartesEnCours = cartes;
   }
 
+  /** Remplace le brouillon du chien. */
   modifierChien(chien: string[]) {
     this.chienEnCours = chien;
   }
 
+  /** Ajoute une donne et y rattache les cartes et le chien du brouillon, qui est ensuite vidé. */
   ajouterDonne(d: Donne) {
     // Les cartes notées pendant la main sont rattachées à la donne inscrite.
     this.donnes = [
@@ -134,14 +150,17 @@ export class TableStore {
     this.chienEnCours = [];
   }
 
+  /** Remplace la donne `i` sur place, sans changer sa position. */
   modifierDonne(i: number, d: Donne) {
     this.donnes = this.donnes.map((old, k) => (k === i ? d : old));
   }
 
+  /** Supprime la donne `i`. */
   effacerDonne(i: number) {
     this.donnes = this.donnes.filter((_, k) => k !== i);
   }
 
+  /** Enregistre une annulation (Petit sec) et vide le brouillon, la donne étant rejouée. */
   ajouterAnnulation(a: Annulation) {
     this.annulations = [...this.annulations, a];
     this.cartesEnCours = [];

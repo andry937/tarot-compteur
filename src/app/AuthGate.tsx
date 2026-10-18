@@ -1,3 +1,8 @@
+/**
+ * Verrou d'accès : n'affiche l'application qu'à un utilisateur connecté.
+ * @module
+ */
+
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";

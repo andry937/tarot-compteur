@@ -1,3 +1,8 @@
+/**
+ * Composant racine de l'application.
+ * @module
+ */
+
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import AppRoutes from "@/app/AppRoutes";
@@ -5,6 +10,9 @@ import { Cta } from "@/components/ui";
 import { RootStore } from "@/stores/RootStore";
 import { StoreProvider } from "@/stores/contexte";
 
+/**
+ * Composant racine : crée le `RootStore` (un par montage), branche ses sauvegardes automatiques et affiche les écrans de chargement, d'erreur de lecture ou les routes.
+ */
 export default observer(function App() {
   const [store] = useState(() => new RootStore());
 

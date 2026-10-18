@@ -1,3 +1,8 @@
+/**
+ * Écran de désignation du donneur, de l'ordre des joueurs et des joueurs au repos (`/tirage/:id`).
+ * @module
+ */
+
 import { useState } from "react";
 import type { ChoixDonneur } from "@/domain/types";
 import { Page, Header, GhostButton, Field, Label, Chip, Cta, Bar } from "@/components/ui";
@@ -12,6 +17,9 @@ interface TirageProps {
 const btnFleche =
   "h-9 w-9 shrink-0 rounded-lg border border-slate-700 bg-slate-800/60 text-base text-slate-200 hover:border-slate-500 disabled:opacity-30";
 
+/**
+ * Permet de réordonner les joueurs, de désigner le donneur et, au-delà de `parDonne`, les joueurs au repos pour la première donne.
+ */
 export default function Tirage({ joueurs, parDonne, onValider, onRetour }: TirageProps) {
   const [ordre, setOrdre] = useState<number[]>(() => joueurs.map((_, i) => i));
   const [auRepos, setAuRepos] = useState<number[]>([]);

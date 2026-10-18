@@ -1,3 +1,8 @@
+/**
+ * Accueil (`/`) : liste des tables ouvertes.
+ * @module
+ */
+
 import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
@@ -8,6 +13,9 @@ import { Page, Header, GhostLink, GhostButton, Cta, Empty, ArchiveRow } from "@/
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
+/**
+ * Liste les tables ouvertes (reprise, nouvelle table) et donne accès aux joueurs, à l'historique et au classement.
+ */
 export default observer(function Tables() {
   const store = useStore();
   const { tablesIndex } = store;

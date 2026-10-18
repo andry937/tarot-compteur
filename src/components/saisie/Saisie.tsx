@@ -1,3 +1,8 @@
+/**
+ * Formulaire d'inscription ou de modification d'une donne.
+ * @module
+ */
+
 import { useState } from "react";
 import { deduireAttaque } from "@/domain/cartes/cartes";
 import EcranCartes from "@/components/cartes/EcranCartes";
@@ -32,6 +37,9 @@ interface SaisieProps {
   onValider: (d: Donne) => void;
 }
 
+/**
+ * Formulaire de saisie d'une donne (nouvelle, ou pré-remplie par `donneInitiale` pour la modifier). L'état du formulaire reste local ; seule la validation remonte la donne.
+ */
 export default function Saisie({
   joueurs,
   parDonne,

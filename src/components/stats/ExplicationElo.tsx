@@ -1,3 +1,9 @@
+/**
+ * Texte d'explication du classement général.
+ * @module
+ */
+
+/** Bloc repliable qui explique le classement en langage courant. */
 export default function ExplicationElo() {
   return (
     <details className="mt-6 border-t border-slate-800 pt-4">

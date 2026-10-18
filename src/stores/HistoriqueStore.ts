@@ -1,3 +1,8 @@
+/**
+ * Store MobX de l'index des parties closes.
+ * @module
+ */
+
 import { makeAutoObservable, observable, runInAction } from "mobx";
 import { invaliderArchive } from "@/lib/storage/archives";
 import { CLE_HISTORIQUE, cleArchive } from "@/lib/storage/stockage";
@@ -5,12 +10,14 @@ import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 
 /** Index des parties closes (`tarot:historique`) ; les archives complètes sont lues à la demande. */
 export class HistoriqueStore {
+  /** Index léger des parties archivées, remplacé en entier à chaque modification. */
   index: HistoriqueEntree[] = [];
 
   constructor() {
     makeAutoObservable(this, { index: observable.ref }, { autoBind: true });
   }
 
+  /** Remplace l'index en mémoire, sans l'écrire (chargement initial). */
   remplacer(suivant: HistoriqueEntree[]) {
     this.index = suivant;
   }
@@ -26,6 +33,7 @@ export class HistoriqueStore {
     runInAction(() => (this.index = suivant));
   }
 
+  /** Supprime l'archive et son entrée d'index ; une erreur de stockage est seulement journalisée. */
   async supprimer(id: string) {
     try {
       invaliderArchive(id);

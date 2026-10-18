@@ -1,3 +1,8 @@
+/**
+ * Feuille d'une partie archivée : grille, statistiques, graphique et classement final.
+ * @module
+ */
+
 import { useState } from "react";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
@@ -19,6 +24,7 @@ interface ArchiveFeuilleProps {
   onModifierDonne: (index: number, d: Donne) => void;
 }
 
+/** Affiche une partie archivée en lecture ; `onModifierDonne` permet de corriger une donne. */
 export default function ArchiveFeuille({ record, roster, onModifierDonne }: ArchiveFeuilleProps) {
   const joueursId = record.joueursId || [];
   const joueurs = joueursId.length

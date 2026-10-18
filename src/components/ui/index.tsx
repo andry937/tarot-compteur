@@ -2,6 +2,7 @@
  * Primitives visuelles partagées par tous les écrans (Tailwind). Remplacent
  * les classes CSS globales `t-*` de l'ancien styles.ts — même vocabulaire,
  * reconstruit en composants pour garder chaque écran court et cohérent.
+ * @module
  */
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link, type LinkProps } from "react-router-dom";
@@ -9,14 +10,17 @@ import { Link, type LinkProps } from "react-router-dom";
 const ghostClasses =
   "whitespace-nowrap rounded-full border border-slate-700 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 transition-colors hover:border-slate-500 hover:text-white";
 
+/** Bouton discret à contour (actions secondaires des en-têtes). */
 export function GhostButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
   return <button type="button" className={`${ghostClasses} ${className}`} {...rest} />;
 }
 
+/** Lien de navigation au style du bouton discret. */
 export function GhostLink({ className = "", ...rest }: LinkProps) {
   return <Link className={`${ghostClasses} ${className}`} {...rest} />;
 }
 
+/** Bouton d'action principal, pleine largeur. `compact` réduit sa hauteur. */
 export function Cta({
   compact,
   className = "",
@@ -31,6 +35,7 @@ export function Cta({
   );
 }
 
+/** Pastille de choix ; `on` indique qu'elle est sélectionnée. */
 export function Chip({
   on,
   className = "",
@@ -53,6 +58,7 @@ export function Chip({
   );
 }
 
+/** Libellé de champ en petites capitales. */
 export function Label({ children }: { children: ReactNode }) {
   return (
     <span className="mb-2 flex items-center justify-between gap-2 font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
@@ -61,14 +67,17 @@ export function Label({ children }: { children: ReactNode }) {
   );
 }
 
+/** Groupe de champ de formulaire avec marge inférieure. */
 export function Field({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`mb-5 ${className}`}>{children}</div>;
 }
 
+/** Surtitre en petites capitales. */
 export function Eyebrow({ children }: { children: ReactNode }) {
   return <div className="font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">{children}</div>;
 }
 
+/** En-tête d'écran : surtitre, titre et actions optionnelles. */
 export function Header({
   eyebrow,
   title,
@@ -89,10 +98,12 @@ export function Header({
   );
 }
 
+/** Conteneur centré d'un écran, avec la place de la barre d'action du bas. */
 export function Page({ children }: { children: ReactNode }) {
   return <div className="mx-auto w-full max-w-xl px-4 pb-32 sm:max-w-2xl sm:px-6 lg:max-w-3xl">{children}</div>;
 }
 
+/** Barre d'action fixée en bas de l'écran. */
 export function Bar({ children }: { children: ReactNode }) {
   return (
     <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6">
@@ -101,6 +112,7 @@ export function Bar({ children }: { children: ReactNode }) {
   );
 }
 
+/** Encadré affiché quand une liste est vide. */
 export function Empty({ title, hint }: { title: string; hint?: string }) {
   return (
     <div className="rounded-2xl border border-dashed border-slate-800 p-8 text-center">
@@ -110,6 +122,7 @@ export function Empty({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
+/** Carte de regroupement avec titre optionnel. */
 export function Section({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-3">
@@ -119,6 +132,7 @@ export function Section({ title, children }: { title?: string; children: ReactNo
   );
 }
 
+/** Ligne de classement : rang, nom, détail et valeur ; cliquable si `onClick` est fourni. */
 export function RankRow({
   rang,
   nom,
@@ -164,6 +178,7 @@ export function RankRow({
   );
 }
 
+/** Ligne cliquable d'une liste de parties (contenu à gauche et à droite). */
 export function ArchiveRow({
   gauche,
   droite,

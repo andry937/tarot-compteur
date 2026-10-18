@@ -1,3 +1,8 @@
+/**
+ * Saisie des points de l'attaque, avec les valeurs déduites des cartes.
+ * @module
+ */
+
 import type { ResultatDonne } from "@/domain/score/regles";
 import type { DeductionAttaque } from "@/domain/cartes/cartes";
 import { Field, Label } from "@/components/ui";

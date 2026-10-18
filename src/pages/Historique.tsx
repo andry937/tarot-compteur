@@ -1,3 +1,8 @@
+/**
+ * Écran de l'historique des parties (`/historique`) et du détail d'une archive (`/historique/:id`).
+ * @module
+ */
+
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
@@ -11,6 +16,9 @@ import type { ArchiveRecord } from "@/domain/types";
 import ArchiveFeuille from "@/components/feuille/ArchiveFeuille";
 import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "@/components/ui";
 
+/**
+ * Liste les parties archivées ; avec un `:id`, affiche l'archive correspondante (correction d'une donne, suppression).
+ */
 export default observer(function Historique() {
   const store = useStore();
   const index = store.historique.index;

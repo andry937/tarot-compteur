@@ -7,6 +7,7 @@
  * Le cache est invalidé par `invaliderArchive` à chaque écriture/suppression
  * faite depuis cet onglet ; une modification faite depuis un autre appareil
  * n'apparaît qu'après rechargement de la page.
+ * @module
  */
 import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 import type { PartieAnalysee } from "@/domain/stats/stats";
@@ -14,10 +15,12 @@ import { cleArchive } from "./stockage";
 
 const cache = new Map<string, Promise<ArchiveRecord>>();
 
+/** Retire une archive du cache, à appeler après l'avoir écrite ou supprimée. */
 export function invaliderArchive(id: string): void {
   cache.delete(id);
 }
 
+/** Vide tout le cache des archives. */
 export function viderCacheArchives(): void {
   cache.clear();
 }
@@ -33,6 +36,12 @@ function lireArchive(id: string): Promise<ArchiveRecord> {
   return p;
 }
 
+/** Entrée d'index identifiée par l'identifiant de son archive. */
+interface Identifiable {
+  /** Identifiant de l'archive. */
+  id: string;
+}
+
 /**
  * Retire les entrées en double d'un index (même identifiant d'archive), en
  * gardant la première — la plus récente, l'index étant rempli par le début.
@@ -40,7 +49,7 @@ function lireArchive(id: string): Promise<ArchiveRecord> {
  * exemple depuis deux appareils : sans ce filtre, ses donnes compteraient
  * deux fois dans le classement et les statistiques.
  */
-export function sansDoublons<T extends { id: string }>(index: T[]): T[] {
+export function sansDoublons<T extends Identifiable>(index: T[]): T[] {
   const vus = new Set<string>();
   return index.filter((h) => {
     if (vus.has(h.id)) return false;
@@ -49,6 +58,9 @@ export function sansDoublons<T extends { id: string }>(index: T[]): T[] {
   });
 }
 
+/**
+ * Charge en parallèle les archives de l'index (sans doublons) pour l'analyse ; une archive illisible est ignorée et journalisée.
+ */
 export async function chargerParties(index: HistoriqueEntree[]): Promise<PartieAnalysee[]> {
   const lues = await Promise.all(
     sansDoublons(index).map(async (h): Promise<PartieAnalysee | null> => {

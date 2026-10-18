@@ -1,3 +1,8 @@
+/**
+ * Saisie des cartes jouées, dans l'ordre de jeu.
+ * @module
+ */
+
 import { useState, type ReactNode } from "react";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { COULEURS, SYMBOLE_COULEUR, EXCUSE, idAtout, idCouleur, libelleCourt, libelleCarte, estBout, nbPlis, deriverPlis, tailleChien } from "@/domain/cartes/cartes";

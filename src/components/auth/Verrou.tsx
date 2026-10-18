@@ -1,3 +1,8 @@
+/**
+ * Écran de saisie du passphrase partagé.
+ * @module
+ */
+
 import { useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
