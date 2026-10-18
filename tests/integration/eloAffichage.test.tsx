@@ -107,7 +107,7 @@ describe("Explication et affichage du classement", () => {
     await screen.findByRole("heading", { name: "Andry" });
     const ligne = (await screen.findByText("Note actuelle")).parentElement as HTMLElement;
     expect(within(ligne).getByText(String(eloAttendu.note))).toBeInTheDocument();
-    expect(within(ligne).getByText(`1 donne · niveau ${niveauDeNote(eloAttendu.note)}/10`)).toBeInTheDocument();
+    expect(within(ligne).getByText(`1 donne · niveau ${niveauDeNote(eloAttendu.note)}/100`)).toBeInTheDocument();
     expect(screen.getByText("Comment fonctionne le classement")).toBeInTheDocument();
   });
 });

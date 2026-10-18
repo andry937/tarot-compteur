@@ -211,12 +211,12 @@ describe("niveauDeNote", () => {
     expect(niveauDeNote(-80)).toBe(1);
   });
 
-  it("gagne un niveau tous les 25 points de note, plafonné à 10", () => {
-    expect(niveauDeNote(24)).toBe(1);
-    expect(niveauDeNote(25)).toBe(2);
-    expect(niveauDeNote(151)).toBe(7);
-    expect(niveauDeNote(200)).toBe(9);
-    expect(niveauDeNote(225)).toBe(10);
-    expect(niveauDeNote(900)).toBe(10);
+  it("gagne un niveau tous les 3 points de note, plafonné à 100", () => {
+    expect(niveauDeNote(2)).toBe(1);
+    expect(niveauDeNote(3)).toBe(2);
+    expect(niveauDeNote(151)).toBe(51);
+    expect(niveauDeNote(200)).toBe(67);
+    expect(niveauDeNote(297)).toBe(100);
+    expect(niveauDeNote(900)).toBe(100);
   });
 });
