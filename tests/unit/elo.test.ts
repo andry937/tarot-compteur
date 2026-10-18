@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculerClassementElo, MU_DEPART, SIGMA_DEPART, noteAffichee } from "@/domain/stats/elo";
+import { calculerClassementElo, MU_DEPART, SIGMA_DEPART, noteAffichee, niveauDeNote } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
 import type { Donne } from "@/domain/score/regles";
 import type { PartieAnalysee } from "@/domain/stats/stats";
@@ -202,5 +202,21 @@ describe("calculerClassementElo", () => {
       const moyenne = classement.reduce((s, c) => s + c.mu, 0) / classement.length;
       expect(Math.abs(moyenne - MU_DEPART)).toBeLessThan(1);
     });
+  });
+});
+
+describe("niveauDeNote", () => {
+  it("un nouveau joueur (note 0) est au niveau 1, et jamais en dessous", () => {
+    expect(niveauDeNote(noteAffichee(MU_DEPART, SIGMA_DEPART))).toBe(1);
+    expect(niveauDeNote(-80)).toBe(1);
+  });
+
+  it("gagne un niveau tous les 25 points de note, plafonné à 10", () => {
+    expect(niveauDeNote(24)).toBe(1);
+    expect(niveauDeNote(25)).toBe(2);
+    expect(niveauDeNote(151)).toBe(7);
+    expect(niveauDeNote(200)).toBe(9);
+    expect(niveauDeNote(225)).toBe(10);
+    expect(niveauDeNote(900)).toBe(10);
   });
 });

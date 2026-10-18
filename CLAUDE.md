@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (127 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (129 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -378,6 +378,11 @@ résultat restait coincé autour de 0,5 et `mu` ne bougeait presque pas. Le seui
 classement) est conservé. `tests/unit/elo.test.ts` inclut une simulation
 déterministe de 300 donnes vérifiant qu'un nouveau qui gagne ses 3 premières
 donnes reste derrière les habitués et qu'un joueur plus fort finit premier.
+Sur la fiche joueur, la ligne « Note actuelle » affiche aussi un **niveau de
+1 à 10** (`niveauDeNote`, `elo.ts`) : 1 + un niveau tous les 25 points de note
+(`NOTE_PAR_NIVEAU`), plafonné à 10 — remplace l'ancien « niveau mu×10 ± 3σ×10 »,
+jugé trop technique par les joueurs. Un nouveau (note 0) commence niveau 1 ;
+sur les données réelles, les meilleurs habitués sont niveau 8-9.
 
 **Le preneur gagne/perd plus d'Elo que l'appelé** (`domain/stats/elo.ts`) : jusqu'ici
 le delta d'une donne était appliqué identique au preneur et à l'appelé, alors
