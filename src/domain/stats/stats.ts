@@ -2,10 +2,12 @@
  * Statistiques par joueur, calculées à la volée à partir des parties
  * archivées (pas d'agrégat stocké). Aucune dépendance React : testable
  * isolément, comme regles.ts et identite.ts.
+ * @module
  */
 import { calculer } from "@/domain/score/regles";
 import type { Bout, Donne, ResultatDonne, Roi } from "@/domain/score/regles";
 
+/** Rôle d'un joueur sur une donne. */
 export type Role = "preneur" | "appele" | "defense" | "repos";
 
 /** Rôle d'un joueur (par index de siège) sur une donne, à partir du résultat
@@ -18,49 +20,77 @@ export function roleDe(donne: Donne, resultat: ResultatDonne, i: number): Role {
   return "defense";
 }
 
+/** Partie archivée chargée pour l'analyse (stats, classement). */
 export interface PartieAnalysee {
+  /** Identifiant de l'archive. */
   archiveId: string;
+  /** Date de clôture, au format ISO. */
   date: string;
+  /** Identifiants des joueurs, dans l'ordre des sièges. */
   joueursId: string[];
+  /** Donnes de la partie. */
   donnes: Donne[];
 }
 
+/** Donnes jouées et gagnées dans un rôle. */
 export interface StatsRole {
+  /** Nombre de donnes jouées dans ce rôle. */
   donnes: number;
+  /** Nombre de victoires (côté défense : contrat de l'attaque chuté). */
   victoires: number;
 }
 
+/** Nombre de fois qu'un roi a été appelé par le joueur. */
 export interface StatsRoi {
+  /** Couleur du roi. */
   roi: Roi;
+  /** Nombre d'appels. */
   fois: number;
 }
 
+/** Renvoi vers une donne précise d'une archive. */
 export interface DonneReference {
+  /** Identifiant de l'archive. */
   archiveId: string;
+  /** Date de l'archive. */
   date: string;
+  /** Position de la donne dans la partie (à partir de 0). */
   indexDonne: number;
+  /** Points marqués par le joueur sur cette donne. */
   points: number;
 }
 
 /** Une donne prise par le joueur en tant que preneur, avec son issue. */
 export interface AppelPreneur {
+  /** Identifiant de l'archive. */
   archiveId: string;
+  /** Date de l'archive. */
   date: string;
+  /** Position de la donne dans la partie (à partir de 0). */
   indexDonne: number;
+  /** Identifiant du contrat annoncé. */
   contrat: string;
+  /** Nombre de bouts de l'attaque. */
   bouts: 0 | 1 | 2 | 3;
+  /** Bouts précis détenus, si connus (vide pour les donnes anciennes). */
   boutsPrecis: Bout[];
   /** Points bruts réalisés par l'attaque sur cette donne (sur 91) — pas le
    * score signé (`resultat.scores[idx]`, déjà utilisé ailleurs dans ce
    * fichier pour les totaux) : c'est bien `d.points` qu'il faut lire ici. */
   points: number;
+  /** `true` si le contrat a été réussi. */
   reussi: boolean;
 }
 
+/** Résumé d'une partie jouée par le joueur. */
 export interface PartieResume {
+  /** Identifiant de l'archive. */
   archiveId: string;
+  /** Date de l'archive. */
   date: string;
+  /** Points marqués par le joueur sur la partie. */
   points: number;
+  /** Nombre de donnes de la partie. */
   nbDonnes: number;
 }
 
@@ -68,22 +98,37 @@ export interface PartieResume {
  * les donnes qu'il a réellement jouées, toutes parties confondues, dans
  * l'ordre chronologique), cumul de points après cette donne. */
 export interface PointTrajectoire {
+  /** Numéro de la donne sur l'axe personnel (à partir de 1). */
   index: number;
+  /** Points cumulés du joueur après cette donne. */
   cumul: number;
 }
 
+/** Statistiques cumulées d'un joueur sur toutes les parties chargées. */
 export interface StatsJoueur {
+  /** Nombre de parties où il a joué au moins une donne. */
   partiesJouees: number;
+  /** Nombre de donnes jouées (hors repos). */
   donneesJouees: number;
+  /** Total de points marqués. */
   pointsTotaux: number;
+  /** Détail par rôle (preneur, appelé, défense). */
   parRole: Record<Role, StatsRole>;
+  /** Donnes prises comme preneur et réussies. */
   appelsReussis: AppelPreneur[];
+  /** Donnes prises comme preneur et chutées. */
   appelsEchoues: AppelPreneur[];
+  /** Rois qu'il a appelés, du plus fréquent au moins fréquent. */
   roisAppelesParLui: StatsRoi[];
+  /** Nombre de fois où un autre preneur l'a appelé. */
   foisAppele: number;
+  /** Donne où il a marqué le plus, ou `null`. */
   meilleureDonne: DonneReference | null;
+  /** Donne où il a marqué le moins, ou `null`. */
   pireDonne: DonneReference | null;
+  /** Parties jouées, dans l'ordre reçu en entrée. */
   parties: PartieResume[];
+  /** Points cumulés donne après donne, dans l'ordre chronologique. */
   trajectoire: PointTrajectoire[];
 }
 

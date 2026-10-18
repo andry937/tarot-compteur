@@ -1,3 +1,8 @@
+/**
+ * Arbre des routes de l'application ; les écrans à graphiques sont chargés à la demande.
+ * @module
+ */
+
 import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
@@ -15,6 +20,9 @@ const Historique = lazy(() => import("@/pages/Historique"));
 const Feuille = lazy(() => import("@/pages/Feuille"));
 const FicheJoueur = lazy(() => import("@/pages/FicheJoueur"));
 
+/**
+ * Route `/tirage/:id` : écran du donneur de la table en composition ; redirige vers `/` si l'id ne correspond pas au tirage en cours.
+ */
 const RouteTirage = observer(function RouteTirage() {
   const store = useStore();
   const navigate = useNavigate();
@@ -37,6 +45,9 @@ const RouteTirage = observer(function RouteTirage() {
   );
 });
 
+/**
+ * Route `/partie/:id` : charge la table demandée puis affiche sa feuille ; redirige vers `/` si elle est introuvable.
+ */
 const RoutePartie = observer(function RoutePartie() {
   const { table } = useStore();
   const navigate = useNavigate();
@@ -52,6 +63,9 @@ const RoutePartie = observer(function RoutePartie() {
   return <Feuille partie={table.partie} />;
 });
 
+/**
+ * Routes : `/` (tables ouvertes), `/composition`, `/tirage/:id`, `/partie/:id`, `/joueurs`, `/joueurs/:id`, `/historique`, `/historique/:id`, `/classement`. Toute autre adresse redirige vers `/`.
+ */
 export default function AppRoutes() {
   return (
     <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>

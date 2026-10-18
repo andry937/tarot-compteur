@@ -1,3 +1,8 @@
+/**
+ * Store racine MobX : chargement initial, sauvegardes automatiques, index des tables, composition, tirage et clôture.
+ * @module
+ */
+
 import { comparer, makeAutoObservable, observable, reaction, runInAction, type IReactionDisposer } from "mobx";
 import { resumerDonnees } from "@/domain/score/regles";
 import { resoudreNom, genId, joueursActuellementAssis } from "@/domain/joueurs/identite";
@@ -47,14 +52,20 @@ async function migrerAncienneTable() {
  * leur résultat et c'est l'écran appelant qui choisit la route suivante.
  */
 export class RootStore {
+  /** Trombinoscope des joueurs. */
   readonly registre = new RegistreStore();
+  /** Index des parties archivées. */
   readonly historique = new HistoriqueStore();
+  /** Table active de cet onglet. */
   readonly table = new TableStore(this.registre);
 
+  /** `true` une fois le stockage relu ; tant que c'est faux, aucune sauvegarde n'est écrite. */
   pret = false;
   // Une lecture a échoué au démarrage (≠ clé absente) : on n'écrit RIEN tant que
   // les données n'ont pas été relues, sinon l'état vide écraserait les vraies.
+  /** `true` si la lecture initiale du stockage a échoué. */
   erreurChargement = false;
+  /** Message d'avertissement affiché en bandeau, ou `null`. */
   avertissement: string | null = null;
   /** Index des tables ouvertes (`tarot:tables`). */
   tablesIndex: HistoriqueEntree[] = [];
@@ -117,6 +128,7 @@ export class RootStore {
     }
   }
 
+  /** Débranche les sauvegardes automatiques. */
   arreter() {
     this.reactions.forEach((dispose) => dispose());
     this.reactions = [];
@@ -155,6 +167,7 @@ export class RootStore {
     return [...joueursActuellementAssis(this.tablesIndex)].map((id) => resoudreNom(id, this.registre.roster, "?"));
   }
 
+  /** Masque le bandeau d'avertissement. */
   fermerAvertissement() {
     this.avertissement = null;
   }
@@ -167,6 +180,7 @@ export class RootStore {
     return id;
   }
 
+  /** Abandonne la table en cours de composition. */
   annulerTirage() {
     this.tirage = null;
   }

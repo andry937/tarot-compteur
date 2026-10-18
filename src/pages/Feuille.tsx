@@ -1,3 +1,8 @@
+/**
+ * Écran de la feuille de marque d'une table ouverte (`/partie/:id`).
+ * @module
+ */
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
@@ -15,7 +20,10 @@ import EcranMains from "@/components/cartes/EcranMains";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
 /** La table active vient du store ; `partie` est passée par RoutePartie, qui a déjà vérifié qu'elle est chargée. */
-export default observer(function Feuille({ partie }: { partie: Partie }) {
+export default observer(function Feuille({ partie }: {
+  /** Composition de la table active, déjà chargée par la route. */
+  partie: Partie;
+}) {
   const store = useStore();
   const navigate = useNavigate();
   const t = store.table;

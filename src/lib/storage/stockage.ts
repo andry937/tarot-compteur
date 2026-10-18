@@ -1,12 +1,15 @@
 /**
  * Clés de persistance (window.storage). Centralisées ici pour éviter les
  * chaînes littérales dispersées dans les composants.
+ * @module
  */
 
 /** @deprecated ancien emplacement unique d'une partie active — lu une fois
  * au démarrage pour migrer vers le système multi-table, jamais réécrit. */
 export const CLE_PARTIE = "tarot:partie:v4";
+/** Clé du trombinoscope des joueurs. */
 export const CLE_ROSTER = "tarot:joueurs:v2";
+/** Clé de l'index des parties archivées. */
 export const CLE_HISTORIQUE = "tarot:historique";
 
 /** Index léger des tables actuellement OUVERTES (même forme que l'historique). */

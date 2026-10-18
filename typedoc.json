@@ -16,6 +16,7 @@
   "excludeInternal": true,
   "searchInComments": true,
   "validation": {
-    "notExported": false
+    "notExported": false,
+    "notDocumented": true
   }
 }

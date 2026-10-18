@@ -1,3 +1,8 @@
+/**
+ * Plein écran des mains reconstituées d'une donne.
+ * @module
+ */
+
 import type { Donne } from "@/domain/score/regles";
 import { deduireMains, entameDeLaDonne } from "@/domain/cartes/cartes";
 import { Page, Header, GhostButton } from "@/components/ui";

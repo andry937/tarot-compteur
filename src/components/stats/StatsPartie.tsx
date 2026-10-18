@@ -1,3 +1,8 @@
+/**
+ * Panneau de statistiques sur les donnes d'une partie.
+ * @module
+ */
+
 import { calculerStatsPartie } from "@/domain/stats/statsPartie";
 import { NOM_ROI } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";

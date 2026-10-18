@@ -1,3 +1,8 @@
+/**
+ * Écran du classement général (`/classement`).
+ * @module
+ */
+
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
@@ -11,6 +16,7 @@ import ExplicationElo from "@/components/stats/ExplicationElo";
 /** Nombre de donnes jouées requis pour figurer au classement. */
 export const DONNES_MIN = 50;
 
+/** Classement général des joueurs ayant assez de donnes, recalculé depuis toutes les archives. */
 export default observer(function Classement() {
   const store = useStore();
   const { roster } = store.registre;

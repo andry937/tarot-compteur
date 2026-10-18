@@ -1,3 +1,8 @@
+/**
+ * Point d'entrée : branche `window.storage` sur Firestore puis monte l'application.
+ * @module
+ */
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";

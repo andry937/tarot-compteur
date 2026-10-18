@@ -1,3 +1,8 @@
+/**
+ * Écran des statistiques d'un joueur (`/joueurs/:id`).
+ * @module
+ */
+
 import { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
@@ -31,6 +36,9 @@ const nomContrat = (id: string) => CONTRATS.find((c) => c.id === id)?.nom ?? id;
 
 const nomBoutsPrecis = (bouts: Bout[]) => bouts.map((b) => NOM_BOUT[b]).join(", ");
 
+/**
+ * Points, rôles, appels réussis et échoués, rois appelés, parties jouées, graphique et note de classement d'un joueur.
+ */
 export default observer(function FicheJoueur() {
   const store = useStore();
   const { roster } = store.registre;

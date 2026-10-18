@@ -1,3 +1,8 @@
+/**
+ * Saisie des misères annoncées pendant une donne.
+ * @module
+ */
+
 import type { Misere } from "@/domain/score/regles";
 import { Chip, Field, Label } from "@/components/ui";
 import ChoixJoueur from "./ChoixJoueur";

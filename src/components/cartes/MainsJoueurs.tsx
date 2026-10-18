@@ -1,3 +1,8 @@
+/**
+ * Affichage des mains reconstituées de chaque joueur.
+ * @module
+ */
+
 import { decoder, estBout, libelleCourt, SYMBOLE_COULEUR } from "@/domain/cartes/cartes";
 import type { MainsDeduites } from "@/domain/cartes/cartes";
 import { Section } from "@/components/ui";

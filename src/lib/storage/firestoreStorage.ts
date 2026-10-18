@@ -15,6 +15,7 @@
  * bloquerait silencieusement n'importe quelle action de l'app (tirage,
  * saisie d'une donne, clôture de partie, …) au lieu d'échouer proprement
  * dans le try/catch appelant.
+ * @module
  */
 import {
   collection,
@@ -32,8 +33,10 @@ import { CleIntrouvable } from "./stockage";
 import type { WindowStorage } from "./window-storage";
 
 const COLLECTION = "tarotStorage";
-// Exporté : AuthGate.tsx applique le même délai à onAuthStateChanged, pour la
-// même raison (réseau coupé/lent ne doit pas bloquer indéfiniment l'app).
+/**
+ * Délai maximal d'une opération, en millisecondes. Exporté : AuthGate.tsx applique le même délai à
+ * onAuthStateChanged, pour la même raison (un réseau coupé ou lent ne doit pas bloquer l'app).
+ */
 export const DELAI_MS = 8000;
 
 function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T> {
@@ -43,6 +46,7 @@ function avecDelai<T>(promesse: Promise<T>, ms: number): Promise<T> {
   ]);
 }
 
+/** Crée l'implémentation Firestore de `window.storage`. */
 export function creerStorageFirestore(): WindowStorage {
   return {
     async get(key) {

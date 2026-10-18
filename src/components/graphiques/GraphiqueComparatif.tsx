@@ -1,3 +1,8 @@
+/**
+ * Graphique comparatif des joueurs d'une partie (Recharts).
+ * @module
+ */
+
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";

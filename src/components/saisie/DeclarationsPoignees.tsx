@@ -1,3 +1,8 @@
+/**
+ * Saisie des poignées déclarées pendant une donne.
+ * @module
+ */
+
 import { POIGNEES } from "@/domain/score/regles";
 import type { PoigneeDeclaree } from "@/domain/score/regles";
 import { Chip, Field, Label } from "@/components/ui";

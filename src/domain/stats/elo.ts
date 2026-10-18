@@ -31,6 +31,7 @@
  * Recalcul complet à chaque affichage, en rejouant toutes les donnes
  * archivées dans l'ordre chronologique : pas d'agrégat stocké, donc pas de
  * désynchronisation possible après une fusion de fiches joueurs.
+ * @module
  */
 
 import { calculer } from "@/domain/score/regles";
@@ -40,6 +41,7 @@ import type { Fiche } from "@/domain/joueurs/identite";
 
 /** Constantes par défaut d'OpenSkill. */
 export const MU_DEPART = 25;
+/** Incertitude de départ d'un joueur sans historique. */
 export const SIGMA_DEPART = 25 / 3;
 const BETA = 25 / 6;
 /** Remontée de l'incertitude avant chaque donne (le niveau peut évoluer). */
@@ -51,13 +53,19 @@ const KAPPA = 1e-4;
  * résultat dans ]0,1[ : une victoire typique (base ≈ 60) donne ≈ 0.75. */
 const ECHELLE_RESULTAT = 125;
 
+/** Ligne du classement général pour un joueur. */
 export interface ClassementElo {
+  /** Identifiant de la fiche (après résolution des fusions). */
   id: string;
+  /** Nom affiché. */
   nom: string;
   /** Note affichée et triée : (mu − 3·sigma) × 10, arrondie. */
   note: number;
+  /** Niveau estimé du joueur. */
   mu: number;
+  /** Incertitude sur ce niveau : elle baisse à mesure que le joueur joue. */
   sigma: number;
+  /** Nombre de donnes jouées. */
   matchs: number;
 }
 
@@ -73,6 +81,7 @@ export function noteAffichee(mu: number, sigma: number): number {
 
 /** Écart de note entre deux niveaux affichés sur la fiche joueur. */
 export const NOTE_PAR_NIVEAU = 3;
+/** Niveau maximal affiché. */
 export const NIVEAU_MAX = 100;
 
 /** Niveau de 1 à 100 dérivé de la note, plus parlant qu'un nombre brut : 1 pour
