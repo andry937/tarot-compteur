@@ -3,7 +3,7 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { useParams, useNavigate } from "react-router-dom";
-import { cleArchive } from "@/lib/storage/stockage";
+import { cleArchive, CleIntrouvable } from "@/lib/storage/stockage";
 import { invaliderArchive } from "@/lib/storage/archives";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
@@ -19,6 +19,9 @@ export default observer(function Historique() {
   const navigate = useNavigate();
   const [record, setRecord] = useState<ArchiveRecord | null>(null);
   const [chargement, setChargement] = useState(false);
+  // Message affiché quand l'archive ne peut pas être lue (pas de console sur mobile).
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [tentative, setTentative] = useState(0);
 
   const { enAttente: confirmerSuppression, declencher: surSupprimer } = useConfirmation(() => {
     if (!id) return;
@@ -45,19 +48,33 @@ export default observer(function Historique() {
   useEffect(() => {
     if (!id) {
       setRecord(null);
+      setErreur(null);
       return;
     }
+    let annule = false;
     setChargement(true);
+    setErreur(null);
+    setRecord(null);
     (async () => {
       try {
         const r = await window.storage.get(cleArchive(id));
-        setRecord(JSON.parse(r.value));
+        if (!annule) setRecord(JSON.parse(r.value));
       } catch (e) {
         console.error("Lecture de l'archive impossible", e);
+        if (!annule) {
+          setErreur(
+            e instanceof CleIntrouvable
+              ? "Cette archive n'existe pas (ou plus) dans la base."
+              : `Lecture impossible : ${e instanceof Error ? e.message : String(e)}`
+          );
+        }
       }
-      setChargement(false);
+      if (!annule) setChargement(false);
     })();
-  }, [id]);
+    return () => {
+      annule = true;
+    };
+  }, [id, tentative]);
 
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
@@ -80,6 +97,12 @@ export default observer(function Historique() {
           }
         />
         {chargement && <p className="text-sm text-slate-400">Chargement de la feuille…</p>}
+        {erreur && (
+          <div role="alert" className="rounded-xl border border-rose-900/50 bg-rose-950/20 p-3.5">
+            <p className="mb-3 text-sm text-rose-200">{erreur}</p>
+            <GhostButton onClick={() => setTentative((t) => t + 1)}>Réessayer</GhostButton>
+          </div>
+        )}
         {record && <ArchiveFeuille record={record} roster={roster} onModifierDonne={surModifierDonne} />}
       </Page>
     );

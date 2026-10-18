@@ -519,6 +519,12 @@ partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
   bloqué ; si le callback finit par arriver plus tard, il met quand même à
   jour l'état normalement.
 
+**Archive illisible visible à l'écran** (`pages/Historique.tsx`) : si la lecture de
+`tarot:archive:{id}` échoue, l'écran affiche une alerte (« Cette archive
+n'existe pas (ou plus) » pour `CleIntrouvable`, sinon « Lecture impossible : »
+suivie du message d'erreur) et un bouton « Réessayer », au lieu d'une page vide
+dont la cause n'apparaissait que dans la console — inutilisable sur mobile.
+
 **Passage à MobX** (`src/stores/`, `App.tsx`, `app/AppRoutes.tsx`, pages) :
 l'état global vivait dans `App.tsx` (+ `useTable`, `useRegistre`) et
 descendait par props — 33 props d'`App` vers `AppRoutes`, une vingtaine
