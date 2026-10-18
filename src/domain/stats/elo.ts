@@ -72,11 +72,11 @@ export function noteAffichee(mu: number, sigma: number): number {
 }
 
 /** Écart de note entre deux niveaux affichés sur la fiche joueur. */
-export const NOTE_PAR_NIVEAU = 25;
-export const NIVEAU_MAX = 10;
+export const NOTE_PAR_NIVEAU = 3;
+export const NIVEAU_MAX = 100;
 
-/** Niveau de 1 à 10 dérivé de la note, plus parlant qu'un nombre brut : 1 pour
- * un nouveau joueur (note 0 ou négative), un niveau de plus tous les 25 points. */
+/** Niveau de 1 à 100 dérivé de la note, plus parlant qu'un nombre brut : 1 pour
+ * un nouveau joueur (note 0 ou négative), un niveau de plus tous les 3 points. */
 export function niveauDeNote(note: number): number {
   return Math.min(NIVEAU_MAX, Math.max(1, 1 + Math.floor(note / NOTE_PAR_NIVEAU)));
 }
