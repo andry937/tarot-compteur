@@ -1,18 +1,22 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { normaliser } from "@/domain/joueurs/identite";
-import type { Fiche } from "@/domain/joueurs/identite";
 import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "@/components/ui";
 
 const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
 
-interface CompositionTableProps {
-  roster: Fiche[];
-  /** Noms des joueurs actuellement assis à une autre table ouverte — ne peuvent pas être repris ici. */
-  joueursIndisponibles: string[];
-  onValider: (noms: string[], parDonne: number) => void;
-}
-
-export default function CompositionTable({ roster, joueursIndisponibles, onValider }: CompositionTableProps) {
+export default observer(function CompositionTable() {
+  const store = useStore();
+  const navigate = useNavigate();
+  const { roster } = store.registre;
+  // Joueurs déjà assis à une autre table ouverte : ne peuvent pas être repris ici.
+  const { joueursIndisponibles } = store;
+  const onValider = async (noms: string[], parDonne: number) => {
+    const id = await store.validerComposition(noms, parDonne);
+    navigate(`/tirage/${id}`);
+  };
   const [nbSetup, setNbSetup] = useState(5);
   const [parDonneSetup, setParDonneSetup] = useState(5);
   const [nomsSetup, setNomsSetup] = useState<string[]>(nomsParDefaut(5));
@@ -180,4 +184,4 @@ export default function CompositionTable({ roster, joueursIndisponibles, onValid
       </Bar>
     </Page>
   );
-}
+});

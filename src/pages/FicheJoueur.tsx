@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { useParams, useNavigate } from "react-router-dom";
 import { resoudreFiche } from "@/domain/joueurs/identite";
-import type { Fiche } from "@/domain/joueurs/identite";
 import { calculerStatsJoueur } from "@/domain/stats/stats";
 import type { Role, StatsJoueur } from "@/domain/stats/stats";
-import type { HistoriqueEntree } from "@/domain/types";
 import { chargerParties } from "@/lib/storage/archives";
 import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "@/domain/score/regles";
 import type { Bout } from "@/domain/score/regles";
@@ -13,11 +13,6 @@ import type { ClassementElo } from "@/domain/stats/elo";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "@/components/ui";
 import GraphiquePersonnel from "@/components/graphiques/GraphiquePersonnel";
 import ExplicationElo from "@/components/stats/ExplicationElo";
-
-interface FicheJoueurProps {
-  roster: Fiche[];
-  historiqueIndex: HistoriqueEntree[];
-}
 
 const LABEL_ROLE: Record<Role, string> = {
   preneur: "Preneur",
@@ -36,7 +31,10 @@ const nomContrat = (id: string) => CONTRATS.find((c) => c.id === id)?.nom ?? id;
 
 const nomBoutsPrecis = (bouts: Bout[]) => bouts.map((b) => NOM_BOUT[b]).join(", ");
 
-export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProps) {
+export default observer(function FicheJoueur() {
+  const store = useStore();
+  const { roster } = store.registre;
+  const historiqueIndex = store.historique.index;
   const { id } = useParams();
   const navigate = useNavigate();
   const [stats, setStats] = useState<StatsJoueur | null>(null);
@@ -275,4 +273,4 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
       )}
     </Page>
   );
-}
+});

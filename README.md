@@ -71,12 +71,13 @@ Les données sont stockées dans Firestore (collection `tarotStorage`, un docume
 
 ```
 src/
-  main.tsx, App.tsx        point d'entrée ; App porte l'état partagé et la persistance
+  main.tsx, App.tsx        point d'entrée ; App crée le store et l'expose aux écrans
   app/                     AuthGate, AppRoutes (arbre de routes), ErrorBoundary
   pages/                   un écran par route
   components/              pièces d'écran, rangées par domaine
     ui/ auth/ feuille/ saisie/ cartes/ stats/ graphiques/
-  hooks/                   useTable, useRegistre, useConfirmation
+  stores/                  état global MobX : RootStore, TableStore, RegistreStore, HistoriqueStore
+  hooks/                   useConfirmation
   domain/                  logique métier PURE, sans React (testable seule)
     score/ cartes/ joueurs/ stats/ types.ts
   lib/                     firebase.ts et lib/storage/ (adaptateur Firestore, clés, cache)
@@ -85,6 +86,6 @@ tests/
   integration/             parcours complets avec un faux window.storage
 ```
 
-Règle de dépendance : `domain/` n'importe jamais React ni `components/`, `pages/`, `hooks/` ou `lib/`. L'alias `@/` pointe vers `src/`.
+Règle de dépendance : `domain/` n'importe jamais React ni `components/`, `pages/`, `hooks/`, `stores/` ou `lib/`. L'alias `@/` pointe vers `src/`.
 
 Les décisions de conception (règles du tarot implémentées, modèle de données, Elo, pièges connus) sont consignées dans [`CLAUDE.md`](CLAUDE.md).

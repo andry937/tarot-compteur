@@ -133,3 +133,47 @@ describe("Modification d'une donne archivée", () => {
     expect(ligne).toHaveTextContent("+92");
   }, 15000);
 });
+
+describe("Archive illisible", () => {
+  const entree: HistoriqueEntree = {
+    id: archiveId,
+    date: "2026-03-01T00:00:00.000Z",
+    joueurs: ["Andry", "Bob", "Chloé", "Denis", "Eva"],
+    joueursId,
+    parDonne: 5,
+    nbDonnes: 1,
+    totaux: [0, 0, 0, 0, 0],
+  };
+
+  it("affiche un message au lieu d'une page vide quand l'archive est absente", async () => {
+    window.storage.__seed!("tarot:joueurs:v2", roster);
+    window.storage.__seed!("tarot:historique", [entree]); // l'index existe, pas le document
+    renderApp([`/historique/${archiveId}`]);
+    expect(await screen.findByRole("alert")).toHaveTextContent("n'existe pas");
+    expect(screen.getByRole("button", { name: "Réessayer" })).toBeInTheDocument();
+  });
+
+  it("affiche la cause quand la lecture échoue, et Réessayer recharge l'archive", async () => {
+    window.storage.__seed!("tarot:joueurs:v2", roster);
+    window.storage.__seed!("tarot:historique", [entree]);
+    window.storage.__seed!(cleArchive(archiveId), {
+      joueursId,
+      joueursNomFige: entree.joueurs,
+      parDonne: 5,
+      depart: 0,
+      donnes: [],
+      annulations: [],
+    });
+    const lire = window.storage.get;
+    let echecs = 1;
+    window.storage.get = async (key) => {
+      if (key === cleArchive(archiveId) && echecs-- > 0) throw new Error("délai Firestore dépassé");
+      return lire(key);
+    };
+    renderApp([`/historique/${archiveId}`]);
+    expect(await screen.findByRole("alert")).toHaveTextContent("délai Firestore dépassé");
+    await userEvent.click(screen.getByRole("button", { name: "Réessayer" }));
+    expect(await screen.findByText("Classement final")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+});

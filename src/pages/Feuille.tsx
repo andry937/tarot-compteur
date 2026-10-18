@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
-import type { Donne } from "@/domain/score/regles";
-import type { Annulation } from "@/domain/types";
+import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
@@ -12,48 +14,16 @@ import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
-interface FeuilleProps {
-  cartesEnCours: string[];
-  chienEnCours: string[];
-  onModifierCartes: (cartes: string[]) => void;
-  onModifierChien: (chien: string[]) => void;
-  joueurs: string[];
-  nbTotal: number;
-  parDonne: number;
-  depart: number;
-  donnes: Donne[];
-  annulations: Annulation[];
-  totaux: number[];
-  jouees: number[];
-  cumuls: number[][];
-  onAjouterDonne: (d: Donne) => void;
-  onModifierDonne: (i: number, d: Donne) => void;
-  onEffacerDonne: (i: number) => void;
-  onAjouterAnnulation: (a: Annulation) => void;
-  onCloturerPartie: () => void;
-  onQuitterPartie: () => void;
-}
+/** La table active vient du store ; `partie` est passée par RoutePartie, qui a déjà vérifié qu'elle est chargée. */
+export default observer(function Feuille({ partie }: { partie: Partie }) {
+  const store = useStore();
+  const navigate = useNavigate();
+  const t = store.table;
+  const { joueurs, nbTotal, donnes, annulations, cartesEnCours, chienEnCours } = t;
+  const { totaux, jouees } = t.resume;
+  const { parDonne } = partie;
+  const depart = partie.depart || 0;
 
-export default function Feuille({
-  cartesEnCours,
-  chienEnCours,
-  onModifierCartes,
-  onModifierChien,
-  joueurs,
-  nbTotal,
-  parDonne,
-  depart,
-  donnes,
-  annulations,
-  totaux,
-  jouees,
-  onAjouterDonne,
-  onModifierDonne,
-  onEffacerDonne,
-  onAjouterAnnulation,
-  onCloturerPartie,
-  onQuitterPartie,
-}: FeuilleProps) {
   const [cumule, setCumule] = useState(true);
   const [ouverte, setOuverte] = useState<number | null>(null);
   const [saisie, setSaisie] = useState<{ index: number | null } | null>(null);
@@ -65,7 +35,9 @@ export default function Feuille({
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
-  const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(onCloturerPartie);
+  const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {
+    if (await store.cloturerPartie()) navigate("/");
+  });
 
   const classement = joueurs
     .map((nom, i) => ({ nom, i, pts: totaux[i], n: jouees[i] }))
@@ -79,7 +51,15 @@ export default function Feuille({
         actions={
           <>
             <GhostLink to="/historique">Historique</GhostLink>
-            <GhostButton onClick={onQuitterPartie}>Accueil</GhostButton>
+            <GhostButton
+              onClick={() => {
+                // Retour sans rien modifier : la table reste ouverte, reprenable plus tard.
+                t.desactiver();
+                navigate("/");
+              }}
+            >
+              Accueil
+            </GhostButton>
             <GhostButton onClick={surCloturer}>{confirmerCloture ? "Confirmer ?" : "Clôturer"}</GhostButton>
           </>
         }
@@ -138,7 +118,7 @@ export default function Feuille({
                   compact
                   disabled={joueurPetitSec === null}
                   onClick={() => {
-                    onAjouterAnnulation({
+                    t.ajouterAnnulation({
                       id: `${Date.now()}`,
                       avantDonne: donnes.length,
                       table: prochaine,
@@ -214,7 +194,7 @@ export default function Feuille({
               type="button"
               className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
               onClick={() => {
-                onEffacerDonne(ouverte as number);
+                t.effacerDonne(ouverte as number);
                 setOuverte(null);
               }}
             >
@@ -307,15 +287,15 @@ export default function Feuille({
           donneInitiale={saisie.index !== null ? donnes[saisie.index] : undefined}
           brouillon={
             saisie.index === null
-              ? { cartes: cartesEnCours, chien: chienEnCours, onCartes: onModifierCartes, onChien: onModifierChien }
+              ? { cartes: cartesEnCours, chien: chienEnCours, onCartes: t.modifierCartes, onChien: t.modifierChien }
               : undefined
           }
           onFermer={() => setSaisie(null)}
           onValider={(d) => {
             if (saisie.index !== null) {
-              onModifierDonne(saisie.index, d);
+              t.modifierDonne(saisie.index, d);
             } else {
-              onAjouterDonne(d);
+              t.ajouterDonne(d);
             }
             setSaisie(null);
           }}
@@ -323,4 +303,4 @@ export default function Feuille({
       )}
     </Page>
   );
-}
+});
