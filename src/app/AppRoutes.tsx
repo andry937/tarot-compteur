@@ -23,13 +23,14 @@ const RouteTirage = observer(function RouteTirage() {
   if (!tirage || tirage.id !== id) return <Navigate to="/" replace />;
   return (
     <Tirage
-      joueurs={tirage.joueurs.filter((_, i) => !(tirage.auRepos ?? []).includes(i))}
+      joueurs={tirage.joueurs}
+      parDonne={tirage.parDonne}
       onRetour={() => {
         store.annulerTirage();
         navigate("/");
       }}
-      onValider={async (depart) => {
-        const tableId = await store.validerTirage(depart);
+      onValider={async (choix) => {
+        const tableId = await store.validerTirage(choix);
         if (tableId) navigate(`/partie/${tableId}`);
       }}
     />

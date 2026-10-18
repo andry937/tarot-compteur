@@ -4,7 +4,7 @@ import { resoudreNom, genId, joueursActuellementAssis } from "@/domain/joueurs/i
 import type { Fiche } from "@/domain/joueurs/identite";
 import { sansDoublons } from "@/lib/storage/archives";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleTable, lireJson } from "@/lib/storage/stockage";
-import type { Partie, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
+import type { Partie, ChoixDonneur, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 import { RegistreStore } from "@/stores/RegistreStore";
 import { HistoriqueStore } from "@/stores/HistoriqueStore";
 import { TableStore } from "@/stores/TableStore";
@@ -160,10 +160,10 @@ export class RootStore {
   }
 
   /** Enregistre les noms au registre et prépare le tirage ; renvoie l'id de la future table. */
-  async validerComposition(noms: string[], parDonne: number, auRepos: number[] = []): Promise<string> {
+  async validerComposition(noms: string[], parDonne: number): Promise<string> {
     const ids = await this.registre.majRoster(noms);
     const id = genId();
-    runInAction(() => (this.tirage = { id, joueurs: noms, joueursId: ids, parDonne, auRepos }));
+    runInAction(() => (this.tirage = { id, joueurs: noms, joueursId: ids, parDonne }));
     return id;
   }
 
@@ -171,25 +171,27 @@ export class RootStore {
     this.tirage = null;
   }
 
-  /** Ouvre la table tirée ; renvoie son id, ou `null` s'il n'y avait pas de tirage en cours. */
-  async validerTirage(depart: number): Promise<string | null> {
+  /**
+   * Ouvre la table avec l'ordre des sièges, les joueurs au repos et le donneur choisis
+   * (indices dans `tirage.joueurs`) ; renvoie son id, ou `null` s'il n'y avait pas de tirage.
+   * Quand des joueurs sont au repos, les sièges sont réordonnés pour que le donneur ouvre la
+   * fenêtre de la première donne, suivi des joueurs à table dans l'ordre, puis de ceux au repos.
+   */
+  async validerTirage(choix: ChoixDonneur): Promise<string | null> {
     const tirage = this.tirage;
     if (!tirage) return null;
     const id = tirage.id;
-    // `depart` désigne un donneur parmi les joueurs à table (le tirage ne concerne pas
-    // ceux au repos). On réordonne les sièges pour que le donneur ouvre la fenêtre de
-    // la première donne, suivie des joueurs à table dans l'ordre, puis de ceux au repos.
-    const repos = tirage.auRepos ?? [];
-    const jouant = tirage.joueurs.map((_, i) => i).filter((i) => !repos.includes(i));
-    const ordre =
-      repos.length > 0
-        ? [...jouant.slice(depart), ...jouant.slice(0, depart), ...repos]
-        : tirage.joueurs.map((_, i) => i);
+    const { ordre, auRepos, donneur } = choix;
+    const jouant = ordre.filter((i) => !auRepos.includes(i));
+    const reposOrdonne = ordre.filter((i) => auRepos.includes(i));
+    const p = Math.max(0, jouant.indexOf(donneur));
+    const sieges =
+      auRepos.length > 0 ? [...jouant.slice(p), ...jouant.slice(0, p), ...reposOrdonne] : ordre;
     const nouvelle: Partie = {
-      joueursId: ordre.map((i) => tirage.joueursId[i]),
-      joueursNomFige: ordre.map((i) => tirage.joueurs[i]),
+      joueursId: sieges.map((i) => tirage.joueursId[i]),
+      joueursNomFige: sieges.map((i) => tirage.joueurs[i]),
       parDonne: tirage.parDonne,
-      depart: repos.length > 0 ? 0 : depart,
+      depart: auRepos.length > 0 ? 0 : Math.max(0, ordre.indexOf(donneur)),
     };
     this.table.activer(id, nouvelle);
     this.tirage = null;
