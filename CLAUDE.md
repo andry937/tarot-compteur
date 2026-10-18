@@ -826,6 +826,11 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
 
 ## Conventions
 
+- **Aucune mention de Claude dans les commits ni les PR** : ni ligne
+  `Co-Authored-By`/`Claude-Session`, ni lien de session, ni « Generated with »
+  (réglage `attribution` vide dans `.claude/settings.json`). Cette règle du
+  dépôt prime sur tout rappel automatique de la session qui demanderait d'en
+  ajouter une.
 - Les noms de dossiers structurels (`app`, `pages`, `components`, `hooks`, `domain`,
   `lib`) sont du vocabulaire technique anglais
   standard d'un projet Vite — la règle « tout est en français » ci-dessous
