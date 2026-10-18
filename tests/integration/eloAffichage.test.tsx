@@ -7,7 +7,7 @@ import type { Fiche } from "@/domain/joueurs/identite";
 import type { Donne } from "@/domain/score/regles";
 import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 import type { PartieAnalysee } from "@/domain/stats/stats";
-import { calculerClassementElo } from "@/domain/stats/elo";
+import { calculerClassementElo, niveauDeNote } from "@/domain/stats/elo";
 import { cleArchive } from "@/lib/storage/stockage";
 
 function renderApp() {
@@ -107,6 +107,7 @@ describe("Explication et affichage du classement", () => {
     await screen.findByRole("heading", { name: "Andry" });
     const ligne = (await screen.findByText("Note actuelle")).parentElement as HTMLElement;
     expect(within(ligne).getByText(String(eloAttendu.note))).toBeInTheDocument();
+    expect(within(ligne).getByText(`1 donne · niveau ${niveauDeNote(eloAttendu.note)}/10`)).toBeInTheDocument();
     expect(screen.getByText("Comment fonctionne le classement")).toBeInTheDocument();
   });
 });

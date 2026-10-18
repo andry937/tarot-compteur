@@ -8,7 +8,7 @@ import type { HistoriqueEntree } from "@/domain/types";
 import { chargerParties } from "@/lib/storage/archives";
 import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "@/domain/score/regles";
 import type { Bout } from "@/domain/score/regles";
-import { calculerClassementElo } from "@/domain/stats/elo";
+import { calculerClassementElo, niveauDeNote, NIVEAU_MAX } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "@/components/ui";
 import GraphiquePersonnel from "@/components/graphiques/GraphiquePersonnel";
@@ -125,7 +125,7 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
             <Section title="Classement">
               <RankRow
                 nom="Note actuelle"
-                meta={`${elo.matchs} donne${elo.matchs > 1 ? "s" : ""} · niveau ${Math.round(elo.mu * 10)} ± ${Math.round(elo.sigma * 30)}`}
+                meta={`${elo.matchs} donne${elo.matchs > 1 ? "s" : ""} · niveau ${niveauDeNote(elo.note)}/${NIVEAU_MAX}`}
                 valeur={elo.note}
               />
             </Section>

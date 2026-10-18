@@ -11,7 +11,9 @@ export default function ExplicationElo() {
         joueur, qu'on ne connaît pas encore, part donc de{" "}
         <code className="font-mono text-amber-400">0</code> ; sa marge se resserre à
         chaque donne et sa note monte vers son vrai niveau. Il ne passe devant
-        les habitués qu'en gagnant durablement.
+        les habitués qu'en gagnant durablement. Sur la fiche d'un joueur, la note
+        est aussi traduite en <strong className="text-slate-100">niveau de 1 à 10</strong> :
+        on commence au niveau 1 et on gagne un niveau tous les 25 points de note.
       </p>
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
         Chaque donne compte comme un match : l'attaque (le preneur, et l'appelé
