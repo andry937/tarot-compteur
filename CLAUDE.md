@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (118 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (127 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -63,7 +63,7 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     cartes/cartes.ts        carnet des cartes : identifiants, plis, déductions (points, mains)
     stats/stats.ts          statistiques par joueur (+ `trajectoire`)
     stats/statsPartie.ts    statistiques sur les donnes d'une seule partie
-    stats/elo.ts            classement général Elo, recalculé à la volée
+    stats/elo.ts            classement général (Weng-Lin/OpenSkill), recalculé à la volée
   lib/
     firebase.ts             initialisation Firebase (`auth` = null sans VITE_FIREBASE_API_KEY)
     storage/stockage.ts     clés de persistance, CleIntrouvable, lireJson
@@ -351,6 +351,33 @@ table précise n'est chargée que lorsque sa route `/partie/:id` est visitée
 unique au démarrage : si `tarot:partie:v4` (ancien emplacement) existe
 encore, il est converti en une table ouverte puis supprimé — pour ne pas
 perdre une partie en cours d'un déploiement existant.
+
+**L'Elo remplacé par une notation Weng-Lin / OpenSkill** (`domain/stats/elo.ts`,
+`ExplicationElo.tsx`, `Classement.tsx`, `FicheJoueur.tsx`) — **remplace** la
+mécanique Elo décrite dans les sections « Le preneur gagne/perd plus d'Elo… » et
+« Classement général Elo » plus bas (gardées pour l'historique des décisions ;
+restent valables : un match par donne, attaque contre défense, résultat continu
+dérivé de `calculer().base`, répartition 2/1 preneur/appelé, recalcul à la volée,
+résolution des fusions). Constat : les joueurs avec peu de donnes passaient
+devant les vétérans. Deux causes : (1) l'Elo n'était pas à somme nulle — chaque
+défenseur perdait le delta entier, donc le total baissait à chaque donne (l'attaque
+réussit plus souvent qu'elle ne chute) et les habitués glissaient sous 1500 ;
+(2) aucune notion d'incertitude, un nouveau à 1500 valait un habitué moyen.
+Désormais chaque joueur a `mu` (niveau, départ 25) et `sigma` (incertitude,
+départ 25/3) ; classement sur la note prudente `noteAffichee = round((mu − 3σ) × 10)`,
+donc 0 pour un nouveau. Algorithme Bradley-Terry de Weng-Lin à deux équipes
+(constantes OpenSkill β = 25/6, τ = 25/300, κ = 1e-4), **implémenté à la main**
+plutôt que via la librairie npm `openskill` : celle-ci additionne les `mu` d'une
+équipe (une défense à 3 ou 4 paraît toujours plus forte qu'une attaque à 1 ou 2),
+et son option `weight` est déclarée mais inutilisée (pas de 2/1 possible). Ici
+chaque camp vaut la **moyenne** de ses joueurs, et chaque joueur reçoit le delta
+divisé par la taille de son camp → somme nulle à incertitudes égales (testé).
+Échelle du résultat continu passée de 400 à 125 (`ECHELLE_RESULTAT`), sinon le
+résultat restait coincé autour de 0,5 et `mu` ne bougeait presque pas. Le seuil
+`DONNES_MIN = 50` de `Classement.tsx` (minimum de donnes pour figurer au
+classement) est conservé. `tests/unit/elo.test.ts` inclut une simulation
+déterministe de 300 donnes vérifiant qu'un nouveau qui gagne ses 3 premières
+donnes reste derrière les habitués et qu'un joueur plus fort finit premier.
 
 **Le preneur gagne/perd plus d'Elo que l'appelé** (`domain/stats/elo.ts`) : jusqu'ici
 le delta d'une donne était appliqué identique au preneur et à l'appelé, alors

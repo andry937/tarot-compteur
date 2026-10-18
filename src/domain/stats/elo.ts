@@ -1,38 +1,36 @@
 /**
- * Classement général par Elo. Aucune dépendance React : testable isolément.
+ * Classement général. Aucune dépendance React : testable isolément.
  *
- * Modèle retenu (issue #10) : un match par donne archivée, pas par partie.
- * Attaque (preneur + appelé le cas échéant) contre défense. Un seul Elo
- * global par joueur. La comparaison à plusieurs contre un (défense à 3 ou 4
- * contre 1 preneur) est traitée en calculant l'espérance de gain sur la
- * moyenne des Elo de chaque camp (côté défense, le même delta est ensuite
- * appliqué à chaque défenseur, sans le diviser entre eux).
+ * Modèle retenu : notation bayésienne de Weng-Lin (Bradley-Terry, la méthode
+ * de la librairie OpenSkill), à la place de l'Elo d'origine. Chaque joueur a
+ * un niveau estimé `mu` et une incertitude `sigma` ; le classement se fait
+ * sur la note prudente `mu − 3·sigma`. Un nouveau joueur (sigma élevé) part
+ * donc de 0 et ne passe devant les habitués qu'en gagnant durablement — l'Elo
+ * le plaçait d'emblée à 1500, au niveau d'un habitué moyen.
  *
- * Côté attaque, le preneur porte plus de responsabilité que l'appelé (c'est
- * lui qui annonce le contrat) : le delta du camp est réparti 2 parts pour le
- * preneur, 1 part pour l'appelé — même ratio que la répartition des points
- * réels de la donne (`calculer()` : `2×base`/`1×base`) — plutôt que de
- * l'appliquer identique aux deux comme pour la défense. Cette répartition
- * est normalisée pour que sa moyenne reste égale au delta du camp : seule la
- * répartition interne entre preneur et appelé change, pas l'ampleur globale
- * du gain/perte de l'attaque. L'espérance de gain, elle, reste basée sur une
- * moyenne simple (non pondérée) des Elo du camp attaque — seul le résultat
- * a posteriori distingue les deux rôles, pas la prédiction.
+ * Un match par donne archivée : attaque (preneur + appelé le cas échéant)
+ * contre défense. Chaque camp est représenté par la **moyenne** de ses
+ * joueurs, pas leur somme comme dans la librairie OpenSkill : avec la somme,
+ * une défense à 3 ou 4 paraît toujours plus forte qu'une attaque à 1 ou 2,
+ * alors qu'au tarot l'attaque gagne la majorité des donnes. Avec la moyenne,
+ * chaque joueur reçoit le delta du camp divisé par la taille de son camp :
+ * à incertitudes égales, ce que gagne l'attaque est exactement ce que perd la
+ * défense (somme nulle). L'Elo d'origine faisait perdre le delta entier à
+ * chaque défenseur, si bien que le total baissait à chaque donne et que les
+ * habitués finissaient sous les nouveaux.
  *
- * Résultat continu plutôt que binaire : au lieu de simplement gagné/chuté,
- * le résultat de l'attaque est dérivé du score brut de la donne
- * (`calculer().base`, déjà signé et intégrant le multiplicateur du contrat,
- * l'écart au seuil, la poignée, le petit au bout et le chelem) via une
- * fonction logistique. Une victoire ric-rac ne vaut donc qu'un peu plus que
- * 0.5, tandis qu'un contrat risqué (Garde sans/contre) réussi largement — ou
- * chuté lourdement — se rapproche de 1 (ou 0). Ça valorise l'audace des
- * annonces et l'ampleur du résultat, pas seulement le fait de réussir ou
- * chuter.
+ * Côté attaque, le preneur porte 2 parts et l'appelé 1 (même ratio que les
+ * points réels de `calculer()`), normalisées pour que leur moyenne reste 1.
+ *
+ * Résultat continu plutôt que binaire : dérivé du score brut signé de la
+ * donne (`calculer().base`, qui intègre multiplicateur, écart au seuil,
+ * poignée, petit au bout et chelem) via une logistique. Une victoire ric-rac
+ * vaut à peine plus que 0.5, un contrat risqué réussi largement se rapproche
+ * de 1.
  *
  * Recalcul complet à chaque affichage, en rejouant toutes les donnes
- * archivées dans l'ordre chronologique : comme pour `stats.ts`, pas
- * d'agrégat stocké, donc pas de désynchronisation possible après une fusion
- * de fiches joueurs.
+ * archivées dans l'ordre chronologique : pas d'agrégat stocké, donc pas de
+ * désynchronisation possible après une fusion de fiches joueurs.
  */
 
 import { calculer } from "@/domain/score/regles";
@@ -40,45 +38,66 @@ import type { PartieAnalysee } from "./stats";
 import { resoudreFiche, resoudreNom } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
 
-export const ELO_DEPART = 1500;
-export const ELO_K = 24;
+/** Constantes par défaut d'OpenSkill. */
+export const MU_DEPART = 25;
+export const SIGMA_DEPART = 25 / 3;
+const BETA = 25 / 6;
+/** Remontée de l'incertitude avant chaque donne (le niveau peut évoluer). */
+const TAU = 25 / 300;
+/** Plancher du facteur de réduction de sigma. */
+const KAPPA = 1e-4;
+
+/** Échelle de la logistique convertissant le score brut d'une donne en un
+ * résultat dans ]0,1[ : une victoire typique (base ≈ 60) donne ≈ 0.75. */
+const ECHELLE_RESULTAT = 125;
 
 export interface ClassementElo {
   id: string;
   nom: string;
-  elo: number;
+  /** Note affichée et triée : (mu − 3·sigma) × 10, arrondie. */
+  note: number;
+  mu: number;
+  sigma: number;
   matchs: number;
 }
 
-/** Espérance de gain de l'attaque face à la défense (formule Elo standard sur la moyenne de chaque camp). */
-function esperanceAttaque(eloAttaque: number, eloDefense: number): number {
-  return 1 / (1 + Math.pow(10, (eloDefense - eloAttaque) / 400));
+interface Niveau {
+  mu: number;
+  sigma: number;
 }
 
-/** Échelle de la logistique convertissant le score brut d'une donne en un
- * résultat continu dans ]0,1[ — reprend l'échelle 400 de la formule Elo
- * standard ci-dessus pour rester cohérent. */
-const ELO_ECHELLE = 400;
+/** Note prudente affichée : 0 pour un nouveau joueur. */
+export function noteAffichee(mu: number, sigma: number): number {
+  return Math.round((mu - 3 * sigma) * 10);
+}
 
 /** Résultat continu du camp attaque à partir du score brut signé de la donne. */
 function resultatContinu(base: number): number {
-  return 1 / (1 + Math.pow(10, -base / ELO_ECHELLE));
+  return 1 / (1 + Math.pow(10, -base / ECHELLE_RESULTAT));
 }
 
-const moyenne = (vs: number[]): number => vs.reduce((a, b) => a + b, 0) / vs.length;
+/** Niveau d'un camp : moyenne des mu, variance de cette moyenne. */
+function niveauCamp(joueurs: Niveau[]): { mu: number; sigma2: number; somme2: number } {
+  const n = joueurs.length;
+  const somme2 = joueurs.reduce((a, j) => a + j.sigma * j.sigma, 0);
+  return {
+    mu: joueurs.reduce((a, j) => a + j.mu, 0) / n,
+    sigma2: somme2 / (n * n),
+    somme2,
+  };
+}
 
 /**
- * Calcule le classement Elo de tous les joueurs à partir des parties
- * archivées, dans l'ordre chronologique. `roster` sert à résoudre les
- * fusions : les donnes jouées sous une identité fusionnée comptent pour la
- * fiche cible.
+ * Calcule le classement de tous les joueurs à partir des parties archivées,
+ * dans l'ordre chronologique. `roster` sert à résoudre les fusions : les
+ * donnes jouées sous une identité fusionnée comptent pour la fiche cible.
  */
 export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]): ClassementElo[] {
-  const elos = new Map<string, number>();
+  const niveaux = new Map<string, Niveau>();
   const matchs = new Map<string, number>();
 
   const idFinal = (idBrut: string): string => resoudreFiche(idBrut, roster)?.id ?? idBrut;
-  const noteDe = (id: string): number => elos.get(id) ?? ELO_DEPART;
+  const niveauDe = (id: string): Niveau => niveaux.get(id) ?? { mu: MU_DEPART, sigma: SIGMA_DEPART };
 
   const partiesTriees = [...parties].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -96,36 +115,58 @@ export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]
       const defense = res.defenseurs.map((i) => idsResolus[i]);
       if (attaque.length === 0 || defense.length === 0) continue;
 
-      const eloAttaqueMoy = moyenne(attaque.map(noteDe));
-      const eloDefenseMoy = moyenne(defense.map(noteDe));
-      const espere = esperanceAttaque(eloAttaqueMoy, eloDefenseMoy);
-      const reel = resultatContinu(res.base);
-      const delta = ELO_K * (reel - espere);
+      // L'incertitude remonte un peu avant chaque donne jouée.
+      const avant = (ids: string[]): Niveau[] =>
+        ids.map((id) => {
+          const { mu, sigma } = niveauDe(id);
+          return { mu, sigma: Math.sqrt(sigma * sigma + TAU * TAU) };
+        });
+      const niveauxAttaque = avant(attaque);
+      const niveauxDefense = avant(defense);
 
-      // Répartition 2 parts (preneur) / 1 part (appelé) du delta du camp
-      // attaque — même ratio que les points réels — normalisée pour que la
-      // moyenne des facteurs reste 1 (donc la moyenne des deltas
-      // individuels égale au delta du camp calculé ci-dessus).
+      const campA = niveauCamp(niveauxAttaque);
+      const campD = niveauCamp(niveauxDefense);
+      const c = Math.sqrt(campA.sigma2 + campD.sigma2 + 2 * BETA * BETA);
+      const espere = 1 / (1 + Math.exp((campD.mu - campA.mu) / c));
+      const reel = resultatContinu(res.base);
+
+      // Répartition 2 parts (preneur) / 1 part (appelé), moyenne des facteurs = 1.
       const poidsAttaque = res.avecAppele ? [2, 1] : [1];
       const sommePoids = poidsAttaque.reduce((a, b) => a + b, 0);
-      attaque.forEach((id, idx) => {
-        const facteur = (poidsAttaque[idx] * poidsAttaque.length) / sommePoids;
-        elos.set(id, noteDe(id) + delta * facteur);
-        matchs.set(id, (matchs.get(id) || 0) + 1);
-      });
-      defense.forEach((id) => {
-        elos.set(id, noteDe(id) - delta);
-        matchs.set(id, (matchs.get(id) || 0) + 1);
-      });
+
+      const mettreAJour = (
+        ids: string[],
+        joueurs: Niveau[],
+        camp: { sigma2: number; somme2: number },
+        signe: 1 | -1,
+        facteur: (idx: number) => number
+      ) => {
+        const n = ids.length;
+        const delta = (Math.sqrt(camp.sigma2) / c) * (camp.sigma2 / (c * c)) * espere * (1 - espere);
+        ids.forEach((id, idx) => {
+          const { mu, sigma } = joueurs[idx];
+          const s2 = sigma * sigma;
+          niveaux.set(id, {
+            mu: mu + (signe * facteur(idx) * s2 * (reel - espere)) / (n * c),
+            sigma: Math.sqrt(s2 * Math.max(1 - (s2 / camp.somme2) * delta, KAPPA)),
+          });
+          matchs.set(id, (matchs.get(id) || 0) + 1);
+        });
+      };
+
+      mettreAJour(attaque, niveauxAttaque, campA, 1, (idx) => (poidsAttaque[idx] * poidsAttaque.length) / sommePoids);
+      mettreAJour(defense, niveauxDefense, campD, -1, () => 1);
     }
   }
 
-  return [...elos.entries()]
-    .map(([id, elo]) => ({
+  return [...niveaux.entries()]
+    .map(([id, { mu, sigma }]) => ({
       id,
       nom: resoudreNom(id, roster, "?"),
-      elo: Math.round(elo),
+      note: noteAffichee(mu, sigma),
+      mu,
+      sigma,
       matchs: matchs.get(id) || 0,
     }))
-    .sort((a, b) => b.elo - a.elo);
+    .sort((a, b) => b.note - a.note || b.mu - a.mu);
 }
