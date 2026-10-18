@@ -118,14 +118,16 @@ export default function Saisie({
         {joueurs.length > parDonne && (
           <Field>
             <Label>
-              <span>Qui joue cette donne</span>
+              <span>
+                Au repos ({joueurs.length - parDonne} sur {joueurs.length})
+              </span>
               <em className="not-italic text-amber-400">
-                {table.length} / {parDonne}
+                {table.length} / {parDonne} à table
               </em>
             </Label>
             <div className="flex flex-wrap gap-2">
               {joueurs.map((j, i) => (
-                <Chip key={i} on={table.includes(i)} className={!table.includes(i) ? "opacity-40" : ""} onClick={() => basculer(i)}>
+                <Chip key={i} on={!table.includes(i)} onClick={() => basculer(i)}>
                   {j}
                 </Chip>
               ))}
@@ -133,13 +135,17 @@ export default function Saisie({
           </Field>
         )}
 
-        <Field>
-          <Label>
-            <span>Donneur</span>
+        <details className="group mb-4 rounded-xl border border-slate-800 bg-black/20" data-testid="accordeon-donneur">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-3.5 py-3 font-mono text-[11px] uppercase tracking-wider text-slate-400">
+            <span>
+              Donneur : <b className="font-semibold text-slate-100">{joueurs[donneur]}</b>
+            </span>
             {entame !== null && <em className="not-italic text-amber-400">{joueurs[entame]} entame</em>}
-          </Label>
-          <ChoixJoueur indices={table} joueurs={joueurs} actif={donneur} onChoisir={setDonneur} />
-        </Field>
+          </summary>
+          <div className="px-3.5 pb-3.5">
+            <ChoixJoueur indices={table} joueurs={joueurs} actif={donneur} onChoisir={setDonneur} />
+          </div>
+        </details>
 
         <Field>
           <button

@@ -54,6 +54,20 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(screen.getByRole("button", { name: /même nom/i })).toBeDisabled();
   });
 
+  it("setup à 6 joueurs : impose de désigner le joueur au repos, qui apparaît au repos sur la feuille", async () => {
+    const u = await ouvrirSetup();
+    await u.click(screen.getByRole("button", { name: "Un joueur de plus" }));
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina", "Omar"]);
+    expect(screen.getByRole("button", { name: /Désignez 1 joueur au repos/ })).toBeDisabled();
+
+    await u.click(within(screen.getByTestId("choix-repos")).getByRole("button", { name: "Omar" }));
+    await u.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
+    await u.click(await screen.findByText("Désigner à la main"));
+    await u.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
+    await screen.findByText(/Noter la donne 1/);
+    expect(screen.getByText(/Au repos : Omar/)).toBeInTheDocument();
+  });
+
   it("saisit une donne simple et met à jour les totaux", async () => {
     const u = await ouvrirSetup();
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
