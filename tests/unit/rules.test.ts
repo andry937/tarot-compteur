@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   tableDeLaDonne,
-  melangerAtouts,
   calculer,
   resumerDonnees,
 } from "@/domain/score/regles";
@@ -42,25 +41,6 @@ describe("tableDeLaDonne", () => {
   it("sans repos (parDonne === total), la table tourne quand même le donneur", () => {
     expect(tableDeLaDonne(0, 4, 4, 0)).toEqual([0, 1, 2, 3]);
     expect(tableDeLaDonne(1, 4, 4, 0)).toEqual([1, 2, 3, 0]);
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  melangerAtouts — tirage du donneur                                 */
-/* ------------------------------------------------------------------ */
-
-describe("melangerAtouts", () => {
-  it("contient les 21 atouts et l'Excuse, sans doublon", () => {
-    const jeu = melangerAtouts();
-    expect(jeu).toHaveLength(22);
-    expect(new Set(jeu).size).toBe(22);
-    expect(jeu).toContain("excuse");
-    for (let v = 1; v <= 21; v++) expect(jeu).toContain(v);
-  });
-
-  it("produit des ordres différents d'un appel à l'autre", () => {
-    const tirages = Array.from({ length: 5 }, () => melangerAtouts().join(","));
-    expect(new Set(tirages).size).toBeGreaterThan(1);
   });
 });
 

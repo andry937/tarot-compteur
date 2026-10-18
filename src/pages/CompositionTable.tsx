@@ -13,8 +13,8 @@ export default observer(function CompositionTable() {
   const { roster } = store.registre;
   // Joueurs déjà assis à une autre table ouverte : ne peuvent pas être repris ici.
   const { joueursIndisponibles } = store;
-  const onValider = async (noms: string[], parDonne: number, auRepos: number[]) => {
-    const id = await store.validerComposition(noms, parDonne, auRepos);
+  const onValider = async (noms: string[], parDonne: number) => {
+    const id = await store.validerComposition(noms, parDonne);
     navigate(`/tirage/${id}`);
   };
   const [nbSetup, setNbSetup] = useState(5);
@@ -22,7 +22,6 @@ export default observer(function CompositionTable() {
   const [nomsSetup, setNomsSetup] = useState<string[]>(nomsParDefaut(5));
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
-  const [reposSetup, setReposSetup] = useState<number[]>([]);
 
   const majNb = (delta: number) => {
     const n = Math.min(12, Math.max(3, nbSetup + delta));
@@ -33,13 +32,7 @@ export default observer(function CompositionTable() {
         : noms.slice(0, n)
     );
     if (parDonneSetup > n) setParDonneSetup(n);
-    setReposSetup((r) => r.filter((i) => i < n));
   };
-  const nbRepos = nbSetup - parDonneSetup;
-  const reposAttendus = Math.max(0, nbRepos);
-  const reposChoisis = reposSetup.filter((i) => i < nbSetup).slice(0, reposAttendus);
-  const basculerRepos = (i: number) =>
-    setReposSetup((r) => (r.includes(i) ? r.filter((x) => x !== i) : r.length < reposAttendus ? [...r, i] : r));
   const options = [3, 4, 5].filter((n) => n <= nbSetup);
   const indisponibles = joueursIndisponibles.map(normaliser);
 
@@ -83,10 +76,7 @@ export default observer(function CompositionTable() {
         <Label>Joueurs par donne</Label>
         <div className="flex flex-wrap gap-2">
           {options.map((n) => (
-            <Chip key={n} on={parDonneSetup === n} onClick={() => {
-                setParDonneSetup(n);
-                setReposSetup([]);
-              }}>
+            <Chip key={n} on={parDonneSetup === n} onClick={() => setParDonneSetup(n)}>
               {n}
               <small className="mt-0.5 block font-mono text-[9px] uppercase tracking-wide opacity-70">
                 {n === 5 ? "avec appelé" : n === 4 ? "classique" : "à trois"}
@@ -170,24 +160,6 @@ export default observer(function CompositionTable() {
         </div>
       </Field>
 
-      {nbRepos > 0 && (
-        <Field>
-          <Label>
-            <span>Au repos pour la première donne</span>
-            <em className="not-italic text-amber-400">
-              {reposChoisis.length} / {nbRepos}
-            </em>
-          </Label>
-          <div className="flex flex-wrap gap-2" data-testid="choix-repos">
-            {nomsSetup.map((nom, i) => (
-              <Chip key={i} on={reposChoisis.includes(i)} onClick={() => basculerRepos(i)}>
-                {nom.trim() || `Joueur ${i + 1}`}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-      )}
-
       <Bar>
         {(() => {
           const nomsTrim = nomsSetup.map((n) => n.trim());
@@ -195,19 +167,16 @@ export default observer(function CompositionTable() {
           const valeurs = nomsTrim.map(normaliser);
           const doublon = valeurs.some((v, i) => v !== "" && valeurs.indexOf(v) !== i);
           const dejaAssis = valeurs.some((v) => v !== "" && indisponibles.includes(v));
-          const reposManquants = reposAttendus - reposChoisis.length;
-          const valide = manquants === 0 && !doublon && !dejaAssis && reposManquants === 0;
+          const valide = manquants === 0 && !doublon && !dejaAssis;
           const libelle = doublon
             ? "Deux sièges ont le même nom"
             : dejaAssis
             ? "Un joueur est déjà à une autre table"
             : manquants > 0
             ? `Encore ${manquants} joueur${manquants > 1 ? "s" : ""} à nommer`
-            : reposManquants > 0
-            ? `Désignez ${reposManquants} joueur${reposManquants > 1 ? "s" : ""} au repos`
-            : "Tirer qui distribue";
+            : "Désigner le donneur";
           return (
-            <Cta disabled={!valide} onClick={() => onValider(nomsTrim, parDonneSetup, reposChoisis)}>
+            <Cta disabled={!valide} onClick={() => onValider(nomsTrim, parDonneSetup)}>
               {libelle}
             </Cta>
           );

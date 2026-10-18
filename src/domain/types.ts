@@ -12,8 +12,15 @@ export interface TirageEnCours {
   joueurs: string[];
   joueursId: string[];
   parDonne: number;
-  /** Sièges (indices de `joueurs`) au repos pour la première donne, quand il y a plus de joueurs que de places. */
+}
+
+/** Ce que l'écran « Qui distribue ? » renvoie : indices dans `TirageEnCours.joueurs`. */
+export interface ChoixDonneur {
+  /** Ordre des sièges autour de la table. */
+  ordre: number[];
+  /** Joueurs au repos pour la première donne. */
   auRepos: number[];
+  donneur: number;
 }
 
 export interface Annulation {

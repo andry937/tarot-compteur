@@ -131,24 +131,11 @@ export function tableDeLaDonne(k: number, total: number, parDonne: number, depar
   return Array.from({ length: n }, (_, i) => (depart + k + i) % total);
 }
 
-/* Tirage au sort : 21 atouts + l'Excuse, la carte la plus faible distribue. */
+/* Chiffres romains des atouts (affichage des cartes). */
 export const ROMAINS = [
   "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
   "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI",
 ];
-
-export type Atout = number | "excuse";
-
-export function melangerAtouts(): Atout[] {
-  const jeu: Atout[] = [...Array.from({ length: 21 }, (_, i) => i + 1), "excuse"];
-  for (let i = jeu.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [jeu[i], jeu[j]] = [jeu[j], jeu[i]];
-  }
-  return jeu;
-}
-
-export const nomAtout = (v: number): string => (v === 1 ? "Le Petit" : v === 21 ? "Le 21" : "Atout");
 
 export function calculer(d: Donne, nbTotal: number): ResultatDonne {
   const table = d.table && d.table.length ? d.table : Array.from({ length: nbTotal }, (_, i) => i);

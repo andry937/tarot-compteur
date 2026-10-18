@@ -27,11 +27,10 @@ async function remplirSieges(utilisateur: UserEvent, noms: string[]) {
   }
 }
 
-/** Valide le setup, passe le tirage en désignation manuelle sur le 1er joueur, ouvre la feuille. */
+/** Valide le setup, désigne le 1er joueur comme donneur, ouvre la feuille. */
 async function lancerPartieJusquaLaFeuille(utilisateur: UserEvent) {
-  await utilisateur.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
-  await screen.findByText(/Désigner à la main/);
-  await utilisateur.click(screen.getByText("Désigner à la main"));
+  await utilisateur.click(screen.getByRole("button", { name: "Désigner le donneur" }));
+  await screen.findByText(/Touchez un joueur/);
   const chips = screen.getAllByRole("button", { name: "Andry" });
   await utilisateur.click(chips[chips.length - 1]); // le chip de sélection, pas un doublon éventuel
   await utilisateur.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
@@ -45,7 +44,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(bouton).toBeDisabled();
 
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
-    expect(screen.getByRole("button", { name: "Tirer qui distribue" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Désigner le donneur" })).toBeEnabled();
 
     // un doublon (même nom qu'un siège existant) rebloque le bouton
     const dernierChamp = screen.getByPlaceholderText("Joueur 5");
@@ -54,18 +53,35 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(screen.getByRole("button", { name: /même nom/i })).toBeDisabled();
   });
 
-  it("setup à 6 joueurs : impose de désigner le joueur au repos, qui apparaît au repos sur la feuille", async () => {
+  it("écran du donneur à 6 joueurs : impose de désigner le joueur au repos, qui apparaît au repos sur la feuille", async () => {
     const u = await ouvrirSetup();
     await u.click(screen.getByRole("button", { name: "Un joueur de plus" }));
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina", "Omar"]);
-    expect(screen.getByRole("button", { name: /Désignez 1 joueur au repos/ })).toBeDisabled();
+    await u.click(screen.getByRole("button", { name: "Désigner le donneur" }));
+    await screen.findByText(/Touchez un joueur/);
+    expect(screen.getByRole("button", { name: "Ouvrir la feuille" })).toBeDisabled();
 
-    await u.click(within(screen.getByTestId("choix-repos")).getByRole("button", { name: "Omar" }));
-    await u.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
-    await u.click(await screen.findByText("Désigner à la main"));
+    await u.click(screen.getByRole("button", { name: "Repos Omar" }));
     await u.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
     await screen.findByText(/Noter la donne 1/);
     expect(screen.getByText(/Au repos : Omar/)).toBeInTheDocument();
+  });
+
+  it("écran du donneur : on peut changer l'ordre des joueurs et désigner le donneur", async () => {
+    const u = await ouvrirSetup();
+    await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
+    await u.click(screen.getByRole("button", { name: "Désigner le donneur" }));
+    await screen.findByText(/Touchez un joueur/);
+
+    await u.click(screen.getByRole("button", { name: "Descendre Andry" }));
+    const noms = () => screen.getAllByTestId("ligne-joueur").map((l) => within(l).getAllByRole("button")[2].textContent);
+    expect(noms()).toEqual(["Fara", "Andry", "Lian", "Marc", "Nina"]);
+
+    await u.click(within(screen.getAllByTestId("ligne-joueur")[2]).getByRole("button", { name: "Lian" }));
+    expect(screen.getByText(/Lian distribue, Marc entame/)).toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
+    await screen.findByText(/Noter la donne 1/);
+    expect(screen.getByText(/distribue ·/).parentElement).toHaveTextContent("Lian distribue · Marc entame");
   });
 
   it("saisit une donne simple et met à jour les totaux", async () => {
