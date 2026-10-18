@@ -92,3 +92,7 @@ tests/
 Règle de dépendance : `domain/` n'importe jamais React ni `components/`, `pages/`, `hooks/`, `stores/` ou `lib/`. L'alias `@/` pointe vers `src/`.
 
 Les décisions de conception (règles du tarot implémentées, modèle de données, Elo, pièges connus) sont consignées dans [`CLAUDE.md`](CLAUDE.md).
+
+## Licence
+
+Copyright © 2026 andry937. Tous droits réservés : ce code est visible mais ne peut être copié, modifié, redistribué ni utilisé sans autorisation écrite de son auteur. Voir [`LICENSE`](LICENSE).
