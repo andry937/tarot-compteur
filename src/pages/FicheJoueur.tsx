@@ -122,11 +122,11 @@ export default function FicheJoueur({ roster, historiqueIndex }: FicheJoueurProp
           </Section>
 
           {elo && (
-            <Section title="Classement Elo">
+            <Section title="Classement">
               <RankRow
-                nom="Elo actuel"
-                meta={`${elo.matchs} donne${elo.matchs > 1 ? "s" : ""}`}
-                valeur={elo.elo}
+                nom="Note actuelle"
+                meta={`${elo.matchs} donne${elo.matchs > 1 ? "s" : ""} · niveau ${Math.round(elo.mu * 10)} ± ${Math.round(elo.sigma * 30)}`}
+                valeur={elo.note}
               />
             </Section>
           )}

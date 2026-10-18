@@ -82,7 +82,7 @@ const parties: PartieAnalysee[] = [
 ];
 const eloAttendu = calculerClassementElo(parties, roster).find((c) => c.id === "a")!;
 
-describe("Explication et affichage de l'Elo", () => {
+describe("Explication et affichage du classement", () => {
   it("affiche le bloc d'explication sur /classement", async () => {
     preseeder();
     const u = userEvent.setup();
@@ -90,10 +90,10 @@ describe("Explication et affichage de l'Elo", () => {
     await screen.findByText("Feuille de marque");
 
     await u.click(screen.getByRole("link", { name: "Classement" }));
-    await screen.findByText("Comment fonctionne le classement Elo");
+    await screen.findByText("Comment fonctionne le classement");
   });
 
-  it("affiche l'Elo du joueur et le bloc d'explication sur sa fiche", async () => {
+  it("affiche la note du joueur et le bloc d'explication sur sa fiche", async () => {
     preseeder();
     const u = userEvent.setup();
     renderApp();
@@ -105,8 +105,8 @@ describe("Explication et affichage de l'Elo", () => {
     await u.click(within(ligneAndry).getByRole("link", { name: "Stats" }));
 
     await screen.findByRole("heading", { name: "Andry" });
-    await screen.findByText("Classement Elo");
-    expect(screen.getByText(String(eloAttendu.elo))).toBeInTheDocument();
-    expect(screen.getByText("Comment fonctionne le classement Elo")).toBeInTheDocument();
+    const ligne = (await screen.findByText("Note actuelle")).parentElement as HTMLElement;
+    expect(within(ligne).getByText(String(eloAttendu.note))).toBeInTheDocument();
+    expect(screen.getByText("Comment fonctionne le classement")).toBeInTheDocument();
   });
 });
