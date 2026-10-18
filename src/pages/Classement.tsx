@@ -26,9 +26,9 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
     (async () => {
       const parties = await chargerParties(historiqueIndex);
       // Seuls ceux qui ont joué au moins DONNES_MIN donnes figurent au classement,
-      // mais tous pèsent dans le calcul des Elo.
+      // mais tous pèsent dans le calcul des notes.
       // Les joueurs sans nom (« ∅ », anciens joueurs importés) pèsent dans le calcul
-      // des Elo des autres mais n'ont pas leur place dans l'affichage du classement.
+      // des notes des autres mais n'ont pas leur place dans l'affichage du classement.
       setClassement(
         calculerClassementElo(parties, roster).filter(
           (c) => c.nom.trim() !== "" && c.nom.trim() !== "∅" && c.matchs >= DONNES_MIN
@@ -41,7 +41,7 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
 
   return (
     <Page>
-      <Header eyebrow="Classement général" title="Elo" actions={<GhostLink to="/">Accueil</GhostLink>} />
+      <Header eyebrow="Classement général" title="Note" actions={<GhostLink to="/">Accueil</GhostLink>} />
 
       {chargement && <p className="text-sm text-slate-400">Calcul du classement…</p>}
 
@@ -57,7 +57,7 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
               rang={r + 1}
               nom={c.nom}
               meta={`${c.matchs} donne${c.matchs > 1 ? "s" : ""}`}
-              valeur={c.elo}
+              valeur={c.note}
               onClick={() => navigate(`/joueurs/${c.id}`)}
             />
           ))}
