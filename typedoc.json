@@ -1,0 +1,21 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": [
+    "src"
+  ],
+  "entryPointStrategy": "expand",
+  "tsconfig": "tsconfig.app.json",
+  "out": "docs-site",
+  "name": "Feuille de marque — Tarot à la française",
+  "readme": "README.md",
+  "exclude": [
+    "tests/**",
+    "**/*.d.ts"
+  ],
+  "skipErrorChecking": true,
+  "excludeInternal": true,
+  "searchInComments": true,
+  "validation": {
+    "notExported": false
+  }
+}

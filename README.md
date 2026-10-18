@@ -40,8 +40,11 @@ Les tests et le build n'ont **pas** besoin de `.env`.
 | `npm run build` | typecheck + build de production |
 | `npm run preview` | sert le build localement |
 | `npm run format` | Prettier (config dans `.prettierrc.json`) |
+| `npm run docs` | documentation du code (TypeDoc, générée dans `docs-site/`, config dans `typedoc.json`) |
 
 La CI (`.github/workflows/ci.yml`) exécute typecheck, lint, tests et build sur chaque push sur `master` et chaque pull request.
+
+La documentation du code (une page par fichier, classe et fonction, à partir des commentaires `/** … */`) est générée par TypeDoc et publiée sur GitHub Pages par `.github/workflows/docs.yml` à chaque push sur `master` : https://andry937.github.io/tarot-compteur/. Mise en place unique : Settings > Pages > Source : **GitHub Actions**.
 
 ## Configuration Firebase
 
