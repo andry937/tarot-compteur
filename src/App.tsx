@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { resumerDonnees } from "@/domain/score/regles";
 import { resoudreNom, genId } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
-import { invaliderArchive } from "@/lib/storage/archives";
+import { invaliderArchive, sansDoublons } from "@/lib/storage/archives";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleArchive, cleTable, lireJson } from "@/lib/storage/stockage";
 import type { Partie, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 import AppRoutes from "@/app/AppRoutes";
@@ -75,7 +75,7 @@ export default function App() {
         // null = clé absente (premier lancement) : on garde l'état vide d'origine.
         if (tables) setTablesIndex(tables);
         if (ros) setRoster(ros);
-        if (hist) setHistoriqueIndex(hist);
+        if (hist) setHistoriqueIndex(sansDoublons(hist));
         setPret(true);
       } catch (e) {
         console.error("Lecture du stockage impossible", e);
@@ -134,7 +134,9 @@ export default function App() {
         try {
           invaliderArchive(id);
           await window.storage.set(cleArchive(id), JSON.stringify({ ...partie, donnes, annulations }));
-          const suivant = [resume, ...historiqueIndex];
+          // Une table déjà archivée (clôturée depuis un autre appareil) remplace
+          // son entrée au lieu de la dupliquer.
+          const suivant = [resume, ...historiqueIndex.filter((h) => h.id !== id)];
           await window.storage.set(CLE_HISTORIQUE, JSON.stringify(suivant));
           setHistoriqueIndex(suivant);
         } catch (e) {
