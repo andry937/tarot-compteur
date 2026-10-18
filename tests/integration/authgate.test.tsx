@@ -48,7 +48,7 @@ describe("AuthGate / Verrou", () => {
     );
     expect(await screen.findByPlaceholderText("Passphrase")).toBeInTheDocument();
     expect(screen.getByText("Passphrase requis")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Tirer qui distribue" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Désigner le donneur" })).not.toBeInTheDocument();
   });
 
   it("affiche une erreur si le passphrase est incorrect", async () => {

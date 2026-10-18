@@ -6,7 +6,7 @@ Application web de comptage de points pour le **tarot à la française** (3 à 5
 
 - **Plusieurs tables** ouvertes en même temps, chacune reprise là où on l'a laissée.
 - **Saisie complète d'une donne** : contrat, bouts (et lesquels), points, petit au bout, poignées (par joueur), chelem, misères, roi appelé. Une donne se modifie après coup, y compris dans une partie archivée.
-- **Rotation avec repos** quand il y a plus de joueurs que de places, tirage du donneur (aléatoire ou manuel), **Petit sec**.
+- **Rotation avec repos** quand il y a plus de joueurs que de places, désignation manuelle du donneur, **Petit sec**.
 - **Carnet des cartes jouées** : on note les cartes dans l'ordre, l'app déduit les plis, leurs gagnants, les points de l'attaque, et reconstitue les mains.
 - **Statistiques** : par partie, par joueur (rôles, appels réussis/échoués, rois appelés…) et **classement Elo** général.
 - **Graphiques de progression**, historique des parties closes, gestion du trombinoscope (renommer, fusionner, désactiver).

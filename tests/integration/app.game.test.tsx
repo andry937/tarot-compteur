@@ -27,11 +27,10 @@ async function remplirSieges(utilisateur: UserEvent, noms: string[]) {
   }
 }
 
-/** Valide le setup, passe le tirage en désignation manuelle sur le 1er joueur, ouvre la feuille. */
+/** Valide le setup, désigne le 1er joueur comme donneur, ouvre la feuille. */
 async function lancerPartieJusquaLaFeuille(utilisateur: UserEvent) {
-  await utilisateur.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
-  await screen.findByText(/Désigner à la main/);
-  await utilisateur.click(screen.getByText("Désigner à la main"));
+  await utilisateur.click(screen.getByRole("button", { name: "Désigner le donneur" }));
+  await screen.findByText(/Désignez le donneur/);
   const chips = screen.getAllByRole("button", { name: "Andry" });
   await utilisateur.click(chips[chips.length - 1]); // le chip de sélection, pas un doublon éventuel
   await utilisateur.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
@@ -45,7 +44,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(bouton).toBeDisabled();
 
     await remplirSieges(u, ["Fara", "Lian", "Marc", "Nina"]);
-    expect(screen.getByRole("button", { name: "Tirer qui distribue" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Désigner le donneur" })).toBeEnabled();
 
     // un doublon (même nom qu'un siège existant) rebloque le bouton
     const dernierChamp = screen.getByPlaceholderText("Joueur 5");
@@ -61,8 +60,8 @@ describe("Parcours d'une partie de bout en bout", () => {
     expect(screen.getByRole("button", { name: /Désignez 1 joueur au repos/ })).toBeDisabled();
 
     await u.click(within(screen.getByTestId("choix-repos")).getByRole("button", { name: "Omar" }));
-    await u.click(screen.getByRole("button", { name: "Tirer qui distribue" }));
-    await u.click(await screen.findByText("Désigner à la main"));
+    await u.click(screen.getByRole("button", { name: "Désigner le donneur" }));
+    await screen.findByText(/Désignez le donneur/);
     await u.click(screen.getByRole("button", { name: "Ouvrir la feuille" }));
     await screen.findByText(/Noter la donne 1/);
     expect(screen.getByText(/Au repos : Omar/)).toBeInTheDocument();

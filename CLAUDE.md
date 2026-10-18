@@ -255,7 +255,7 @@ d'historique inclut `joueursId` (nécessaire au garde-fou de fusion).
 **Fait** : registre à identités stables avec fusion, saisie complète d'une
 donne (avec misère et primes), poignée nominative (un ou plusieurs joueurs
 par donne), modification d'une donne déjà saisie, Petit sec, rotation avec
-repos, tirage du donneur (aléatoire + désignation manuelle), historique +
+repos, désignation manuelle du donneur, historique +
 archives en lecture seule, suppression d'une partie archivée, classement
 général Elo, statistiques sur les donnes d'une partie, graphiques de
 progression, écran de configuration du trombinoscope, glisser-déposer pour
@@ -878,7 +878,7 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
   (`BrowserRouter` monté dans `main.tsx`), une route par écran, définies
   dans `app/AppRoutes.tsx` :
   `/` (liste des tables ouvertes), `/composition` (composition d'une
-  nouvelle table), `/tirage/:id` (tirage du donneur pour cette table),
+  nouvelle table), `/tirage/:id` (désignation du donneur pour cette table),
   `/partie/:id` (feuille de score de cette table), `/joueurs` (configuration
   du trombinoscope), `/joueurs/:id` (fiche statistique d'un joueur),
   `/historique` et `/historique/:id` (liste et détail d'une archive),

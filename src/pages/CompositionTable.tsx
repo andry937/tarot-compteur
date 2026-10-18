@@ -205,7 +205,7 @@ export default observer(function CompositionTable() {
             ? `Encore ${manquants} joueur${manquants > 1 ? "s" : ""} à nommer`
             : reposManquants > 0
             ? `Désignez ${reposManquants} joueur${reposManquants > 1 ? "s" : ""} au repos`
-            : "Tirer qui distribue";
+            : "Désigner le donneur";
           return (
             <Cta disabled={!valide} onClick={() => onValider(nomsTrim, parDonneSetup, reposChoisis)}>
               {libelle}
