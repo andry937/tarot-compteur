@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (127 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (129 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -537,6 +537,14 @@ l'`import()` d'un chunk paresseux échoue. Tout nouvel adaptateur de stockage
 et le faux storage des tests doivent lever `CleIntrouvable`, pas une `Error`
 générique. Limite connue, non traitée : deux appareils écrivent chacun les
 index entiers (`tarot:tables`, `tarot:historique`), le dernier écrase l'autre.
+Conséquence observée sur les vraies données : une même table clôturée deux
+fois (rouverte sur un second appareil dont l'index des tables n'avait pas vu
+la clôture) apparaissait deux fois dans `tarot:historique`, et ses donnes
+comptaient double dans le classement et les statistiques. `sansDoublons`
+(`lib/storage/archives.ts`) filtre l'index au chargement (`App.tsx`) et dans
+`chargerParties` ; `cloturerPartie` remplace une entrée existante au lieu de
+l'ajouter. Les doublons déjà stockés disparaissent à la prochaine écriture
+de l'index.
 
 **Durcissement sécurité** (`firestore.rules`, `vercel.json`, `pages/Tables.tsx`) :
 une revue a montré que la règle `request.auth != null` ne protégeait pas

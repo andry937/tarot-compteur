@@ -109,4 +109,32 @@ describe("Explication et affichage du classement", () => {
     expect(within(ligne).getByText(String(eloAttendu.note))).toBeInTheDocument();
     expect(screen.getByText("Comment fonctionne le classement")).toBeInTheDocument();
   });
+
+  it("n'affiche qu'une fois une partie présente en double dans l'historique", async () => {
+    preseeder();
+    window.storage.__seed!("tarot:historique", [historique[0], { ...historique[0] }]);
+    const u = userEvent.setup();
+    renderApp();
+    await screen.findByText("Feuille de marque");
+
+    await u.click(screen.getByRole("link", { name: /Historique/ }));
+    await screen.findAllByTestId("archive-row");
+    expect(screen.getAllByTestId("archive-row")).toHaveLength(1);
+  });
+
+  it("ne compte pas deux fois les donnes d'une partie en double dans la note", async () => {
+    preseeder();
+    window.storage.__seed!("tarot:historique", [historique[0], { ...historique[0] }]);
+    const u = userEvent.setup();
+    renderApp();
+    await screen.findByText("Feuille de marque");
+
+    await u.click(screen.getByRole("link", { name: /Joueurs \(5\)/ }));
+    await screen.findByRole("heading", { name: "Joueurs" });
+    const ligneAndry = screen.getByText("Andry").closest('[data-testid="roster-row"]') as HTMLElement;
+    await u.click(within(ligneAndry).getByRole("link", { name: "Stats" }));
+    const ligne = (await screen.findByText("Note actuelle")).parentElement as HTMLElement;
+    expect(within(ligne).getByText(String(eloAttendu.note))).toBeInTheDocument();
+    expect(screen.getByText(/^1 donne ·/)).toBeInTheDocument();
+  });
 });
