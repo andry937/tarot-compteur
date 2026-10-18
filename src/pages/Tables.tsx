@@ -1,20 +1,18 @@
 import { useNavigate } from "react-router-dom";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
-import type { Fiche } from "@/domain/joueurs/identite";
-import type { HistoriqueEntree } from "@/domain/types";
 import { Page, Header, GhostLink, GhostButton, Cta, Empty, ArchiveRow } from "@/components/ui";
-
-interface TablesProps {
-  tablesIndex: HistoriqueEntree[];
-  roster: Fiche[];
-  historiqueIndex: HistoriqueEntree[];
-}
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
-export default function Tables({ tablesIndex, roster, historiqueIndex }: TablesProps) {
+export default observer(function Tables() {
+  const store = useStore();
+  const { tablesIndex } = store;
+  const { roster } = store.registre;
+  const historiqueIndex = store.historique.index;
   const navigate = useNavigate();
   const actifs = roster.filter((r) => r.actif).length;
 
@@ -71,4 +69,4 @@ export default function Tables({ tablesIndex, roster, historiqueIndex }: TablesP
       </div>
     </Page>
   );
-}
+});

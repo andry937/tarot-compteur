@@ -1,22 +1,20 @@
 import { useState, useEffect } from "react";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { useNavigate } from "react-router-dom";
 import { calculerClassementElo } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
-import type { Fiche } from "@/domain/joueurs/identite";
-import type { HistoriqueEntree } from "@/domain/types";
 import { chargerParties } from "@/lib/storage/archives";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty } from "@/components/ui";
 import ExplicationElo from "@/components/stats/ExplicationElo";
 
-interface ClassementProps {
-  roster: Fiche[];
-  historiqueIndex: HistoriqueEntree[];
-}
-
 /** Nombre de donnes jouées requis pour figurer au classement. */
 export const DONNES_MIN = 50;
 
-export default function Classement({ roster, historiqueIndex }: ClassementProps) {
+export default observer(function Classement() {
+  const store = useStore();
+  const { roster } = store.registre;
+  const historiqueIndex = store.historique.index;
   const navigate = useNavigate();
   const [classement, setClassement] = useState<ClassementElo[] | null>(null);
   const [chargement, setChargement] = useState(true);
@@ -102,4 +100,4 @@ export default function Classement({ roster, historiqueIndex }: ClassementProps)
       </details>
     </Page>
   );
-}
+});

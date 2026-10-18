@@ -1,18 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
+import { Link, useNavigate } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
-import type { HistoriqueEntree } from "@/domain/types";
 import { Page, Header, GhostButton, Label, Chip, Cta, Lien } from "@/components/ui";
 
-interface ConfigurationProps {
-  roster: Fiche[];
-  historiqueIndex: HistoriqueEntree[];
-  onFermer: () => void;
-  onRoster: (suivant: Fiche[]) => void;
-}
-
-export default function Configuration({ roster, historiqueIndex, onFermer, onRoster }: ConfigurationProps) {
+export default observer(function Configuration() {
+  const store = useStore();
+  const navigate = useNavigate();
+  const { roster } = store.registre;
+  const historiqueIndex = store.historique.index;
+  const onRoster = store.registre.persister;
   const [renommage, setRenommage] = useState<string | null>(null);
   const [texteRenommage, setTexteRenommage] = useState("");
   const [fusionDepuis, setFusionDepuis] = useState<string | null>(null);
@@ -78,7 +77,7 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
       <Header
         eyebrow={`${actifs.length} joueur${actifs.length > 1 ? "s" : ""}`}
         title="Joueurs"
-        actions={<GhostButton onClick={onFermer}>Retour</GhostButton>}
+        actions={<GhostButton onClick={() => navigate("/")}>Retour</GhostButton>}
       />
 
       {actifs.length === 0 && (
@@ -246,4 +245,4 @@ export default function Configuration({ roster, historiqueIndex, onFermer, onRos
       )}
     </Page>
   );
-}
+});

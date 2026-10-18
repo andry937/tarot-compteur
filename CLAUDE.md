@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (129 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (131 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -46,15 +46,19 @@ public/                     favicon.svg
 
 src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.ts)
   main.tsx                  monte <ErrorBoundary><AuthGate/></ErrorBoundary> dans <BrowserRouter>
-  App.tsx                   composant racine : chargement initial, tables ouvertes, historique, clôture
+  App.tsx                   composant racine : crée le RootStore, écrans d'erreur/chargement
   index.css                 @tailwind base/components/utilities + réglages globaux
   app/
     AuthGate.tsx            connecté/non connecté (Firebase Auth) : Verrou ou <App/>
     AppRoutes.tsx           arbre de routes (React.lazy pour Feuille/FicheJoueur/Historique)
     ErrorBoundary.tsx       écran « Recharger » au lieu d'une page blanche
+  stores/                   état global MobX (voir « Passage à MobX »)
+    RootStore.ts            chargement initial, migration, sauvegardes auto, index des tables, tirage, clôture
+    TableStore.ts           table active de l'onglet (donnes, annulations, brouillon cartes/chien)
+    RegistreStore.ts        trombinoscope (état + persistance)
+    HistoriqueStore.ts      index des parties closes (archivage, suppression, totaux)
+    contexte.tsx            StoreProvider + useStore()
   hooks/
-    useTable.ts             table active de l'onglet + sauvegarde automatique (tarot:table:{id})
-    useRegistre.ts          trombinoscope (état + persistance)
     useConfirmation.ts      confirmation en deux clics (4 s), minuteur nettoyé au démontage
   domain/                   logique métier PURE, sans React
     types.ts                types d'état partagés (Partie, TirageEnCours, ArchiveRecord…)
@@ -90,7 +94,7 @@ tests/
 ```
 
 **Règle de dépendance** : `domain/` (notamment `score/regles.ts` et
-`joueurs/identite.ts`) n'importe jamais React, ni `components/`, `pages/`, `hooks/` ou `lib/` — c'est ce qui les rend
+`joueurs/identite.ts`) n'importe jamais React, ni `components/`, `pages/`, `hooks/`, `stores/` ou `lib/` — c'est ce qui les rend
 testables sans monter de composant.
 
 ## Piège connu (historique — le CSS-in-JS qu'il concernait a depuis été
@@ -515,13 +519,52 @@ partout ailleurs dans le code, ex. build/CI) — Firebase Auth est bien plus
   bloqué ; si le callback finit par arriver plus tard, il met quand même à
   jour l'état normalement.
 
+**Passage à MobX** (`src/stores/`, `App.tsx`, `app/AppRoutes.tsx`, pages) :
+l'état global vivait dans `App.tsx` (+ `useTable`, `useRegistre`) et
+descendait par props — 33 props d'`App` vers `AppRoutes`, une vingtaine
+recopiées vers `RoutePartie` puis `Feuille`. Remplacé par des stores MobX 6
+(`mobx` + `mobx-react-lite` ; MobX 7, sorti en août 2026, écarté faute de
+recul) : `RootStore` possède `RegistreStore`, `HistoriqueStore` et
+`TableStore`. `App.tsx` en crée **un par montage** (`useState(() => new
+RootStore())`, fourni par `StoreProvider`) — pas de singleton global, donc
+chaque test qui monte `<App/>` repart d'un store neuf sans rien
+réinitialiser. Les pages lisent le store via `useStore()` et sont enveloppées
+dans `observer(function Nom() {…})` ; les composants de présentation partagés
+entre partie en cours et archive (`Saisie`, `ScoreGrid`, `ArchiveFeuille`,
+`Tirage`…) restent volontairement en props, et l'état de formulaire reste
+local. Choix structurants :
+- **`observable.ref` sur toutes les données** (roster, donnes, index…) :
+  ce sont des tableaux/objets JS ordinaires, **remplacés en entier** à chaque
+  modification, jamais mutés (`this.donnes = [...this.donnes, d]`, pas de
+  `push`). Ainsi les composants non-observer et leurs `useMemo` voient une
+  nouvelle identité à chaque changement, `JSON.stringify` et les fonctions
+  pures de `domain/` reçoivent des valeurs normales (pas de proxies). Ne pas
+  repasser en observable profond sans revoir ces points.
+- **Les stores ne naviguent jamais** : ils renvoient un résultat
+  (`cloturerPartie(): boolean`, `validerTirage(): id | null`,
+  `TableStore.charger(): boolean`) et l'écran appelle `navigate`.
+- **Sauvegardes automatiques = `reaction`s de `RootStore.demarrer()`**
+  (index des tables, table active, synchronisation nbDonnes/totaux de la
+  table active dans l'index) — remplacent les `useEffect` d'`App`/`useTable`
+  et gardent le même verrou : rien n'est écrit tant que `pret` est faux
+  (lecture initiale ratée → aucune écriture, voir Robustesse du stockage).
+  `App` appelle `demarrer()`/`arreter()` dans un effet ; le chargement
+  initial n'est lancé qu'une fois par store, ce qui supporte le double
+  montage de `StrictMode` (vérifié en faisant tourner les tests
+  d'intégration sous `StrictMode`).
+- Après un `await` dans une action, toute modification d'état passe par
+  `runInAction` (sinon MobX avertit).
+Les sections plus anciennes qui citent `App.tsx::cloturerPartie`,
+`supprimerPartie`, `onModifierDonneArchive`, etc. décrivent un comportement
+inchangé, désormais porté par `RootStore`/`HistoriqueStore`.
+
 **Réorganisation des dossiers + découpage** : `utils/` et `router/` ont laissé
 place à `domain/` (logique pure, rangée par sujet), `app/` (AuthGate, routes,
 ErrorBoundary) et `hooks/` ; les composants sont rangés par domaine ; les tests
 sont séparés en `unit/` et `integration/` ; imports via l'alias `@/` (= `src/`).
 Le déplacement a été fait sans toucher à la logique (build identique octet pour
 octet). `App.tsx` délègue la table active à `useTable` et le trombinoscope à
-`useRegistre` ; `Saisie.tsx` délègue ses blocs répétitifs (choix d'un joueur,
+`useRegistre` (remplacés depuis par les stores MobX, voir « Passage à MobX ») ; `Saisie.tsx` délègue ses blocs répétitifs (choix d'un joueur,
 points de l'attaque, poignées, misères) à des sous-composants — l'état du
 formulaire reste dans `Saisie`. ESLint (CI) fait respecter les dépendances
 d'effets ; Prettier est configuré mais pas appliqué au code existant.
@@ -811,8 +854,9 @@ déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
   n'est pas fiable ; préférer une prop de variante (voir `Cta({ compact })`)
   ou un `<div>` englobant pour la mise en page (ex. `flex-1`) plutôt qu'un
   override en conflit.
-- Pas de librairie de composants ni de state manager : `useState`/`useEffect`
-  bruts. Exception délibérée : **Recharts** pour les graphiques de
+- Pas de librairie de composants. État global dans des stores **MobX**
+  (`src/stores/`, voir « Passage à MobX ») ; état local d'écran ou de
+  formulaire en `useState`/`useEffect` bruts. Exception délibérée : **Recharts** pour les graphiques de
   progression (issue #11, choix explicite de l'utilisateur plutôt que du
   SVG dessiné à la main) — `GraphiqueComparatif.tsx`/`GraphiquePersonnel.tsx`
   restylent ses composants (`stroke`/`contentStyle`/…) pour coller au thème

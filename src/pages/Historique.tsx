@@ -1,31 +1,28 @@
 import { useState, useEffect } from "react";
+import { observer } from "mobx-react-lite";
+import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive } from "@/lib/storage/stockage";
 import { invaliderArchive } from "@/lib/storage/archives";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
-import type { Fiche } from "@/domain/joueurs/identite";
-import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
+import type { ArchiveRecord } from "@/domain/types";
 import ArchiveFeuille from "@/components/feuille/ArchiveFeuille";
 import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "@/components/ui";
 
-interface HistoriqueProps {
-  index: HistoriqueEntree[];
-  roster: Fiche[];
-  onRetour: () => void;
-  onSupprimer: (id: string) => void;
-  onModifierDonneArchive: (id: string, totaux: number[]) => void;
-}
-
-export default function Historique({ index, roster, onRetour, onSupprimer, onModifierDonneArchive }: HistoriqueProps) {
+export default observer(function Historique() {
+  const store = useStore();
+  const index = store.historique.index;
+  const { roster } = store.registre;
   const { id } = useParams();
   const navigate = useNavigate();
   const [record, setRecord] = useState<ArchiveRecord | null>(null);
   const [chargement, setChargement] = useState(false);
 
   const { enAttente: confirmerSuppression, declencher: surSupprimer } = useConfirmation(() => {
-    if (id) onSupprimer(id);
+    if (!id) return;
+    store.historique.supprimer(id).then(() => navigate("/historique"));
   });
 
   const surModifierDonne = async (donneIndex: number, d: Donne) => {
@@ -39,7 +36,7 @@ export default function Historique({ index, roster, onRetour, onSupprimer, onMod
       invaliderArchive(id);
       await window.storage.set(cleArchive(id), JSON.stringify(nouveau));
       const { totaux } = resumerDonnees(nouveau.donnes, nouveau.joueursId.length);
-      onModifierDonneArchive(id, totaux);
+      store.historique.modifierTotaux(id, totaux);
     } catch (e) {
       console.error("Modification de la donne archivée impossible", e);
     }
@@ -93,7 +90,7 @@ export default function Historique({ index, roster, onRetour, onSupprimer, onMod
       <Header
         eyebrow={`${index.length} partie${index.length > 1 ? "s" : ""} archivée${index.length > 1 ? "s" : ""}`}
         title="Historique"
-        actions={<GhostButton onClick={onRetour}>Retour</GhostButton>}
+        actions={<GhostButton onClick={() => navigate("/")}>Retour</GhostButton>}
       />
 
       {index.length === 0 ? (
@@ -135,4 +132,4 @@ export default function Historique({ index, roster, onRetour, onSupprimer, onMod
       )}
     </Page>
   );
-}
+});
