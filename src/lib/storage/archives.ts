@@ -33,9 +33,25 @@ function lireArchive(id: string): Promise<ArchiveRecord> {
   return p;
 }
 
+/**
+ * Retire les entrées en double d'un index (même identifiant d'archive), en
+ * gardant la première — la plus récente, l'index étant rempli par le début.
+ * Un doublon apparaît quand une même table est clôturée deux fois, par
+ * exemple depuis deux appareils : sans ce filtre, ses donnes compteraient
+ * deux fois dans le classement et les statistiques.
+ */
+export function sansDoublons<T extends { id: string }>(index: T[]): T[] {
+  const vus = new Set<string>();
+  return index.filter((h) => {
+    if (vus.has(h.id)) return false;
+    vus.add(h.id);
+    return true;
+  });
+}
+
 export async function chargerParties(index: HistoriqueEntree[]): Promise<PartieAnalysee[]> {
   const lues = await Promise.all(
-    index.map(async (h): Promise<PartieAnalysee | null> => {
+    sansDoublons(index).map(async (h): Promise<PartieAnalysee | null> => {
       try {
         const record = await lireArchive(h.id);
         return { archiveId: h.id, date: h.date, joueursId: record.joueursId, donnes: record.donnes };
