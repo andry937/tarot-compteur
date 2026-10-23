@@ -46,10 +46,10 @@ export class CoeurOnnx {
     for (const f of fournisseurs) {
       try {
         const session = await ort.InferenceSession.create(octetsModele, { executionProviders: [f] });
-        console.info(`Modèle chargé avec le fournisseur « ${f} ».`);
+        console.info("Modèle chargé avec le fournisseur :", f);
         return new CoeurOnnx(session, ort, options, f, echecs.length ? echecs.join(" ; ") : undefined);
       } catch (e) {
-        console.warn(`Fournisseur « ${f} » indisponible :`, e);
+        console.warn("Fournisseur indisponible :", f, e);
         echecs.push(`${f} : ${e instanceof Error ? e.message : String(e)}`);
       }
     }
