@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (131 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (254 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -75,10 +75,14 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     storage/archives.ts     chargement groupé + cache des archives
     storage/window-storage.d.ts  typage global de window.storage
   pages/                    un écran par route : Tables (/), CompositionTable, Tirage, Feuille,
-                            Configuration, Historique, FicheJoueur, Classement
+                            Configuration, Historique, FicheJoueur, Classement, Suivi (/partie/:id/suivi)
+  vision/                   suivi des cartes par la webcam (copie de tarot-vision, voir « Suivi caméra ») :
+                            domain/ (machine des plis, corrections, sauvegarde), lib/ (caméra, boucle, ONNX
+                            + worker), StoreSuivi.ts, contrat.ts, ui.tsx
   components/               pièces rendues dans un écran, jamais routées
     ui/index.tsx            primitives Tailwind (Page, Header, GhostButton, Chip, Cta, Field, …)
     auth/Verrou.tsx         écran de passphrase
+    suivi/                  panneaux du suivi caméra (pli, piles, alertes, corrections, vidéo)
     feuille/                ScoreGrid (grille partagée Feuille/archive), ArchiveFeuille
     saisie/                 Saisie (formulaire d'une donne) + ChoixJoueur, PointsAttaque,
                             DeclarationsPoignees, DeclarationsMiseres
@@ -613,6 +617,46 @@ sans moyen de la fermer. `vercel.json` ajoute des en-têtes de sécurité
 `style-src 'unsafe-inline'` requis par les styles inline de Recharts ;
 `connect-src` limité aux domaines Google/Firebase). Toute nouvelle
 ressource externe (police, CDN, API) doit être ajoutée à la CSP.
+
+**Suivi caméra** (`pages/Suivi.tsx`, `src/vision/`, `components/suivi/`, route
+`/partie/:id/suivi`, bouton « Suivi caméra » dans l'en-tête de `Feuille.tsx`) :
+phase 5 du projet `tarot-vision` (dépôt privé `andry937/tarot-vision`, qui reste le
+lieu d'entraînement du modèle et de l'outil de dataset). La webcam filme le tapis ;
+un modèle YOLO exporté en ONNX (`public/models/cartes.onnx` + `classes.json`, 13 Mo,
+taille d'entrée 960) reconnaît les cartes dans un Web Worker (WebGPU, sinon WASM) ;
+une machine à états déduit les plis, qui joue quoi et qui gagne. L'écran reporte la
+liste ordonnée `cartesJouees` et le `chien` dans le **brouillon de la table**
+(`TableStore.modifierCartes` / `modifierChien`, les mêmes que le carnet manuel) :
+« Inscrire la donne » les retrouve, avec la déduction des points. Rien n'est inscrit
+sans l'utilisateur. Si un brouillon existe déjà, le report demande une confirmation
+en deux clics.
+- **Copie, pas dépendance.** `src/vision/` et `components/suivi/` sont copiés de
+  `tarot-vision` (imports réécrits : `@/domain/vision/` → `@/vision/domain/`,
+  `@/lib/vision/` → `@/vision/lib/`). Les règles (`domain/cartes/cartes.ts`,
+  `domain/score/regles.ts`) ne sont **pas** dupliquées : le suivi importe celles de
+  l'appli (le fichier `cartes.ts` de `tarot-vision` en était déjà une copie à
+  l'identique). Une correction faite dans l'un des deux dépôts doit être reportée dans
+  l'autre. Non repris : l'outil de dataset, la démo, les sources de test (vidéo,
+  images), l'éditeur de réglages.
+- **Une sauvegarde par table et par donne** (`localStorage`, clé
+  `tarot-suivi:partie:{idTable}:{numéro de donne}`, `lib/sauvegardePartie.ts`) : on peut
+  recharger la page en cours de donne et reprendre sans recompter les cartes déjà posées ;
+  une donne déjà inscrite ne propose plus la reprise. Les sièges du suivi sont les index
+  de siège de la table (`tableDeLaDonne`), au repos compris : `noms` = tous les joueurs.
+- **Le suivi est chargé à la demande** (`React.lazy`, comme les écrans à Recharts) :
+  onnxruntime et ses fichiers WASM (27 Mo, servis par Vite) ne pèsent que sur cet écran.
+- **`vercel.json`** : `Permissions-Policy: camera=(self)` (était `camera=()`), CSP avec
+  `script-src 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `media-src 'self' blob:`,
+  `img-src blob:`, `connect-src blob:`. Pas de COOP/COEP : essayés dans `tarot-vision`,
+  ils n'ont rien accéléré sur iPhone. La caméra exige HTTPS (ou localhost).
+- **Limites connues** : sur iPhone, ~3 images/s (le modèle prend ~280 ms sur 300 ;
+  entrée 960 px), suffisant pour des cartes qui restent posées ; une carte mal lue
+  se corrige à la main dans l'écran (cartes, gagnant, entame, pli annulé) avant le
+  report ; les annonces avant la première carte et le champ `surcharges` lu par
+  `deriverPlis` (phase 5 du plan d'origine) ne sont pas faits — le report ne transmet
+  que la liste de cartes, `deriverPlis` recalcule les plis. Le suivi n'a pas été essayé
+  avec cette intégration sur une vraie table (tests : `tests/unit/vision/`, repris de
+  `tarot-vision`, et `tests/integration/suivi.test.tsx` avec une fausse caméra).
 
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
