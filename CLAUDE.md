@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (257 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (261 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -649,6 +649,13 @@ en deux clics.
   `script-src 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `media-src 'self' blob:`,
   `img-src blob:`, `connect-src blob:`. Pas de COOP/COEP : essayés dans `tarot-vision`,
   ils n'ont rien accéléré sur iPhone. La caméra exige HTTPS (ou localhost).
+- **Seuils de stabilisation adaptés au débit** (`stabilisationPourDebit`, appelé par
+  `lib/boucle.ts` à chaque image) : une carte est validée si vue dans `n` des `m` dernières
+  images (5/8 par défaut). À 3 images/s, 5 images = 1,7 s : un pli dont la dernière carte
+  est ramassée plus vite n'était jamais validé et **le pli entier était perdu** (les autres
+  cartes étaient « retirées avant la fin du pli »). Les seuils visent maintenant 0,5 s
+  (jamais moins de 2 images, jamais plus que les réglages d'origine : à 10 images/s et plus,
+  rien ne change). Contrepartie : à faible débit, 2 images suffisent à valider une carte.
 - **Chien** : le report transmet `chien`, mais il reste **toujours vide** pour l'instant : le
   suivi ne range une carte au chien que si elle tombe dans une zone « chien », et
   l'éditeur de zones a été retiré de `tarot-vision`. Conséquence pratique : un chien

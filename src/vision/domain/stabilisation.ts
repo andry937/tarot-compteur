@@ -10,6 +10,25 @@ export interface ParamsStabilisation {
 
 export const PARAMS_DEFAUT: ParamsStabilisation = { n: 5, m: 8, absenceN: 5 };
 
+/** Durée pendant laquelle une carte doit rester (ou manquer) pour être validée (ou retirée), quand le débit est faible. */
+const DUREE_STABLE_MS = 500;
+
+/**
+ * Adapte les seuils au débit réel d'images. Les seuils sont des nombres d'images : à 30 images/s, 5 images durent
+ * 170 ms, mais à 3 images/s (iPhone, modèle de 960 px) elles durent 1,7 s, et une carte posée puis ramassée en
+ * moins de temps n'est jamais validée — le pli entier est alors perdu. On vise donc `DUREE_STABLE_MS`, sans
+ * jamais dépasser les seuils demandés (un débit élevé garde les réglages d'origine) ni descendre sous 2 images
+ * (une seule image ne suffit pas à écarter une fausse détection). `fps` inconnu (0) : réglages inchangés.
+ */
+export function stabilisationPourDebit(params: ParamsStabilisation, fps: number): ParamsStabilisation {
+  if (!(fps > 0)) return params;
+  const images = Math.round((fps * DUREE_STABLE_MS) / 1000);
+  const n = Math.min(params.n, Math.max(2, images));
+  const m = Math.min(params.m, Math.max(n, n + 3));
+  const absenceN = Math.min(m, params.absenceN, Math.max(2, images));
+  return { n, m, absenceN };
+}
+
 export type EvenementStab =
   | { type: "validee"; carte: string; zone: ZoneId | null; /** Début de la séquence stable. */ horodatage: number; /** Image de validation. */ valideeA: number }
   | { type: "retiree"; carte: string; t: number; zone: ZoneId | null }

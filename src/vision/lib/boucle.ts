@@ -1,4 +1,5 @@
 import { pipelineInitial, traiterImage } from "@/vision/domain/pipeline";
+import { stabilisationPourDebit } from "@/vision/domain/stabilisation";
 import type { EtatPipeline, ReglagesPipeline } from "@/vision/domain/pipeline";
 import type { ConfigSuivi, EtatSuivi } from "@/vision/domain/machinePli";
 import type { Detection } from "@/vision/domain/types";
@@ -73,12 +74,14 @@ export function creerBoucle(o: OptionsBoucle): Boucle {
       const { largeur, hauteur } = o.source.taille();
       const detections = await o.detecteur.detecter({ source: image, largeur, hauteur, t: debut });
       const fin = maintenant();
-      const { etat: suivant } = traiterImage(etat, { t: debut, detections }, o.reglages());
-      etat = suivant;
       dernieres.push(fin);
       if (dernieres.length > 15) dernieres.shift();
       const duree = dernieres[dernieres.length - 1] - dernieres[0];
       const fps = dernieres.length > 1 && duree > 0 ? ((dernieres.length - 1) * 1000) / duree : 0;
+      // Les seuils de stabilisation sont ramenés au débit réel (voir `stabilisationPourDebit`).
+      const reglages = o.reglages();
+      const { etat: suivant } = traiterImage(etat, { t: debut, detections }, { ...reglages, stabilisation: stabilisationPourDebit(reglages.stabilisation, fps) });
+      etat = suivant;
       o.onImage({ etat, detections, t: debut, fps, dureeMs: fin - debut });
     } catch (e) {
       o.onErreur(e instanceof Error ? e : new Error(String(e)));
