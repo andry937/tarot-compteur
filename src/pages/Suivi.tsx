@@ -31,14 +31,15 @@ export default observer(function Suivi() {
   const store = useStore();
   const navigate = useNavigate();
   const t = store.table;
-  const { joueurs, nbTotal, donnes, cartesEnCours, chienEnCours } = t;
+  const { joueurs, nbTotal, donnes, annulations, cartesEnCours, chienEnCours } = t;
   const idTable = t.id!;
   const { parDonne } = t.partie!;
   const depart = t.partie!.depart || 0;
   const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
 
-  // Une sauvegarde par table et par donne : une manche déjà inscrite ne se propose plus à la reprise.
-  const [suivi] = useState(() => new StoreSuivi(`${idTable}:${donnes.length}`));
+  // Une sauvegarde par table et par donne : une manche déjà inscrite, ou annulée par un Petit sec (la donne est
+  // redonnée sous le même numéro), ne se propose plus à la reprise.
+  const [suivi] = useState(() => new StoreSuivi(`${idTable}:${donnes.length}:${annulations.length}`));
   const actif = suivi.actif;
 
   const [cameras, setCameras] = useState<InfoCamera[]>([]);

@@ -163,6 +163,8 @@ export class StoreSuivi {
 
   arreter(): void {
     const { boucle, ressources } = this.interne;
+    // La sauvegarde pendant le jeu est espacée d'une seconde : on écrit le dernier état avant de tout couper.
+    if (boucle) this.sauvegarder(this.image?.etat);
     boucle?.arreter();
     ressources?.detecteur.fermer();
     ressources?.source.arreter();

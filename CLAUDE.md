@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (254 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (257 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -639,9 +639,9 @@ en deux clics.
   l'autre. Non repris : l'outil de dataset, la démo, les sources de test (vidéo,
   images), l'éditeur de réglages.
 - **Une sauvegarde par table et par donne** (`localStorage`, clé
-  `tarot-suivi:partie:{idTable}:{numéro de donne}`, `lib/sauvegardePartie.ts`) : on peut
+  `tarot-suivi:partie:{idTable}:{nb de donnes}:{nb d'annulations}`, `lib/sauvegardePartie.ts`) : on peut
   recharger la page en cours de donne et reprendre sans recompter les cartes déjà posées ;
-  une donne déjà inscrite ne propose plus la reprise. Les sièges du suivi sont les index
+  une donne déjà inscrite, ou annulée par un Petit sec, ne propose plus la reprise ; le dernier état est écrit à l'arrêt (la sauvegarde pendant le jeu est espacée d'une seconde). Les sièges du suivi sont les index
   de siège de la table (`tableDeLaDonne`), au repos compris : `noms` = tous les joueurs.
 - **Le suivi est chargé à la demande** (`React.lazy`, comme les écrans à Recharts) :
   onnxruntime et ses fichiers WASM (27 Mo, servis par Vite) ne pèsent que sur cet écran.
@@ -649,6 +649,11 @@ en deux clics.
   `script-src 'wasm-unsafe-eval'`, `worker-src 'self' blob:`, `media-src 'self' blob:`,
   `img-src blob:`, `connect-src blob:`. Pas de COOP/COEP : essayés dans `tarot-vision`,
   ils n'ont rien accéléré sur iPhone. La caméra exige HTTPS (ou localhost).
+- **Chien** : le report transmet `chien`, mais il reste **toujours vide** pour l'instant : le
+  suivi ne range une carte au chien que si elle tombe dans une zone « chien », et
+  l'éditeur de zones a été retiré de `tarot-vision`. Conséquence pratique : un chien
+  retourné sous la caméra serait lu comme le début du premier pli — le retourner hors
+  champ (ou le noter à la main dans le carnet).
 - **Limites connues** : sur iPhone, ~3 images/s (le modèle prend ~280 ms sur 300 ;
   entrée 960 px), suffisant pour des cartes qui restent posées ; une carte mal lue
   se corrige à la main dans l'écran (cartes, gagnant, entame, pli annulé) avant le

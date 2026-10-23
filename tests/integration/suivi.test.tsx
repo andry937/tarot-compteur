@@ -7,6 +7,10 @@ import { cleTable } from "@/lib/storage/stockage";
 import { DetecteurFactice } from "@/vision/lib/detecteur";
 import { horloge } from "@/vision/lib/horloge";
 import type { Detection } from "@/vision/domain/types";
+import { etatInitial } from "@/vision/domain/machinePli";
+import { pipelineInitial } from "@/vision/domain/pipeline";
+import { chargerPartie, sauvegarderPartie } from "@/vision/lib/sauvegardePartie";
+import { poserPli, ramasser } from "../unit/vision/aide";
 
 const noms = ["Andry", "Bob", "Chloé", "Denis", "Eva"];
 const ids = ["a", "b", "c", "d", "e"];
@@ -81,5 +85,36 @@ describe("Suivi caméra", () => {
       const enregistre = JSON.parse(window.storage.__dump!()[cleTable("tA")]) as ArchiveRecord;
       expect(enregistre.cartesEnCours).toEqual(PLI);
     });
+  });
+});
+
+describe("Suivi caméra — sauvegarde de la manche", () => {
+  it("propose à la reprise la manche arrêtée en cours de donne", async () => {
+    render(<MemoryRouter initialEntries={["/partie/tA/suivi"]}><App /></MemoryRouter>);
+    await screen.findByText("Suivi caméra", { selector: "h1" });
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+    fireEvent.click(screen.getByTestId("demarrer"));
+    await avancer(50);
+    await avancer(1500); // premières cartes du pli posées
+    fireEvent.click(screen.getByTestId("arreter"));
+    vi.useRealTimers();
+    cleanup();
+    render(<MemoryRouter initialEntries={["/partie/tA/suivi"]}><App /></MemoryRouter>);
+    expect(await screen.findByTestId("reprise")).toHaveTextContent(/carte\(s\) dans le pli en cours/);
+  });
+
+  it("ne propose pas la manche d'une donne annulée par un Petit sec", async () => {
+    // Une manche valide sauvegardée avant le Petit sec (aucune donne, aucune annulation) :
+    const config = { table: [0, 1, 2, 3, 4], entameInitiale: 1 };
+    const suivi = ramasser(poserPli(etatInitial(config), PLI, 0), PLI, 1000);
+    sauvegarderPartie("tA:0:0", noms, { preneur: 0, roiAppele: null }, { ...pipelineInitial(config), suivi });
+    expect(chargerPartie("tA:0:0")).not.toBeNull();
+    window.storage.__seed!(cleTable("tA"), {
+      ...record,
+      annulations: [{ id: "x", avantDonne: 0, table: [0, 1, 2, 3, 4], donneur: 0, joueur: 2, date: "2026-02-01T00:00:00.000Z" }],
+    });
+    render(<MemoryRouter initialEntries={["/partie/tA/suivi"]}><App /></MemoryRouter>);
+    await screen.findByText("Suivi caméra", { selector: "h1" });
+    expect(screen.queryByTestId("reprise")).toBeNull();
   });
 });
