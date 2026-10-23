@@ -7,6 +7,9 @@ export default defineConfig({
   resolve: {
     alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) },
   },
+  // Le moteur de reconnaissance tourne dans un Web Worker (modules ES) et charge ses propres fichiers WASM.
+  worker: { format: "es" },
+  optimizeDeps: { exclude: ["onnxruntime-web"] },
   server: {
     port: 3000,
   },

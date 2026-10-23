@@ -17,6 +17,7 @@
     "firebase": "^11.0.2",
     "mobx": "^6.16.1",
     "mobx-react-lite": "^4.1.1",
+    "onnxruntime-web": "^1.30.0",
     "react-router-dom": "^6.28.0",
     "recharts": "^3.10.1"
   },
