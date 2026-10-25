@@ -20,18 +20,34 @@ import type { Fiche } from "@/domain/joueurs/identite";
 /* ------------------------------------------------------------------ */
 
 describe("tableDeLaDonne", () => {
-  it("avance le point de départ d'un cran par donne", () => {
-    expect(tableDeLaDonne(0, 8, 5, 0)).toEqual([0, 1, 2, 3, 4]);
-    expect(tableDeLaDonne(1, 8, 5, 0)).toEqual([1, 2, 3, 4, 5]);
-    expect(tableDeLaDonne(4, 8, 5, 0)).toEqual([4, 5, 6, 7, 0]);
+  it("à 6 joueurs, celui qui précède le donneur se repose", () => {
+    expect(tableDeLaDonne(0, 6, 5, 0)).toEqual([0, 1, 2, 3, 4]);
+    expect(tableDeLaDonne(1, 6, 5, 0)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("répartit les repos autour de la table (8 joueurs, 3 au repos)", () => {
+    expect(tableDeLaDonne(0, 8, 5, 0)).toEqual([0, 2, 3, 5, 7]);
+    expect(tableDeLaDonne(1, 8, 5, 0)).toEqual([1, 3, 4, 6, 0]);
+    expect(tableDeLaDonne(3, 8, 5, 3)).toEqual([6, 0, 1, 3, 5]);
+  });
+
+  it("personne ne se repose deux donnes de suite, et tous se reposent autant", () => {
+    for (const total of [7, 8, 9, 10]) {
+      const repos = Array.from({ length: total }, () => [] as boolean[]);
+      for (let k = 0; k < total; k++) {
+        const table = tableDeLaDonne(k, total, 5, 2);
+        expect(table[0]).toBe((2 + k) % total);
+        for (let i = 0; i < total; i++) repos[i].push(!table.includes(i));
+      }
+      for (const r of repos) {
+        expect(r.filter(Boolean).length).toBe(total - 5);
+        r.forEach((v, k) => expect(v && r[(k + 1) % total]).toBe(false));
+      }
+    }
   });
 
   it("boucle après un tour complet (8 donnes pour 8 joueurs)", () => {
     expect(tableDeLaDonne(8, 8, 5, 0)).toEqual(tableDeLaDonne(0, 8, 5, 0));
-  });
-
-  it("respecte le départ tiré au sort", () => {
-    expect(tableDeLaDonne(0, 8, 5, 3)).toEqual([3, 4, 5, 6, 7]);
   });
 
   it("la taille de table est bornée par le total de joueurs", () => {
