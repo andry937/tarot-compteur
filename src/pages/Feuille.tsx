@@ -47,6 +47,13 @@ export default observer(function Feuille({ partie }: {
     if (await store.cloturerPartie()) navigate("/");
   });
 
+  // « Rejouer » : clôture cette table (les joueurs ne peuvent pas être assis à deux
+  // tables) puis ouvre la composition d'une nouvelle table avec les mêmes joueurs.
+  const { enAttente: confirmerRejouer, declencher: surRejouer } = useConfirmation(async () => {
+    const composition = { noms: joueurs, parDonne };
+    if (await store.cloturerPartie()) navigate("/composition", { state: composition });
+  });
+
   const classement = joueurs
     .map((nom, i) => ({ nom, i, pts: totaux[i], n: jouees[i] }))
     .sort((a, b) => b.pts - a.pts);
@@ -69,6 +76,7 @@ export default observer(function Feuille({ partie }: {
               Accueil
             </GhostButton>
             <GhostButton onClick={surCloturer}>{confirmerCloture ? "Confirmer ?" : "Clôturer"}</GhostButton>
+            <GhostButton onClick={surRejouer}>{confirmerRejouer ? "Confirmer ?" : "Rejouer"}</GhostButton>
           </>
         }
       />
