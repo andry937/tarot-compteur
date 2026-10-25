@@ -4,13 +4,28 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { normaliser } from "@/domain/joueurs/identite";
 import { Page, Header, GhostLink, Field, Label, Chip, Cta, Bar } from "@/components/ui";
 
 const nomsParDefaut = (n: number): string[] => Array.from({ length: n }, () => "");
+
+/** Composition proposée d'avance (« Rejouer avec les mêmes joueurs » depuis une archive). */
+interface CompositionPreremplie {
+  noms: string[];
+  parDonne: number;
+}
+
+/** Lit l'état de navigation en refusant tout ce qui n'a pas la forme attendue. */
+function lirePreremplie(state: unknown): CompositionPreremplie | null {
+  const s = state as Partial<CompositionPreremplie> | null;
+  if (!s || !Array.isArray(s.noms) || typeof s.parDonne !== "number") return null;
+  const noms = s.noms.filter((n): n is string => typeof n === "string").slice(0, 12);
+  if (noms.length < 3) return null;
+  return { noms, parDonne: Math.min(s.parDonne, noms.length, 5) };
+}
 
 /**
  * Choix du nombre de joueurs, du nombre par donne et des noms (avec suggestions du registre) ; les joueurs déjà assis à une autre table sont refusés.
@@ -25,9 +40,12 @@ export default observer(function CompositionTable() {
     const id = await store.validerComposition(noms, parDonne);
     navigate(`/tirage/${id}`);
   };
-  const [nbSetup, setNbSetup] = useState(5);
-  const [parDonneSetup, setParDonneSetup] = useState(5);
-  const [nomsSetup, setNomsSetup] = useState<string[]>(nomsParDefaut(5));
+  const preremplie = lirePreremplie(useLocation().state);
+  const [nbSetup, setNbSetup] = useState(preremplie ? preremplie.noms.length : 5);
+  const [parDonneSetup, setParDonneSetup] = useState(preremplie ? preremplie.parDonne : 5);
+  const [nomsSetup, setNomsSetup] = useState<string[]>(
+    preremplie ? preremplie.noms : nomsParDefaut(5)
+  );
   const [focusIndex, setFocusIndex] = useState<number | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
