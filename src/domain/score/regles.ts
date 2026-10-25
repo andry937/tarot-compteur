@@ -183,10 +183,32 @@ export const CHELEMS: Chelem[] = [
   { id: "annonce_chute", nom: "Annoncé et chuté", val: -200 },
 ];
 
-/** Qui est à la table pour la donne n° k : le donneur ouvre, la table tourne d'un cran. */
+/**
+ * Qui est à la table pour la donne n° k : le donneur ouvre (il joue toujours),
+ * le donneur avance d'un siège à chaque donne.
+ *
+ * Quand il y a des joueurs au repos, ils sont répartis régulièrement autour de
+ * la table plutôt que regroupés : chacun joue et se repose en alternance, au
+ * lieu d'attendre plusieurs donnes d'affilée (un seul joueur au repos : c'est celui
+ * qui précède le donneur). Si trop peu de joueurs jouent
+ * (moins de la moitié de la table), des repos consécutifs sont inévitables et on
+ * retombe sur la table contiguë. Les joueurs sont rendus dans l'ordre de jeu.
+ */
 export function tableDeLaDonne(k: number, total: number, parDonne: number, depart = 0): number[] {
   const n = Math.min(parDonne, total);
-  return Array.from({ length: n }, (_, i) => (depart + k + i) % total);
+  const repos = total - n;
+  const donneur = (depart + k) % total;
+  if (repos <= 1 || total < 2 * repos) {
+    return Array.from({ length: n }, (_, i) => (donneur + i) % total);
+  }
+  // Décalages (par rapport au donneur) des joueurs au repos, régulièrement espacés,
+  // jamais voisins ni égaux à 0.
+  const auRepos = new Set(
+    Array.from({ length: repos }, (_, j) => Math.floor(((j + 0.5) * total) / repos))
+  );
+  const table: number[] = [];
+  for (let o = 0; o < total; o++) if (!auRepos.has(o)) table.push((donneur + o) % total);
+  return table;
 }
 
 /** Chiffres romains des atouts, indexés par leur rang (1 à 21). */
