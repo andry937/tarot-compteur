@@ -117,8 +117,11 @@ export class RootStore {
       // Garde l'entrée de la table active dans l'index (nbDonnes/totaux
       // affichés dans la liste des tables ouvertes) synchronisée avec ses donnes.
       reaction(
-        () => (this.pret && t.id ? { id: t.id, nbDonnes: t.donnes.length, totaux: t.resume.totaux } : null),
-        (v) => v && this.synchroniserIndex(v.id, v.nbDonnes, v.totaux),
+        () =>
+          this.pret && t.id && t.partie
+            ? { id: t.id, nbDonnes: t.donnes.length, totaux: t.resume.totaux, joueursId: t.partie.joueursId }
+            : null,
+        (v) => v && this.synchroniserIndex(v.id, v.nbDonnes, v.totaux, v.joueursId),
         { equals: comparer.structural }
       ),
     ];
@@ -157,9 +160,11 @@ export class RootStore {
     }
   }
 
-  private synchroniserIndex(id: string, nbDonnes: number, totaux: number[]) {
+  private synchroniserIndex(id: string, nbDonnes: number, totaux: number[], joueursId: string[]) {
     const joueurs = this.table.joueurs;
-    this.tablesIndex = this.tablesIndex.map((h) => (h.id === id ? { ...h, nbDonnes, totaux, joueurs } : h));
+    this.tablesIndex = this.tablesIndex.map((h) =>
+      h.id === id ? { ...h, nbDonnes, totaux, joueurs, joueursId } : h
+    );
   }
 
   /** Joueurs déjà assis à une table ouverte : interdits sur une nouvelle table. */

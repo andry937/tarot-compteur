@@ -156,6 +156,28 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     expect(screen.getByRole("link", { name: /Historique \(1\)/ })).toBeInTheDocument();
   }, 15000);
 
+  it("Rejouer clôture la table A puis ouvre la composition avec les mêmes joueurs", async () => {
+    preseeder([tableA, tableB]);
+
+    const u = userEvent.setup();
+    renderApp(["/partie/tA"]);
+    await screen.findByText(/Noter la donne 1/);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+    await screen.findByText(/Noter la donne 2/);
+
+    await u.click(screen.getByRole("button", { name: "Rejouer" }));
+    await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
+
+    await screen.findByText("Composer la table");
+    const champs = screen.getAllByTestId("champ-nom").map((c) => c.querySelector("input")!.value);
+    expect(champs).toEqual(["Andry", "Bob", "Chloé", "Denis", "Eva"]);
+    // La table A est close : ses joueurs ne sont plus « déjà assis ailleurs ».
+    expect(screen.getByRole("button", { name: "Désigner le donneur" })).toBeEnabled();
+  }, 15000);
+
   it("Accueil laisse la table A ouverte sans toucher la table B", async () => {
     preseeder([tableA, tableB]);
 

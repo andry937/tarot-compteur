@@ -134,6 +134,22 @@ describe("Modification d'une donne archivée", () => {
   }, 15000);
 });
 
+describe("Rejouer avec les mêmes joueurs", () => {
+  it("ouvre la composition d'une nouvelle table préremplie avec les joueurs de l'archive", async () => {
+    preseeder();
+    const u = userEvent.setup();
+    renderApp([`/historique/${archiveId}`]);
+
+    await screen.findByText("Classement final");
+    await u.click(screen.getByRole("button", { name: "Rejouer" }));
+
+    await screen.findByText("Composer la table");
+    const champs = screen.getAllByTestId("champ-nom").map((c) => c.querySelector("input")!.value);
+    expect(champs).toEqual(["Andry", "Bob", "Chloé", "Denis", "Eva"]);
+    expect(screen.getByRole("button", { name: "Désigner le donneur" })).toBeEnabled();
+  }, 15000);
+});
+
 describe("Archive illisible", () => {
   const entree: HistoriqueEntree = {
     id: archiveId,

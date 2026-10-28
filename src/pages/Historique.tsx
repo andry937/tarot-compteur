@@ -11,6 +11,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { cleArchive, CleIntrouvable } from "@/lib/storage/stockage";
 import { invaliderArchive } from "@/lib/storage/archives";
 import { resumerDonnees } from "@/domain/score/regles";
+import { resoudreNom } from "@/domain/joueurs/identite";
 import type { Donne } from "@/domain/score/regles";
 import type { ArchiveRecord } from "@/domain/types";
 import ArchiveFeuille from "@/components/feuille/ArchiveFeuille";
@@ -84,6 +85,12 @@ export default observer(function Historique() {
     };
   }, [id, tentative]);
 
+  // Nouvelle table avec les mêmes joueurs, dans le même ordre (noms actuels des fiches, fusions suivies).
+  const rejouer = (r: ArchiveRecord) => {
+    const noms = r.joueursId.map((jid, i) => resoudreNom(jid, roster, r.joueursNomFige[i]));
+    navigate("/composition", { state: { noms, parDonne: r.parDonne } });
+  };
+
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
@@ -97,6 +104,7 @@ export default observer(function Historique() {
           actions={
             <>
               <GhostLink to="/">Accueil</GhostLink>
+              {record && <GhostButton onClick={() => rejouer(record)}>Rejouer</GhostButton>}
               <GhostButton onClick={() => navigate("/historique")}>Retour</GhostButton>
               <GhostButton onClick={surSupprimer}>
                 {confirmerSuppression ? "Confirmer ?" : "Supprimer"}

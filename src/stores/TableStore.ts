@@ -6,6 +6,7 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
 import { resumerDonnees } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
+import { permuterSieges } from "@/domain/score/ordre";
 import { resoudreNom } from "@/domain/joueurs/identite";
 import type { Partie, Annulation, ArchiveRecord } from "@/domain/types";
 import { cleTable } from "@/lib/storage/stockage";
@@ -158,6 +159,15 @@ export class TableStore {
   /** Supprime la donne `i`. */
   effacerDonne(i: number) {
     this.donnes = this.donnes.filter((_, k) => k !== i);
+  }
+
+  /** Change l'ordre des sièges en cours de partie (`ordre[nouveau] = ancien`), historique ré-indexé. */
+  reordonner(ordre: number[]) {
+    if (!this.partie) return;
+    const r = permuterSieges({ partie: this.partie, donnes: this.donnes, annulations: this.annulations }, ordre);
+    this.partie = r.partie;
+    this.donnes = r.donnes;
+    this.annulations = r.annulations;
   }
 
   /** Enregistre une annulation (Petit sec) et vide le brouillon, la donne étant rejouée. */
