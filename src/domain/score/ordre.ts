@@ -35,6 +35,7 @@ export function permuterSieges(t: TablePermutable, ordre: number[]): TablePermut
       joueursId: ordre.map((a) => t.partie.joueursId[a]),
       joueursNomFige: ordre.map((a) => t.partie.joueursNomFige[a]),
       depart,
+      ordreModifie: true,
     },
     donnes: t.donnes.map((d) => ({
       ...d,
@@ -52,4 +53,34 @@ export function permuterSieges(t: TablePermutable, ordre: number[]): TablePermut
       joueur: m(a.joueur),
     })),
   };
+}
+
+/**
+ * Table de la prochaine donne après un changement d'ordre : le donneur (fixé par `depart`) joue,
+ * et les joueurs au repos sont ceux qui ont déjà le plus joué, de sorte que chacun finisse le cycle
+ * avec le même nombre de donnes (5 chacun à 7 joueurs, 5 par donne). À nombre égal, on épargne
+ * celui qui s'est reposé à la donne précédente. Rendue dans l'ordre de jeu, le donneur en premier.
+ */
+export function tableEquilibree(donnes: Donne[], total: number, parDonne: number, depart: number): number[] {
+  const n = Math.min(parDonne, total);
+  const donneur = (depart + donnes.length) % total;
+  const dernier = donnes[donnes.length - 1]?.table ?? [];
+  const jouees = Array.from({ length: total }, (_, i) => donnes.filter((d) => d.table.includes(i)).length);
+  const auRepos = new Set(
+    Array.from({ length: total }, (_, i) => i)
+      .filter((i) => i !== donneur)
+      .sort((a, b) => {
+        if (jouees[b] !== jouees[a]) return jouees[b] - jouees[a];
+        const dejaRepose = (i: number) => (dernier.length > 0 && !dernier.includes(i) ? 1 : 0);
+        if (dejaRepose(a) !== dejaRepose(b)) return dejaRepose(a) - dejaRepose(b);
+        return ((a - donneur + total) % total) - ((b - donneur + total) % total);
+      })
+      .slice(0, total - n)
+  );
+  const table: number[] = [];
+  for (let o = 0; o < total; o++) {
+    const siege = (donneur + o) % total;
+    if (!auRepos.has(siege)) table.push(siege);
+  }
+  return table;
 }
