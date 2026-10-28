@@ -69,6 +69,7 @@ export default observer(function Feuille({ partie }: {
         title="Feuille de marque"
         actions={
           <>
+            <GhostLink to={`/partie/${t.id}/suivi`}>Suivi caméra</GhostLink>
             <GhostLink to="/historique">Historique</GhostLink>
             <GhostButton
               onClick={() => {

@@ -35,6 +35,7 @@ function creerFauxStorage(): WindowStorage {
 }
 
 beforeEach(() => {
+  if (typeof window === "undefined") return; // fichiers de test en environnement node (moteur ONNX)
   window.storage = creerFauxStorage();
   viderCacheArchives();
 });
