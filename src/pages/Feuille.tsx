@@ -221,10 +221,7 @@ export default observer(function Feuille({ partie }: {
         }
       />
 
-      <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
-      <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
-
-      {donnes.length > 0 && (
+{donnes.length > 0 && (
         <Section title="Classement">
           {classement.map((c, r) => (
             <RankRow
@@ -239,6 +236,11 @@ export default observer(function Feuille({ partie }: {
           ))}
         </Section>
       )}
+
+      <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
+      <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
+
+      
 
       {annulations.length > 0 && (
         <Section title="Redistributions">
