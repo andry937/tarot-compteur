@@ -178,6 +178,32 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     expect(screen.getByRole("button", { name: "Désigner le donneur" })).toBeEnabled();
   }, 15000);
 
+  it("Changer l'ordre des joueurs garde le donneur et le classement", async () => {
+    preseeder([tableA]);
+
+    const u = userEvent.setup();
+    renderApp(["/partie/tA"]);
+    await screen.findByText(/Noter la donne 1/);
+
+    await u.click(screen.getByRole("button", { name: /Noter la donne 1/ }));
+    await u.click(screen.getByRole("button", { name: "Cœur" }));
+    await u.click(screen.getByRole("button", { name: "Inscrire la donne" }));
+    await screen.findByText(/Noter la donne 2/);
+
+    const donneur = () => screen.getByText(/distribue/).querySelector("b")!.textContent;
+    const avant = donneur();
+    const classementAvant = screen.getAllByTestId("classement-row").map((r) => r.textContent);
+
+    await u.click(screen.getByText("Changer l'ordre des joueurs"));
+    const panneau = screen.getByTestId("changer-ordre");
+    await u.click(within(panneau).getByRole("button", { name: /Descendre Andry/ }));
+    await u.click(within(panneau).getByRole("button", { name: "Appliquer l'ordre" }));
+
+    expect(screen.queryByTestId("changer-ordre")).not.toBeInTheDocument();
+    expect(donneur()).toBe(avant);
+    expect(screen.getAllByTestId("classement-row").map((r) => r.textContent)).toEqual(classementAvant);
+  }, 15000);
+
   it("Accueil laisse la table A ouverte sans toucher la table B", async () => {
     preseeder([tableA, tableB]);
 
