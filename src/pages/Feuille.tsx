@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
+import { tableEquilibree } from "@/domain/score/ordre";
 import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
@@ -41,7 +42,9 @@ export default observer(function Feuille({ partie }: {
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
   const rotation = nbTotal > parDonne;
-  const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
+  const prochaine = partie.ordreModifie
+    ? tableEquilibree(donnes, nbTotal, parDonne, depart)
+    : tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
   const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {

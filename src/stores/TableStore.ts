@@ -116,6 +116,7 @@ export class TableStore {
             joueursNomFige: rec.joueursNomFige,
             parDonne: rec.parDonne,
             depart: rec.depart || 0,
+            ...(rec.ordreModifie ? { ordreModifie: true } : {}),
           },
           rec
         )
