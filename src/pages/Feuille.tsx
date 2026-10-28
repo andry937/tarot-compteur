@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
+import { tableEquilibree } from "@/domain/score/ordre";
 import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
@@ -17,6 +18,7 @@ import GraphiqueComparatif from "@/components/graphiques/GraphiqueComparatif";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";
+import ChangerOrdre from "@/components/feuille/ChangerOrdre";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
 /** La table active vient du store ; `partie` est passée par RoutePartie, qui a déjà vérifié qu'elle est chargée. */
@@ -39,20 +41,10 @@ export default observer(function Feuille({ partie }: {
   const [petitSecOuvert, setPetitSecOuvert] = useState(false);
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
-  const [ordreOuvert, setOrdreOuvert] = useState(false);
-  /** Brouillon du nouvel ordre : `ordre[position] = siège actuel`. */
-  const [ordre, setOrdre] = useState<number[]>([]);
-  const deplacer = (pos: number, sens: -1 | 1) =>
-    setOrdre((o) => {
-      const j = pos + sens;
-      if (j < 0 || j >= o.length) return o;
-      const c = [...o];
-      [c[pos], c[j]] = [c[j], c[pos]];
-      return c;
-    });
-
   const rotation = nbTotal > parDonne;
-  const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
+  const prochaine = partie.ordreModifie
+    ? tableEquilibree(donnes, nbTotal, parDonne, depart)
+    : tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
   const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {
@@ -115,53 +107,14 @@ export default observer(function Feuille({ partie }: {
       </dl>
 
       <div className="mb-4">
-        {!ordreOuvert ? (
-          <Lien
-            onClick={() => {
-              setOrdre(joueurs.map((_, i) => i));
-              setOrdreOuvert(true);
-            }}
-          >
-            Changer l'ordre des joueurs
-          </Lien>
-        ) : (
-          <div className="rounded-xl border border-slate-800 bg-black/20 p-3.5" data-testid="changer-ordre">
-            <span className="mb-2 flex font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
-              Ordre autour de la table
-            </span>
-            <p className="mb-3 text-xs leading-relaxed text-slate-400">
-              Les donnes déjà jouées gardent leurs joueurs. {joueurs[prochaine[0]]} reste le prochain donneur.
-            </p>
-            <div className="flex flex-col gap-1.5">
-              {ordre.map((s, pos) => (
-                <div key={s} className="flex items-center gap-2 text-sm text-slate-100">
-                  <span className="flex-1">{joueurs[s]}</span>
-                  <Chip on={false} onClick={() => deplacer(pos, -1)}>
-                    ↑<span className="sr-only"> Monter {joueurs[s]}</span>
-                  </Chip>
-                  <Chip on={false} onClick={() => deplacer(pos, 1)}>
-                    ↓<span className="sr-only"> Descendre {joueurs[s]}</span>
-                  </Chip>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3.5 flex items-center gap-2">
-              <Lien onClick={() => setOrdreOuvert(false)}>Annuler</Lien>
-              <div className="flex-1">
-                <Cta
-                  compact
-                  onClick={() => {
-                    t.reordonner(ordre);
-                    setOrdreOuvert(false);
-                    setOuverte(null);
-                  }}
-                >
-                  Appliquer l'ordre
-                </Cta>
-              </div>
-            </div>
-          </div>
-        )}
+        <ChangerOrdre
+          joueurs={joueurs}
+          donneur={joueurs[prochaine[0]]}
+          onAppliquer={(ordre) => {
+            t.reordonner(ordre);
+            setOuverte(null);
+          }}
+        />
       </div>
 
       <div className="mb-4">
@@ -252,34 +205,34 @@ export default observer(function Feuille({ partie }: {
                 </div>
               </details>
             ) : null}
-          <div className="mt-2.5 flex flex-wrap gap-2">
-            {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+            <div className="mt-2.5 flex flex-wrap gap-2">
+              {ouverte !== null && donnes[ouverte]?.cartesJouees?.length ? (
+                <button
+                  type="button"
+                  className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
+                  onClick={() => setMainsOuvert(ouverte)}
+                >
+                  Voir les mains
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
-                onClick={() => setMainsOuvert(ouverte)}
+                onClick={() => setSaisie({ index: ouverte })}
               >
-                Voir les mains
+                Modifier cette donne
               </button>
-            ) : null}
-            <button
-              type="button"
-              className="rounded-full border border-slate-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100"
-              onClick={() => setSaisie({ index: ouverte })}
-            >
-              Modifier cette donne
-            </button>
-            <button
-              type="button"
-              className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
-              onClick={() => {
-                t.effacerDonne(ouverte as number);
-                setOuverte(null);
-              }}
-            >
-              Effacer cette donne
-            </button>
-          </div>
+              <button
+                type="button"
+                className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
+                onClick={() => {
+                  t.effacerDonne(ouverte as number);
+                  setOuverte(null);
+                }}
+              >
+                Effacer cette donne
+              </button>
+            </div>
           </>
         }
       />
