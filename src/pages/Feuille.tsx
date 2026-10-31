@@ -45,7 +45,7 @@ export default observer(function Feuille({ partie }: {
   const rotation = nbTotal > parDonne;
   /** Table de la donne qui suit `avant` (les donnes déjà jouées). */
   const tableApres = (avant: Donne[]) =>
-    partie.ordreModifie
+    rotation
       ? tableEquilibree(avant, nbTotal, parDonne, depart)
       : tableDeLaDonne(avant.length, nbTotal, parDonne, depart);
   const prochaine = tableApres(donnes);

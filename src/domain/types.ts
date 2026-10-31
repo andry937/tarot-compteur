@@ -16,9 +16,6 @@ export interface Partie {
   parDonne: number;
   /** Index du siège du donneur de la première donne. */
   depart: number;
-  /** `true` une fois l'ordre des sièges changé en cours de partie : les repos suivants sont alors
-   * choisis pour équilibrer le nombre de donnes jouées (voir `tableEquilibree`). */
-  ordreModifie?: boolean;
 }
 
 /** Table en cours de composition, avant l'ouverture de la feuille (jamais persistée). */
