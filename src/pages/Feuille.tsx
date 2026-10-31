@@ -9,6 +9,7 @@ import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
+import type { Donne } from "@/domain/score/regles";
 import { tableEquilibree } from "@/domain/score/ordre";
 import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
@@ -42,9 +43,12 @@ export default observer(function Feuille({ partie }: {
   const [joueurPetitSec, setJoueurPetitSec] = useState<number | null>(null);
 
   const rotation = nbTotal > parDonne;
-  const prochaine = partie.ordreModifie
-    ? tableEquilibree(donnes, nbTotal, parDonne, depart)
-    : tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
+  /** Table de la donne qui suit `avant` (les donnes déjà jouées). */
+  const tableApres = (avant: Donne[]) =>
+    rotation
+      ? tableEquilibree(avant, nbTotal, parDonne, depart)
+      : tableDeLaDonne(avant.length, nbTotal, parDonne, depart);
+  const prochaine = tableApres(donnes);
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
   const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {
@@ -318,6 +322,14 @@ export default observer(function Feuille({ partie }: {
           tableProposee={saisie.index !== null ? donnes[saisie.index].table : prochaine}
           total={nbTotal}
           numero={saisie.index !== null ? saisie.index + 1 : donnes.length + 1}
+          reposApres={
+            saisie.index === null && rotation
+              ? (table) => {
+                  const suivante = tableApres([...donnes, { table } as Donne]);
+                  return joueurs.map((_, i) => i).filter((i) => !suivante.includes(i));
+                }
+              : undefined
+          }
           donneInitiale={saisie.index !== null ? donnes[saisie.index] : undefined}
           brouillon={
             saisie.index === null

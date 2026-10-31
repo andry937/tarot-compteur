@@ -23,6 +23,8 @@ interface SaisieProps {
   tableProposee: number[];
   total: number;
   numero: number;
+  /** Nouvelle donne : sièges au repos à la donne suivante si celle-ci se joue à `table` (affichés sous le repos actuel). */
+  reposApres?: (table: number[]) => number[];
   donneInitiale?: Donne;
   /** Nouvelle donne : brouillon des cartes de la main en cours, édité en direct dans `App.tsx`
    * (survit à la fermeture de la saisie). Absent pour la modification d'une donne existante,
@@ -46,6 +48,7 @@ export default function Saisie({
   tableProposee,
   total,
   numero,
+  reposApres,
   donneInitiale,
   brouillon,
   onFermer,
@@ -106,6 +109,8 @@ export default function Saisie({
     if (appele !== null && !suivant.includes(appele)) setAppele(null);
   };
 
+  const reposSuivants = reposApres && table.length === parDonne ? reposApres(table) : [];
+
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/80 sm:items-center sm:p-4" onClick={onFermer}>
       <div
@@ -140,6 +145,12 @@ export default function Saisie({
                 </Chip>
               ))}
             </div>
+            {reposSuivants.length > 0 && (
+              <p className="mt-2 text-xs text-slate-400" data-testid="repos-suivants">
+                Donne suivante, au repos :{" "}
+                <b className="font-semibold text-slate-100">{reposSuivants.map((i) => joueurs[i]).join(", ")}</b>
+              </p>
+            )}
           </Field>
         )}
 
