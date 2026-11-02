@@ -5,6 +5,7 @@
  */
 
 import type { Donne } from "@/domain/score/regles";
+import type { BadgeAttribue } from "@/domain/stats/badges";
 
 /** Composition et paramètres d'une table (sans les donnes). */
 export interface Partie {
@@ -16,6 +17,8 @@ export interface Partie {
   parDonne: number;
   /** Index du siège du donneur de la première donne. */
   depart: number;
+  /** Badges attribués au début de la partie d'après l'historique ; `undefined` tant qu'ils n'ont pas été calculés. */
+  badges?: BadgeAttribue[];
 }
 
 /** Table en cours de composition, avant l'ouverture de la feuille (jamais persistée). */
@@ -28,6 +31,8 @@ export interface TirageEnCours {
   joueursId: string[];
   /** Nombre de joueurs à table pour chaque donne. */
   parDonne: number;
+  /** Badges des joueurs, une fois calculés (en arrière-plan, après la composition). */
+  badges?: BadgeAttribue[];
 }
 
 /** Ce que l'écran « Qui distribue ? » renvoie : indices dans `TirageEnCours.joueurs`. */

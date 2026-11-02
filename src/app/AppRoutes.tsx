@@ -33,6 +33,8 @@ const RouteTirage = observer(function RouteTirage() {
   return (
     <Tirage
       joueurs={tirage.joueurs}
+      joueursId={tirage.joueursId}
+      badges={tirage.badges}
       parDonne={tirage.parDonne}
       onRetour={() => {
         store.annulerTirage();
@@ -50,15 +52,17 @@ const RouteTirage = observer(function RouteTirage() {
  * Route `/partie/:id` : charge la table demandée puis affiche sa feuille ; redirige vers `/` si elle est introuvable.
  */
 const RoutePartie = observer(function RoutePartie() {
-  const { table } = useStore();
+  const store = useStore();
+  const { table } = store;
   const navigate = useNavigate();
   const { id } = useParams();
   useEffect(() => {
     if (!id) return;
     table.charger(id).then((trouvee) => {
       if (!trouvee) navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
+      else void store.completerBadgesTable(); // table ouverte avant les badges : on les ajoute
     });
-  }, [id, table, navigate]);
+  }, [id, table, store, navigate]);
 
   if (table.id !== id || !table.partie) return <div className="min-h-screen bg-slate-950" />;
   return <Feuille partie={table.partie} />;

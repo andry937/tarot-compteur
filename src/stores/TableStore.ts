@@ -9,6 +9,7 @@ import type { Donne } from "@/domain/score/regles";
 import { permuterSieges } from "@/domain/score/ordre";
 import { resoudreNom } from "@/domain/joueurs/identite";
 import type { Partie, Annulation, ArchiveRecord } from "@/domain/types";
+import type { BadgeAttribue } from "@/domain/stats/badges";
 import { cleTable } from "@/lib/storage/stockage";
 import type { RegistreStore } from "@/stores/RegistreStore";
 
@@ -116,6 +117,7 @@ export class TableStore {
             joueursNomFige: rec.joueursNomFige,
             parDonne: rec.parDonne,
             depart: rec.depart || 0,
+            badges: rec.badges,
           },
           rec
         )
@@ -124,6 +126,11 @@ export class TableStore {
     } catch (e) {
       return false;
     }
+  }
+
+  /** Fixe les badges de la table active (calculés une fois, au début de la partie). */
+  definirBadges(badges: BadgeAttribue[]) {
+    if (this.partie) this.partie = { ...this.partie, badges };
   }
 
   /** Remplace le brouillon des cartes jouées. */

@@ -7,7 +7,9 @@ import { comparer, makeAutoObservable, observable, reaction, runInAction, type I
 import { resumerDonnees } from "@/domain/score/regles";
 import { resoudreNom, genId, joueursActuellementAssis } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
-import { sansDoublons } from "@/lib/storage/archives";
+import { sansDoublons, chargerParties } from "@/lib/storage/archives";
+import { attribuerBadges } from "@/domain/stats/badges";
+import type { BadgeAttribue } from "@/domain/stats/badges";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleTable, lireJson } from "@/lib/storage/stockage";
 import type { Partie, ChoixDonneur, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 import { RegistreStore } from "@/stores/RegistreStore";
@@ -73,10 +75,11 @@ export class RootStore {
   tirage: TirageEnCours | null = null;
 
   private chargementLance = false;
+  private badgesEnAttente: Promise<void> | null = null;
   private reactions: IReactionDisposer[] = [];
 
   constructor() {
-    makeAutoObservable<this, "chargementLance" | "reactions">(
+    makeAutoObservable<this, "chargementLance" | "reactions" | "badgesEnAttente">(
       this,
       {
         registre: false,
@@ -84,6 +87,7 @@ export class RootStore {
         table: false,
         chargementLance: false,
         reactions: false,
+        badgesEnAttente: false,
         tablesIndex: observable.ref,
         tirage: observable.ref,
       },
@@ -182,7 +186,33 @@ export class RootStore {
     const ids = await this.registre.majRoster(noms);
     const id = genId();
     runInAction(() => (this.tirage = { id, joueurs: noms, joueursId: ids, parDonne }));
+    // En arrière-plan : l'écran du donneur s'ouvre tout de suite, les badges s'y ajoutent à l'arrivée.
+    this.badgesEnAttente = this.calculerBadges(ids).then((badges) =>
+      runInAction(() => {
+        if (badges && this.tirage?.id === id) this.tirage = { ...this.tirage, badges };
+      })
+    );
     return id;
+  }
+
+  /** Badges des joueurs d'après l'historique archivé ; `undefined` si l'historique est illisible. */
+  private async calculerBadges(joueursId: string[]): Promise<BadgeAttribue[] | undefined> {
+    try {
+      const parties = await chargerParties(this.historique.index);
+      return attribuerBadges(joueursId, parties, this.registre.roster);
+    } catch (e) {
+      console.error("Calcul des badges impossible", e);
+      return undefined;
+    }
+  }
+
+  /** Table déjà ouverte sans badges (créée avant leur introduction) : les calcule et les fixe, une seule fois. */
+  async completerBadgesTable(): Promise<void> {
+    const t = this.table;
+    const id = t.id;
+    if (!this.pret || !id || !t.partie || t.partie.badges !== undefined) return;
+    const badges = await this.calculerBadges(t.partie.joueursId);
+    if (badges && t.id === id && t.partie?.badges === undefined) runInAction(() => t.definirBadges(badges));
   }
 
   /** Abandonne la table en cours de composition. */
@@ -197,6 +227,7 @@ export class RootStore {
    * fenêtre de la première donne, suivi des joueurs à table dans l'ordre, puis de ceux au repos.
    */
   async validerTirage(choix: ChoixDonneur): Promise<string | null> {
+    await this.badgesEnAttente; // jamais rejetée : calculerBadges attrape ses erreurs
     const tirage = this.tirage;
     if (!tirage) return null;
     const id = tirage.id;
@@ -211,6 +242,7 @@ export class RootStore {
       joueursNomFige: sieges.map((i) => tirage.joueurs[i]),
       parDonne: tirage.parDonne,
       depart: auRepos.length > 0 ? 0 : Math.max(0, ordre.indexOf(donneur)),
+      ...(tirage.badges ? { badges: tirage.badges } : {}),
     };
     this.table.activer(id, nouvelle);
     this.tirage = null;
