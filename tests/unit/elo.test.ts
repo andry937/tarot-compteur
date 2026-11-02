@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculerClassementElo, MU_DEPART, SIGMA_DEPART, noteAffichee, niveauDeNote } from "@/domain/stats/elo";
+import { calculerClassementElo, calculerEvolutionElo, MU_DEPART, SIGMA_DEPART, noteAffichee, niveauDeNote } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
 import type { Donne } from "@/domain/score/regles";
 import type { PartieAnalysee } from "@/domain/stats/stats";
@@ -218,5 +218,17 @@ describe("niveauDeNote", () => {
     expect(niveauDeNote(200)).toBe(67);
     expect(niveauDeNote(297)).toBe(100);
     expect(niveauDeNote(900)).toBe(100);
+  });
+});
+
+describe("calculerEvolutionElo", () => {
+  it("donne un point par partie, dans l'ordre chronologique, cohérent avec le classement final", () => {
+    const d = { ...donneBase, points: 60 };
+    const p2 = partie(ids(4), [d], "2026-02-01T00:00:00.000Z", "p2");
+    const p1 = partie(ids(4), [d], "2026-01-01T00:00:00.000Z", "p1");
+    const evo = calculerEvolutionElo([p2, p1], rosterDe(4));
+    expect(evo.map((e) => e.partie)).toEqual([1, 2]);
+    const final = calculerClassementElo([p2, p1], rosterDe(4));
+    for (const c of final) expect(evo[1].notes[c.id]).toBe(c.note);
   });
 });
