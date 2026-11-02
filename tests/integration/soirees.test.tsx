@@ -98,4 +98,20 @@ describe("Classement par soirée", () => {
     });
     expect(screen.queryByTestId("annonce-soiree")).not.toBeInTheDocument();
   }, 15000);
+
+  it("le bouton de l'onglet Soirée lance l'animation de la soirée seule, puis revient sur l'onglet", async () => {
+    monter("/classement");
+    const u = userEvent.setup();
+    await u.click(await screen.findByRole("button", { name: "Soirée" }));
+    await u.click(await screen.findByRole("button", { name: /Voir l'animation de la soirée/ }));
+
+    const soiree = await screen.findByTestId("annonce-soiree");
+    expect(soiree).toHaveTextContent("Andry gagne la soirée");
+    expect(screen.getByTestId("annonce-soiree-podium")).toBeInTheDocument();
+    // Seule la cérémonie de la soirée est jouée : pas celle de la partie.
+    expect(screen.queryByTestId("annonce-vainqueur")).not.toBeInTheDocument();
+
+    await u.click(screen.getByRole("button", { name: "Continuer" }));
+    expect(await screen.findByTestId("soiree-courante")).toBeInTheDocument();
+  }, 15000);
 });

@@ -39,7 +39,10 @@ export default observer(function Fin() {
   const navigate = useNavigate();
   const location = useLocation();
   const annonce = store.annonceFin;
-  const suite = (location.state as { suite?: Suite } | null)?.suite;
+  const etatNav = location.state as { suite?: Suite; soireeSeule?: boolean } | null;
+  const suite = etatNav?.suite;
+  /** Venu du classement des soirées : seule la cérémonie de la soirée est jouée, sans celle de la partie. */
+  const soireeSeule = !!etatNav?.soireeSeule;
   const [saisons, setSaisons] = useState<LeaderSaison[]>([]);
   /** Soirée de la partie, seulement si elle compte au moins deux parties (sinon elle ferait doublon). */
   const [soiree, setSoiree] = useState<{ libelle: string; nbParties: number; lignes: LigneSoiree[] } | null>(null);
@@ -62,7 +65,7 @@ export default observer(function Fin() {
         if (actif) {
           setSaisons(trouves);
           setSoiree(
-            s && s.parties.length > 1
+            s && (s.parties.length > 1 || soireeSeule)
               ? { libelle: libelleSoiree(s), nbParties: s.parties.length, lignes: classementSoiree(s, roster) }
               : null
           );
@@ -74,10 +77,12 @@ export default observer(function Fin() {
     return () => {
       actif = false;
     };
-  }, [annonce, store]);
+  }, [annonce, store, soireeSeule]);
 
   if (!annonce) return <Navigate to="/" replace />;
 
+  // Décalages d'apparition : la soirée passe en premier quand elle est seule, sinon après la partie.
+  const d0 = soireeSeule ? 0.2 : 3.2;
   const recap = calculerRecap(annonce.donnes, annonce.joueurs, annonce.nbTotal);
   const podium = recap?.classement.slice(0, 3) ?? [];
   const vainqueur = podium[0];
@@ -90,15 +95,15 @@ export default observer(function Fin() {
 
   return (
     <Page>
-      <Header eyebrow="Fin de partie" title="C'est terminé !" />
+      <Header eyebrow={soireeSeule ? "Fin de soirée" : "Fin de partie"} title={soireeSeule ? "Quelle soirée !" : "C'est terminé !"} />
 
-      {vainqueur && (
+      {!soireeSeule && vainqueur && (
         <div className="mt-2 text-center" data-testid="annonce-vainqueur">
           <div className="animate-apparition text-6xl" style={{ animationDelay: "1.6s" }} aria-hidden="true">
             🏆
           </div>
           <p className="animate-apparition mt-3 text-lg font-semibold text-slate-100" style={{ animationDelay: "2.0s" }}>
-            <span className="text-amber-400">{vainqueur.nom}</span> remporte la soirée
+            <span className="text-amber-400">{vainqueur.nom}</span> remporte la partie
           </p>
           <p className="animate-apparition font-mono text-sm text-slate-400" style={{ animationDelay: "2.2s" }}>
             {fmt(vainqueur.pts)} points en {recap?.nbDonnes} donne{(recap?.nbDonnes ?? 0) > 1 ? "s" : ""}
@@ -106,27 +111,27 @@ export default observer(function Fin() {
         </div>
       )}
 
-      <PodiumAnime lignes={podium} testId="annonce-podium" />
+      {!soireeSeule && <PodiumAnime lignes={podium} testId="annonce-podium" />}
 
-      {dernier && (
+      {!soireeSeule && dernier && (
         <p className="animate-apparition mt-4 text-center text-sm text-slate-400" style={{ animationDelay: "2.4s" }} data-testid="annonce-dernier">
           💀 {dernier.nom} ferme la marche ({fmt(dernier.pts)})
         </p>
       )}
 
       {soiree && soiree.lignes.length > 0 && (
-        <div className="mt-8 text-center" data-testid="annonce-soiree">
-          <p className="animate-apparition font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400" style={{ animationDelay: "3.2s" }}>
-            Soirée du {soiree.libelle} · {soiree.nbParties} parties
+        <div className={soireeSeule ? "mt-2 text-center" : "mt-8 text-center"} data-testid="annonce-soiree">
+          <p className="animate-apparition font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400" style={{ animationDelay: `${d0}s` }}>
+            Soirée du {soiree.libelle} · {soiree.nbParties} partie{soiree.nbParties > 1 ? "s" : ""}
           </p>
-          <p className="animate-apparition mt-2 text-lg font-semibold text-slate-100" style={{ animationDelay: "3.6s" }}>
+          <p className="animate-apparition mt-2 text-lg font-semibold text-slate-100" style={{ animationDelay: `${d0 + 0.4}s` }}>
             🌙 <span className="text-amber-400">{soiree.lignes[0].nom}</span> gagne la soirée
           </p>
-          <PodiumAnime lignes={soiree.lignes} delai={4} testId="annonce-soiree-podium" />
+          <PodiumAnime lignes={soiree.lignes} delai={d0 + 0.8} testId="annonce-soiree-podium" />
         </div>
       )}
 
-      {saisons.length > 0 && (
+      {!soireeSeule && saisons.length > 0 && (
         <Section title="Saisons">
           <div className="flex flex-col gap-1 px-1 text-sm text-slate-300" data-testid="annonce-saisons">
             {saisons.map((s) => (
@@ -140,6 +145,7 @@ export default observer(function Fin() {
         </Section>
       )}
 
+      {!soireeSeule && (
       <RecapSoiree
         donnes={annonce.donnes}
         joueurs={annonce.joueurs}
@@ -148,6 +154,7 @@ export default observer(function Fin() {
         badges={annonce.badges}
         date={new Date(annonce.date).toLocaleDateString("fr-FR")}
       />
+      )}
 
       <div className="mt-6">
         <Cta onClick={continuer}>Continuer</Cta>

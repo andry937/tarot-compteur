@@ -7,16 +7,19 @@ import { fmt } from "@/domain/score/regles";
 import type { Fiche } from "@/domain/joueurs/identite";
 import type { PartieAnalysee } from "@/domain/stats/stats";
 import { classementSoiree, grouperSoirees, libelleSoiree } from "@/domain/stats/soirees";
+import type { Soiree } from "@/domain/stats/soirees";
 import { GhostButton, Section, RankRow, Empty } from "@/components/ui";
 
 interface ClassementSoireeProps {
   parties: PartieAnalysee[];
   roster: Fiche[];
   chargement: boolean;
+  /** Lance l'animation de fin de soirée pour la soirée affichée. */
+  onAnimer: (soiree: Soiree) => void;
 }
 
 /** Sélecteur de soirée (la plus récente d'abord) et classement en points de la soirée choisie. */
-export default function ClassementSoiree({ parties, roster, chargement }: ClassementSoireeProps) {
+export default function ClassementSoiree({ parties, roster, chargement, onAnimer }: ClassementSoireeProps) {
   const soirees = useMemo(() => grouperSoirees(parties), [parties]);
   const [rang, setRang] = useState(0);
   const i = Math.min(rang, Math.max(soirees.length - 1, 0));
@@ -55,6 +58,11 @@ export default function ClassementSoiree({ parties, roster, chargement }: Classe
           />
         ))}
       </Section>
+      {lignes.length > 0 && (
+        <div className="mt-3">
+          <GhostButton onClick={() => onAnimer(soiree)}>🎉 Voir l'animation de la soirée</GhostButton>
+        </div>
+      )}
     </>
   );
 }
