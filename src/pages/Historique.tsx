@@ -91,6 +91,20 @@ export default observer(function Historique() {
     navigate("/composition", { state: { noms, parDonne: r.parDonne } });
   };
 
+  // Rejoue la cérémonie de fin de partie pour une archive ; « Continuer » ramène sur cette archive.
+  const revoirAnnonce = (r: ArchiveRecord, date: string) => {
+    if (!id) return;
+    store.afficherAnnonce({
+      donnes: r.donnes,
+      joueurs: r.joueursId.map((jid, i) => resoudreNom(jid, roster, r.joueursNomFige[i])),
+      joueursId: r.joueursId,
+      nbTotal: r.joueursId.length,
+      badges: r.badges,
+      date,
+    });
+    navigate("/fin", { state: { suite: { vers: `/historique/${id}` } } });
+  };
+
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
 
@@ -104,6 +118,9 @@ export default observer(function Historique() {
           actions={
             <>
               <GhostLink to="/">Accueil</GhostLink>
+              {record && resume && record.donnes.length > 0 && (
+                <GhostButton onClick={() => revoirAnnonce(record, resume.date)}>Revoir l'annonce</GhostButton>
+              )}
               {record && <GhostButton onClick={() => rejouer(record)}>Rejouer</GhostButton>}
               <GhostButton onClick={() => navigate("/historique")}>Retour</GhostButton>
               <GhostButton onClick={surSupprimer}>

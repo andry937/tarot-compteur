@@ -193,3 +193,20 @@ describe("Archive illisible", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });
+
+describe("Revoir l'annonce de fin de partie", () => {
+  it("rejoue l'annonce d'une partie déjà clôturée puis revient sur l'archive", async () => {
+    preseeder();
+    const u = userEvent.setup();
+    renderApp([`/historique/${archiveId}`]);
+
+    await screen.findByText("Classement final");
+    await u.click(screen.getByRole("button", { name: "Revoir l'annonce" }));
+
+    expect(await screen.findByTestId("annonce-vainqueur")).toBeInTheDocument();
+    await u.click(screen.getByRole("button", { name: "Continuer" }));
+
+    // De retour sur l'archive d'où l'on venait.
+    expect(await screen.findByText("Classement final")).toBeInTheDocument();
+  }, 15000);
+});

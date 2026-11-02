@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (330 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (331 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -721,7 +721,7 @@ palmarès « Champions des mois/années » (`championsParPeriode`). Rien n'est s
 `cloturerPartie` fige les donnes dans `RootStore.annonceFin` (jamais persisté) avant de supprimer la table, et
 « Clôturer »/« Rejouer » naviguent vers `/fin` (podium animé — keyframes `apparition` de `tailwind.config.js`,
 récap partageable, leaders du mois et de l'année) ; « Continuer » efface l'annonce puis va à `/` ou, après
-« Rejouer », à la composition (état passé via `location.state.suite`). Sans annonce, `/fin` redirige vers `/`.
+« Rejouer », à la composition (état passé via `location.state.suite`). Sans annonce, `/fin` redirige vers `/`. Sur une partie **déjà clôturée**, le bouton « Revoir l'annonce » de `Historique.tsx` (détail d'une archive) recompose l'annonce depuis l'archive (`RootStore.afficherAnnonce`) ; « Continuer » ramène à `/historique/:id`.
 
 **Pour remonter** (`domain/stats/remontee.ts`, `components/stats/PourRemonter.tsx`, sous « Classement » de `Feuille`) :
 une partie = 5 donnes par joueur (`DONNES_PAR_JOUEUR`). Dès qu'un joueur non leader en a joué 4, la section donne
