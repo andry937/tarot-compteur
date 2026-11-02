@@ -23,6 +23,7 @@ export type BadgeId =
   | "parrain"
   | "petit_malin"
   | "mur"
+  | "attaquant"
   | "mouton"
   | "recrue";
 
@@ -47,6 +48,7 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
   parrain: { emoji: "🤝", nom: "Le Parrain" },
   petit_malin: { emoji: "🐣", nom: "Petit Malin" },
   mur: { emoji: "🛡️", nom: "Le Meilleur Défenseur" },
+  attaquant: { emoji: "⚔️", nom: "Le Meilleur Attaquant" },
   mouton: { emoji: "🐑", nom: "Le Mouton" },
   recrue: { emoji: "🌱", nom: "Recrue" },
 };
@@ -63,8 +65,6 @@ export interface BadgeAttribue {
 
 /** Nombre de donnes en dessous duquel un joueur n'est qu'une Recrue. */
 export const DONNES_RECRUE = 20;
-/** Nombre maximal de badges par joueur. */
-const BADGES_MAX = 2;
 
 /** Mesures d'un joueur, calculées sur tout l'historique. */
 interface Mesures {
@@ -93,7 +93,7 @@ interface Critere {
 
 const pct = (x: number) => `${Math.round(x * 100)} %`;
 
-/** Dans l'ordre de priorité : un joueur reçoit au plus `BADGES_MAX` badges, les premiers de cette liste. */
+/** Un joueur peut cumuler plusieurs badges ; la liste est dans l'ordre d'affichage (les plus prestigieux d'abord). */
 const CRITERES: Critere[] = [
   {
     badge: "patron",
@@ -196,6 +196,18 @@ const CRITERES: Critere[] = [
       `a fait chuter l'attaque ${m.stats.parRole.defense.victoires} fois sur ${m.stats.parRole.defense.donnes} en défense`,
   },
   {
+    badge: "attaquant",
+    sens: "max",
+    valeur: (m) => {
+      const n = m.stats.parRole.preneur.donnes + m.stats.parRole.appele.donnes;
+      return n >= 15 ? (m.stats.parRole.preneur.victoires + m.stats.parRole.appele.victoires) / n : null;
+    },
+    seuil: 0.6,
+    ecart: 0.05,
+    detail: (m) =>
+      `contrat réussi ${m.stats.parRole.preneur.victoires + m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.preneur.donnes + m.stats.parRole.appele.donnes} en attaque`,
+  },
+  {
     badge: "mouton",
     sens: "min",
     valeur: (m) => (m.stats.donneesJouees >= 30 ? m.prises / m.stats.donneesJouees : null),
@@ -247,8 +259,8 @@ function mesurer(id: string, parties: PartieAnalysee[], note: number): Mesures {
 
 /**
  * Attribue les badges aux joueurs d'une table d'après l'historique archivé.
- * `joueursId` : identifiants des sièges (fusions résolues via `roster`). Un joueur de moins de
- * `DONNES_RECRUE` donnes est « Recrue » et ne concourt pour rien d'autre ; chaque badge va au meilleur
+ * `joueursId` : identifiants des sièges (fusions résolues via `roster`). Un joueur peut cumuler plusieurs
+ * badges ; celui de moins de `DONNES_RECRUE` donnes est « Recrue » et ne concourt pour rien d'autre ; chaque badge va au meilleur
  * de la table seulement s'il passe le seuil et se détache nettement du deuxième.
  */
 export function attribuerBadges(joueursId: string[], parties: PartieAnalysee[], roster: Fiche[]): BadgeAttribue[] {
@@ -261,7 +273,6 @@ export function attribuerBadges(joueursId: string[], parties: PartieAnalysee[], 
   const mesures = finaux.map((f) => mesurer(f, resolues, elo.find((e) => e.id === f)?.note ?? 0));
 
   const resultat: BadgeAttribue[] = [];
-  const nb = new Array(joueursId.length).fill(0);
   const recrues = mesures.map((m) => m.stats.donneesJouees < DONNES_RECRUE);
   recrues.forEach((r, i) => {
     if (r) {
@@ -270,7 +281,6 @@ export function attribuerBadges(joueursId: string[], parties: PartieAnalysee[], 
         badge: "recrue",
         detail: `${mesures[i].stats.donneesJouees} donnes jouées`,
       });
-      nb[i] = BADGES_MAX;
     }
   });
 
@@ -284,8 +294,7 @@ export function attribuerBadges(joueursId: string[], parties: PartieAnalysee[], 
     const passeSeuil = c.sens === "max" ? premier.v >= c.seuil : premier.v <= c.seuil;
     const second = concurrents[1];
     const detache = !second || Math.abs(premier.v - second.v) >= c.ecart;
-    if (!passeSeuil || !detache || nb[premier.i] >= BADGES_MAX) return;
-    nb[premier.i] += 1;
+    if (!passeSeuil || !detache) return;
     resultat.push({ joueurId: joueursId[premier.i], badge: c.badge, detail: c.detail(mesures[premier.i]) });
   });
   return resultat;

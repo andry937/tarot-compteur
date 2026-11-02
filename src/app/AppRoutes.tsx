@@ -60,7 +60,7 @@ const RoutePartie = observer(function RoutePartie() {
     if (!id) return;
     table.charger(id).then((trouvee) => {
       if (!trouvee) navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
-      else void store.completerBadgesTable(); // table ouverte avant les badges : on les ajoute
+      else void store.recalculerBadgesTable(); // tant que la table est ouverte, ses badges suivent l'historique
     });
   }, [id, table, store, navigate]);
 

@@ -128,7 +128,7 @@ export class TableStore {
     }
   }
 
-  /** Fixe les badges de la table active (calculés une fois, au début de la partie). */
+  /** Remplace les badges de la table active (recalculés tant qu'elle n'est pas clôturée). */
   definirBadges(badges: BadgeAttribue[]) {
     if (this.partie) this.partie = { ...this.partie, badges };
   }

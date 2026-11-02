@@ -271,6 +271,17 @@ describe("Plusieurs tables ouvertes en même temps", () => {
 });
 
 describe("Badges d'une table déjà ouverte", () => {
+  it("recalcule les badges à l'ouverture tant que la table n'est pas clôturée", async () => {
+    // Badge périmé enregistré dans la table : l'historique est vide, tout le monde est Recrue.
+    preseeder([{ ...tableA, record: { ...tableA.record, badges: [{ joueurId: "a", badge: "kamikaze", detail: "périmé" }] } }]);
+    renderApp(["/partie/tA"]);
+    await vi.waitFor(() => {
+      const enregistre = JSON.parse(window.storage.__dump!()[cleTable("tA")]) as ArchiveRecord;
+      expect(enregistre.badges?.every((b) => b.badge === "recrue")).toBe(true);
+      expect(enregistre.badges).toHaveLength(5);
+    });
+  });
+
   it("ajoute les badges (Recrue sans historique) à une table qui n'en a pas, et les conserve ensuite", async () => {
     preseeder([tableA]);
     renderApp(["/partie/tA"]);

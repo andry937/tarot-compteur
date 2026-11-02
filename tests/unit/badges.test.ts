@@ -35,7 +35,7 @@ describe("attribuerBadges", () => {
     expect(r.every((b) => b.badge === "recrue")).toBe(true);
   });
 
-  it("donne Kamikaze au joueur qui prend le plus de Garde contre, sans Recrue ni doublon", () => {
+  it("donne Kamikaze au joueur qui prend le plus de Garde contre, sans Recrue", () => {
     // a : 10 Garde contre ; b : 10 Garde — chacun appelle c.
     const parties = [
       partie(1, [
@@ -46,7 +46,6 @@ describe("attribuerBadges", () => {
     const r = attribuerBadges(ids, parties, roster);
     expect(r.find((b) => b.badge === "kamikaze")?.joueurId).toBe("a");
     expect(r.filter((b) => b.badge === "recrue")).toHaveLength(0);
-    expect(r.filter((b) => b.joueurId === "a").length).toBeLessThanOrEqual(2);
   });
 
   it("n'attribue pas un badge sans écart net (deux joueurs à égalité)", () => {
@@ -106,5 +105,23 @@ describe("Meilleur Défenseur", () => {
     const p: PartieAnalysee = { archiveId: "p1", date: "2026-01-01T00:00:00.000Z", joueursId: idsSix, donnes: [...avecF, ...sansF] };
     const r = attribuerBadges(idsSix, [p], rosterSix);
     expect(r.find((b) => b.badge === "mur")?.joueurId).toBe("f");
+  });
+});
+
+describe("Meilleur Attaquant", () => {
+  it("va au joueur dont le camp attaquant réussit le plus souvent, preneur ou appelé", () => {
+    // a prend 24 fois et réussit toujours (appelé tournant entre b, c, d) ; e prend 20 fois et chute une fois sur deux.
+    const parties = [
+      partie(1, [
+        ...donnes(8, { preneur: 0, appele: 1, points: 70 }),
+        ...donnes(8, { preneur: 0, appele: 2, points: 70 }),
+        ...donnes(8, { preneur: 0, appele: 3, points: 70 }),
+        ...donnes(10, { preneur: 4, appele: 1, points: 70 }),
+        ...donnes(10, { preneur: 4, appele: 1, points: 30 }),
+      ]),
+    ];
+    const r = attribuerBadges(ids, parties, roster);
+    expect(r.filter((b) => b.badge === "attaquant")).toHaveLength(1);
+    expect(r.find((b) => b.badge === "attaquant")?.joueurId).toBe("a");
   });
 });

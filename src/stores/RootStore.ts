@@ -206,13 +206,20 @@ export class RootStore {
     }
   }
 
-  /** Table déjà ouverte sans badges (créée avant leur introduction) : les calcule et les fixe, une seule fois. */
-  async completerBadgesTable(): Promise<void> {
+  /**
+   * Recalcule les badges de la table active d'après l'historique archivé actuel. À appeler à chaque
+   * ouverture de la feuille : tant que la table n'est pas clôturée, ses badges suivent l'historique
+   * (une autre table clôturée dans la soirée les fait évoluer) ; une fois clôturée, ils restent figés
+   * dans l'archive. Ne touche à rien si le calcul échoue ou si le résultat est identique.
+   */
+  async recalculerBadgesTable(): Promise<void> {
     const t = this.table;
     const id = t.id;
-    if (!this.pret || !id || !t.partie || t.partie.badges !== undefined) return;
+    if (!this.pret || !id || !t.partie) return;
     const badges = await this.calculerBadges(t.partie.joueursId);
-    if (badges && t.id === id && t.partie?.badges === undefined) runInAction(() => t.definirBadges(badges));
+    if (!badges || t.id !== id || !t.partie) return;
+    if (JSON.stringify(badges) === JSON.stringify(t.partie.badges)) return;
+    runInAction(() => t.definirBadges(badges));
   }
 
   /** Abandonne la table en cours de composition. */
