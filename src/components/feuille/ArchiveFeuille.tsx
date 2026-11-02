@@ -12,7 +12,7 @@ import type { ArchiveRecord } from "@/domain/types";
 import { Section, RankRow } from "@/components/ui";
 import ScoreGrid from "./ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
-import GraphiqueComparatif from "@/components/graphiques/GraphiqueComparatif";
+import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import Saisie from "@/components/saisie/Saisie";
 import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";

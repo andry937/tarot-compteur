@@ -15,7 +15,7 @@ import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
-import GraphiqueComparatif from "@/components/graphiques/GraphiqueComparatif";
+import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";

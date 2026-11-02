@@ -11,7 +11,7 @@ import { calculerClassementElo, calculerEvolutionElo } from "@/domain/stats/elo"
 import type { ClassementElo, PointEvolution } from "@/domain/stats/elo";
 import { chargerParties } from "@/lib/storage/archives";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty } from "@/components/ui";
-import GraphiqueClassement from "@/components/graphiques/GraphiqueClassement";
+import { GraphiqueClassement } from "@/components/graphiques/paresseux";
 import ExplicationElo from "@/components/stats/ExplicationElo";
 
 /** Nombre de donnes jouées requis pour figurer au classement. */

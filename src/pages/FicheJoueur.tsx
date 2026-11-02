@@ -16,7 +16,7 @@ import type { Bout } from "@/domain/score/regles";
 import { calculerClassementElo, niveauDeNote, NIVEAU_MAX } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
 import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "@/components/ui";
-import GraphiquePersonnel from "@/components/graphiques/GraphiquePersonnel";
+import { GraphiquePersonnel } from "@/components/graphiques/paresseux";
 import ExplicationElo from "@/components/stats/ExplicationElo";
 
 const LABEL_ROLE: Record<Role, string> = {
