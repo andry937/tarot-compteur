@@ -14,7 +14,7 @@ interface ClassementSoireeProps {
   parties: PartieAnalysee[];
   roster: Fiche[];
   chargement: boolean;
-  /** Lance l'animation de fin de soirée pour la soirée affichée. */
+  /** Lance la cérémonie de fin de soirée (podium et badges) pour la soirée affichée. */
   onAnimer: (soiree: Soiree) => void;
 }
 
@@ -60,7 +60,7 @@ export default function ClassementSoiree({ parties, roster, chargement, onAnimer
       </Section>
       {lignes.length > 0 && (
         <div className="mt-3">
-          <GhostButton onClick={() => onAnimer(soiree)}>🎉 Voir l'animation de la soirée</GhostButton>
+          <GhostButton onClick={() => onAnimer(soiree)}>🏆 Remise des prix de la soirée</GhostButton>
         </div>
       )}
     </>
