@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (331 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (342 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -69,6 +69,7 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     stats/statsPartie.ts    statistiques sur les donnes d'une seule partie
     stats/elo.ts            classement général (Weng-Lin/OpenSkill), recalculé à la volée
     stats/remontee.ts       « Pour remonter » : écart et contrat à tenter à la dernière donne (4 jouées sur 5)
+    stats/soirees.ts        soirées (parties à moins de 24 h les unes des autres) : regroupement et classement cumulé
     stats/periodes.ts       saisons : classements mensuel/annuel, champions par période
   lib/
     firebase.ts             initialisation Firebase (`auth` = null sans VITE_FIREBASE_API_KEY)
@@ -722,6 +723,15 @@ palmarès « Champions des mois/années » (`championsParPeriode`). Rien n'est s
 « Clôturer »/« Rejouer » naviguent vers `/fin` (podium animé — keyframes `apparition` de `tailwind.config.js`,
 récap partageable, leaders du mois et de l'année) ; « Continuer » efface l'annonce puis va à `/` ou, après
 « Rejouer », à la composition (état passé via `location.state.suite`). Sans annonce, `/fin` redirige vers `/`. Sur une partie **déjà clôturée**, le bouton « Revoir l'annonce » de `Historique.tsx` (détail d'une archive) recompose l'annonce depuis l'archive (`RootStore.afficherAnnonce`) ; « Continuer » ramène à `/historique/:id`.
+
+**Soirées** (`domain/stats/soirees.ts`, `components/stats/ClassementSoiree.tsx`, `PodiumAnime.tsx`, onglet « Soirée » de
+`Classement.tsx`, cérémonie de `Fin.tsx`) : une soirée = des parties archivées chaînées à **moins de 24 h** l'une de
+l'autre (`ECART_SOIREE_MS`, l'écart se mesure avec la partie *précédente*, pas avec la première : 0 h, 20 h, 40 h
+forment une seule soirée). Date d'une partie = sa date de clôture. Le classement d'une soirée additionne les
+**points de la feuille** de toutes ses parties (fusions résolues, joueurs sans nom écartés), pas la note Weng-Lin.
+L'annonce de fin de partie ajoute, après la cérémonie de la partie, une cérémonie « soirée » (podium cumulé animé,
+« X gagne la soirée ») **seulement si la soirée compte au moins deux parties** — sinon elle ferait doublon. Rien n'est
+stocké. Le podium animé est partagé (`PodiumAnime`).
 
 **Pour remonter** (`domain/stats/remontee.ts`, `components/stats/PourRemonter.tsx`, sous « Classement » de `Feuille`) :
 une partie = 5 donnes par joueur (`DONNES_PAR_JOUEUR`). Dès qu'un joueur non leader en a joué 4, la section donne

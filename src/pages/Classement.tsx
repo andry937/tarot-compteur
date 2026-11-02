@@ -24,17 +24,19 @@ import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty, Chip } from "@/components/ui";
 import { GraphiqueClassement } from "@/components/graphiques/paresseux";
 import ExplicationElo from "@/components/stats/ExplicationElo";
+import ClassementSoiree from "@/components/stats/ClassementSoiree";
 
 /** Nombre de donnes jouées requis pour figurer au classement. */
 export const DONNES_MIN = 50;
 
 /** Vue choisie : général (tout l'historique) ou une saison (mois, année). */
-type Vue = "general" | TypePeriode;
+type Vue = "general" | TypePeriode | "soiree";
 
 const ONGLETS: { vue: Vue; libelle: string }[] = [
   { vue: "general", libelle: "Général" },
   { vue: "mois", libelle: "Mensuel" },
   { vue: "annee", libelle: "Annuel" },
+  { vue: "soiree", libelle: "Soirée" },
 ];
 
 /** Classement général, mensuel ou annuel des joueurs ayant assez de donnes, recalculé depuis les archives. */
@@ -75,12 +77,13 @@ export default observer(function Classement() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historiqueIndex.length]);
 
-  const type = vue === "general" ? null : vue;
+  const type = vue === "mois" || vue === "annee" ? vue : null;
   const periodes = useMemo(() => (type ? periodesDisponibles(parties, type) : []), [parties, type]);
   const cle = type ? (choix[type] && periodes.includes(choix[type]!) ? choix[type]! : periodes[0]) : null;
   const seuil = type ? DONNES_MIN_PERIODE[type] : DONNES_MIN;
 
   const { classement, badges, evolution } = useMemo(() => {
+    if (vue === "soiree") return { classement: [], badges: [], evolution: [] }; // calculé par ClassementSoiree
     // Seule la période choisie est rejouée (notes repartant de zéro) ; le général rejoue tout.
     const retenues = type && cle ? partiesDeLaPeriode(parties, type, cle) : parties;
     // Seuls ceux qui ont joué au moins `seuil` donnes figurent au classement, mais tous pèsent dans le calcul
@@ -95,7 +98,7 @@ export default observer(function Classement() {
       badges: attribuerBadges(affiches.map((c) => c.id), retenues, roster),
       evolution: calculerEvolutionElo(retenues, roster),
     };
-  }, [parties, roster, type, cle, seuil]);
+  }, [parties, roster, vue, type, cle, seuil]);
 
   /** Champions des saisons, de la plus récente à la plus ancienne (pour le palmarès). */
   const champions = useMemo(() => (type ? championsParPeriode(parties, roster, type) : []), [parties, roster, type]);
@@ -103,7 +106,7 @@ export default observer(function Classement() {
   return (
     <Page>
       <Header
-        eyebrow={vue === "general" ? "Classement général" : vue === "mois" ? "Classement mensuel" : "Classement annuel"}
+        eyebrow={{ general: "Classement général", mois: "Classement mensuel", annee: "Classement annuel", soiree: "Classement de la soirée" }[vue]}
         title="Note"
         actions={<GhostLink to="/">Accueil</GhostLink>}
       />
@@ -116,6 +119,10 @@ export default observer(function Classement() {
         ))}
       </div>
 
+      {vue === "soiree" ? (
+        <ClassementSoiree parties={parties} roster={roster} chargement={chargement} />
+      ) : (
+        <>
       {type && cle && (
         <div className="mb-3 flex items-center justify-between gap-2" data-testid="selecteur-periode">
           <GhostButton
@@ -203,6 +210,9 @@ export default observer(function Classement() {
           joueurs={classement.map((c) => ({ id: c.id, nom: c.nom }))}
           evolution={evolution}
         />
+      )}
+
+        </>
       )}
 
       <ExplicationElo />
