@@ -119,7 +119,7 @@ export default observer(function Historique() {
             <GhostButton onClick={() => setTentative((t) => t + 1)}>Réessayer</GhostButton>
           </div>
         )}
-        {record && <ArchiveFeuille record={record} roster={roster} onModifierDonne={surModifierDonne} />}
+        {record && <ArchiveFeuille record={record} roster={roster} onModifierDonne={surModifierDonne} date={resume ? fmtDate(resume.date) : undefined} />}
       </Page>
     );
   }

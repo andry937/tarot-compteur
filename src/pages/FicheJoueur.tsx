@@ -9,6 +9,8 @@ import { useStore } from "@/stores/contexte";
 import { useParams, useNavigate } from "react-router-dom";
 import { resoudreFiche } from "@/domain/joueurs/identite";
 import { calculerStatsJoueur } from "@/domain/stats/stats";
+import { calculerRivalites, bilanRivalites, tauxRivalite, DONNES_RIVALITE_MIN } from "@/domain/stats/rivalites";
+import type { Rivalite } from "@/domain/stats/rivalites";
 import type { Role, StatsJoueur } from "@/domain/stats/stats";
 import { chargerParties } from "@/lib/storage/archives";
 import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "@/domain/score/regles";
@@ -39,6 +41,30 @@ const nomBoutsPrecis = (bouts: Bout[]) => bouts.map((b) => NOM_BOUT[b]).join(", 
 /**
  * Points, rôles, appels réussis et échoués, rois appelés, parties jouées, graphique et note de classement d'un joueur.
  */
+/** Bête noire, victime favorite et bilan contre chaque adversaire assez souvent affronté. */
+function SectionRivalites({ rivalites }: {
+  /** Bilans du joueur contre chacun des autres. */
+  rivalites: Rivalite[];
+}) {
+  const { beteNoire, victime } = bilanRivalites(rivalites);
+  const assez = rivalites
+    .filter((r) => r.donnes >= DONNES_RIVALITE_MIN)
+    .sort((a, b) => tauxRivalite(b) - tauxRivalite(a));
+  if (assez.length === 0) return null;
+  const pct = (r: Rivalite) => `${Math.round(tauxRivalite(r) * 100)}%`;
+  return (
+    <Section title="Rivalités (camps opposés)">
+      {beteNoire && (
+        <RankRow nom={`😤 Bête noire : ${beteNoire.nom}`} meta={`${beteNoire.donnes} donnes contre`} valeur={pct(beteNoire)} negatif />
+      )}
+      {victime && <RankRow nom={`😈 Victime favorite : ${victime.nom}`} meta={`${victime.donnes} donnes contre`} valeur={pct(victime)} />}
+      {assez.map((r) => (
+        <RankRow key={r.adversaireId} nom={r.nom} meta={`${r.donnes} donnes contre`} valeur={pct(r)} negatif={tauxRivalite(r) < 0.5} testId="rivalite-ligne" />
+      ))}
+    </Section>
+  );
+}
+
 export default observer(function FicheJoueur() {
   const store = useStore();
   const { roster } = store.registre;
@@ -47,6 +73,7 @@ export default observer(function FicheJoueur() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<StatsJoueur | null>(null);
   const [elo, setElo] = useState<ClassementElo | null>(null);
+  const [rivalites, setRivalites] = useState<Rivalite[]>([]);
   const [chargement, setChargement] = useState(true);
 
   const ficheFinale = id ? resoudreFiche(id, roster) : null;
@@ -75,6 +102,7 @@ export default observer(function FicheJoueur() {
 
       const classement = calculerClassementElo(toutesLesParties, roster);
       setElo(classement.find((c) => c.id === ficheFinale.id) ?? null);
+      setRivalites(calculerRivalites(ficheFinale.id, toutesLesParties, roster));
 
       setChargement(false);
     })();
@@ -138,6 +166,8 @@ export default observer(function FicheJoueur() {
           )}
 
           <GraphiquePersonnel trajectoire={stats.trajectoire} />
+
+          <SectionRivalites rivalites={rivalites} />
 
           <Section title="Par rôle">
             {(["preneur", "appele", "defense"] as Role[]).map((role) => {
