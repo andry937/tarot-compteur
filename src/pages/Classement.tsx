@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { calculerClassementElo, calculerEvolutionElo } from "@/domain/stats/elo";
 import { attribuerBadges, BADGES } from "@/domain/stats/badges";
 import type { PartieAnalysee } from "@/domain/stats/stats";
@@ -19,6 +19,8 @@ import {
   periodesDisponibles,
 } from "@/domain/stats/periodes";
 import type { TypePeriode } from "@/domain/stats/periodes";
+import type { Soiree } from "@/domain/stats/soirees";
+import { resoudreNom } from "@/domain/joueurs/identite";
 import { chargerParties } from "@/lib/storage/archives";
 import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty, Chip } from "@/components/ui";
@@ -45,9 +47,10 @@ export default observer(function Classement() {
   const { roster } = store.registre;
   const historiqueIndex = store.historique.index;
   const navigate = useNavigate();
+  const location = useLocation();
   const [parties, setParties] = useState<PartieAnalysee[]>([]);
   const [chargement, setChargement] = useState(true);
-  const [vue, setVue] = useState<Vue>("general");
+  const [vue, setVue] = useState<Vue>((location.state as { vue?: Vue } | null)?.vue ?? "general");
   /** Période choisie pour chaque saison (la plus récente par défaut). */
   const [choix, setChoix] = useState<Record<TypePeriode, string | null>>({ mois: null, annee: null });
   const [export_, setExport] = useState<string | null>(null);
@@ -76,6 +79,19 @@ export default observer(function Classement() {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historiqueIndex.length]);
+
+  // Rejoue la cérémonie de la soirée : l'annonce est montée sur sa dernière partie, `Fin` retrouve la soirée par sa date.
+  const animerSoiree = (soiree: Soiree) => {
+    const derniere = soiree.parties[soiree.parties.length - 1];
+    store.afficherAnnonce({
+      donnes: derniere.donnes,
+      joueurs: derniere.joueursId.map((jid) => resoudreNom(jid, roster, "?")),
+      joueursId: derniere.joueursId,
+      nbTotal: derniere.joueursId.length,
+      date: derniere.date,
+    });
+    navigate("/fin", { state: { soireeSeule: true, suite: { vers: "/classement", etat: { vue: "soiree" } } } });
+  };
 
   const type = vue === "mois" || vue === "annee" ? vue : null;
   const periodes = useMemo(() => (type ? periodesDisponibles(parties, type) : []), [parties, type]);
@@ -120,7 +136,7 @@ export default observer(function Classement() {
       </div>
 
       {vue === "soiree" ? (
-        <ClassementSoiree parties={parties} roster={roster} chargement={chargement} />
+        <ClassementSoiree parties={parties} roster={roster} chargement={chargement} onAnimer={animerSoiree} />
       ) : (
         <>
       {type && cle && (

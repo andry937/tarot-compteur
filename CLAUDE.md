@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (342 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (343 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -731,7 +731,7 @@ forment une seule soirée). Date d'une partie = sa date de clôture. Le classeme
 **points de la feuille** de toutes ses parties (fusions résolues, joueurs sans nom écartés), pas la note Weng-Lin.
 L'annonce de fin de partie ajoute, après la cérémonie de la partie, une cérémonie « soirée » (podium cumulé animé,
 « X gagne la soirée ») **seulement si la soirée compte au moins deux parties** — sinon elle ferait doublon. Rien n'est
-stocké. Le podium animé est partagé (`PodiumAnime`).
+stocké. Le podium animé est partagé (`PodiumAnime`). Sur l'onglet « Soirée », le bouton « Voir l'animation de la soirée » monte l'annonce sur la dernière partie de la soirée et ouvre `/fin` avec `state.soireeSeule` : seule la cérémonie de la soirée est jouée (même pour une soirée d'une seule partie) ; « Continuer » ramène sur l'onglet Soirée (`state.vue`).
 
 **Pour remonter** (`domain/stats/remontee.ts`, `components/stats/PourRemonter.tsx`, sous « Classement » de `Feuille`) :
 une partie = 5 donnes par joueur (`DONNES_PAR_JOUEUR`). Dès qu'un joueur non leader en a joué 4, la section donne
