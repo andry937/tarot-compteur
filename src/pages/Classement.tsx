@@ -7,10 +7,11 @@ import { useState, useEffect } from "react";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { useNavigate } from "react-router-dom";
-import { calculerClassementElo } from "@/domain/stats/elo";
-import type { ClassementElo } from "@/domain/stats/elo";
+import { calculerClassementElo, calculerEvolutionElo } from "@/domain/stats/elo";
+import type { ClassementElo, PointEvolution } from "@/domain/stats/elo";
 import { chargerParties } from "@/lib/storage/archives";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty } from "@/components/ui";
+import GraphiqueClassement from "@/components/graphiques/GraphiqueClassement";
 import ExplicationElo from "@/components/stats/ExplicationElo";
 
 /** Nombre de donnes jouées requis pour figurer au classement. */
@@ -23,6 +24,7 @@ export default observer(function Classement() {
   const historiqueIndex = store.historique.index;
   const navigate = useNavigate();
   const [classement, setClassement] = useState<ClassementElo[] | null>(null);
+  const [evolution, setEvolution] = useState<PointEvolution[]>([]);
   const [chargement, setChargement] = useState(true);
   const [export_, setExport] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
@@ -55,6 +57,7 @@ export default observer(function Classement() {
           (c) => c.nom.trim() !== "" && c.nom.trim() !== "∅" && c.matchs >= DONNES_MIN
         )
       );
+      setEvolution(calculerEvolutionElo(parties, roster));
       setChargement(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -83,6 +86,13 @@ export default observer(function Classement() {
             />
           ))}
         </Section>
+      )}
+
+      {!chargement && classement && classement.length > 0 && (
+        <GraphiqueClassement
+          joueurs={classement.slice(0, 8).map((c) => ({ id: c.id, nom: c.nom }))}
+          evolution={evolution}
+        />
       )}
 
       <ExplicationElo />

@@ -10,13 +10,13 @@ import { useStore } from "@/stores/contexte";
 import Tirage from "@/pages/Tirage";
 import Configuration from "@/pages/Configuration";
 import CompositionTable from "@/pages/CompositionTable";
-import Classement from "@/pages/Classement";
 import Tables from "@/pages/Tables";
 
 // Chargées à la demande : ces trois écrans importent Recharts (via
 // GraphiqueComparatif/GraphiquePersonnel), la plus grosse dépendance du
 // bundle — inutile de l'imposer aux écrans qui n'affichent aucun graphique.
 const Historique = lazy(() => import("@/pages/Historique"));
+const Classement = lazy(() => import("@/pages/Classement"));
 const Feuille = lazy(() => import("@/pages/Feuille"));
 const FicheJoueur = lazy(() => import("@/pages/FicheJoueur"));
 // Le suivi caméra embarque le moteur de reconnaissance (onnxruntime) : chargé seulement à l'ouverture de l'écran.

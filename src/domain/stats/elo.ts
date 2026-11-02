@@ -112,6 +112,37 @@ function niveauCamp(joueurs: Niveau[]): { mu: number; sigma2: number; somme2: nu
  * donnes jouées sous une identité fusionnée comptent pour la fiche cible.
  */
 export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]): ClassementElo[] {
+  return rejouer(parties, roster);
+}
+
+/** Note de chaque joueur à la fin d'une partie archivée. */
+export interface PointEvolution {
+  /** Rang de la partie dans l'ordre chronologique (1 = la plus ancienne). */
+  partie: number;
+  /** Date de la partie. */
+  date: string;
+  /** Note de chaque joueur (par id de fiche) ; absent tant qu'il n'a pas joué. */
+  notes: Record<string, number>;
+}
+
+/** Évolution des notes : un point par partie archivée, dans l'ordre chronologique. */
+export function calculerEvolutionElo(parties: PartieAnalysee[], roster: Fiche[]): PointEvolution[] {
+  const points: PointEvolution[] = [];
+  rejouer(parties, roster, (rang, date, niveaux) => {
+    const notes: Record<string, number> = {};
+    niveaux.forEach(({ mu, sigma }, id) => {
+      notes[id] = noteAffichee(mu, sigma);
+    });
+    points.push({ partie: rang, date, notes });
+  });
+  return points;
+}
+
+function rejouer(
+  parties: PartieAnalysee[],
+  roster: Fiche[],
+  apresPartie?: (rang: number, date: string, niveaux: Map<string, Niveau>) => void
+): ClassementElo[] {
   const niveaux = new Map<string, Niveau>();
   const matchs = new Map<string, number>();
 
@@ -122,7 +153,9 @@ export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
+  let rang = 0;
   for (const partie of partiesTriees) {
+    rang++;
     const idsResolus = partie.joueursId.map(idFinal);
     for (const donne of partie.donnes) {
       const res = calculer(donne, partie.joueursId.length);
@@ -176,6 +209,7 @@ export function calculerClassementElo(parties: PartieAnalysee[], roster: Fiche[]
       mettreAJour(attaque, niveauxAttaque, campA, 1, (idx) => (poidsAttaque[idx] * poidsAttaque.length) / sommePoids);
       mettreAJour(defense, niveauxDefense, campD, -1, () => 1);
     }
+    apresPartie?.(rang, partie.date, niveaux);
   }
 
   return [...niveaux.entries()]
