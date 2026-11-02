@@ -84,7 +84,7 @@ interface Critere {
   sens: "max" | "min";
   /** Valeur comparée, ou `null` si le joueur n'a pas assez joué pour concourir. */
   valeur: (m: Mesures) => number | null;
-  /** Valeur à atteindre (≥ pour « max », ≤ pour « min »). */
+  /** Valeur à atteindre (≥ pour « max », ≤ pour « min ») : un plancher de bon sens, pas un niveau absolu — les titres « meilleur… » se jouent entre les joueurs de la table. */
   seuil: number;
   /** Écart minimal avec le deuxième concurrent. */
   ecart: number;
@@ -115,24 +115,24 @@ const CRITERES: Critere[] = [
     badge: "kamikaze",
     sens: "max",
     valeur: (m) => (m.prises >= 5 ? m.grosContrats / m.prises : null),
-    seuil: 0.2,
-    ecart: 0.1,
+    seuil: 0.01,
+    ecart: 0.03,
     detail: (m) => `${m.grosContrats} Garde sans/contre sur ${m.prises} prises`,
   },
   {
     badge: "sniper",
     sens: "max",
     valeur: (m) => (m.prises >= 5 ? m.stats.appelsReussis.length / m.prises : null),
-    seuil: 0.6,
-    ecart: 0.05,
+    seuil: 0,
+    ecart: 0.03,
     detail: (m) => `${pct(m.stats.appelsReussis.length / m.prises)} de contrats réussis (${m.prises} prises)`,
   },
   {
     badge: "maudit",
     sens: "min",
     valeur: (m) => (m.prises >= 5 ? m.stats.appelsReussis.length / m.prises : null),
-    seuil: 0.4,
-    ecart: 0.05,
+    seuil: 1,
+    ecart: 0.03,
     detail: (m) => `${pct(m.stats.appelsReussis.length / m.prises)} de contrats réussis (${m.prises} prises)`,
   },
   {
@@ -142,8 +142,8 @@ const CRITERES: Critere[] = [
       const n = m.stats.parRole.appele.donnes;
       return n >= 5 ? (n - m.stats.parRole.appele.victoires) / n : null;
     },
-    seuil: 0.5,
-    ecart: 0.1,
+    seuil: 0,
+    ecart: 0.05,
     detail: (m) =>
       `contrat chuté ${m.stats.parRole.appele.donnes - m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.appele.donnes} en étant appelé`,
   },
@@ -154,8 +154,8 @@ const CRITERES: Critere[] = [
       const n = m.stats.parRole.appele.donnes;
       return n >= 5 ? m.stats.parRole.appele.victoires / n : null;
     },
-    seuil: 0.7,
-    ecart: 0.1,
+    seuil: 0,
+    ecart: 0.05,
     detail: (m) =>
       `contrat réussi ${m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.appele.donnes} en étant appelé`,
   },
@@ -163,24 +163,24 @@ const CRITERES: Critere[] = [
     badge: "solitaire",
     sens: "max",
     valeur: (m) => (m.prises >= 5 ? m.autoAppels / m.prises : null),
-    seuil: 0.2,
-    ecart: 0.1,
+    seuil: 0.01,
+    ecart: 0.02,
     detail: (m) => `s'est appelé lui-même ${m.autoAppels} fois sur ${m.prises} prises`,
   },
   {
     badge: "parrain",
     sens: "max",
     valeur: (m) => (m.stats.donneesJouees >= DONNES_RECRUE ? m.stats.parRole.appele.donnes / m.stats.donneesJouees : null),
-    seuil: 0.1,
-    ecart: 0.03,
+    seuil: 0.01,
+    ecart: 0.01,
     detail: (m) => `appelé ${m.stats.parRole.appele.donnes} fois sur ${m.stats.donneesJouees} donnes`,
   },
   {
     badge: "petit_malin",
     sens: "max",
     valeur: (m) => (m.stats.donneesJouees >= DONNES_RECRUE ? m.petitsAuBout / m.stats.donneesJouees : null),
-    seuil: 0.04,
-    ecart: 0.01,
+    seuil: 0.003,
+    ecart: 0.003,
     detail: (m) => `${m.petitsAuBout} petits au bout pour son camp`,
   },
   {
@@ -190,8 +190,8 @@ const CRITERES: Critere[] = [
       const n = m.stats.parRole.defense.donnes;
       return n >= 15 ? m.stats.parRole.defense.victoires / n : null;
     },
-    seuil: 0.5,
-    ecart: 0.05,
+    seuil: 0,
+    ecart: 0.02,
     detail: (m) =>
       `a fait chuter l'attaque ${m.stats.parRole.defense.victoires} fois sur ${m.stats.parRole.defense.donnes} en défense`,
   },
@@ -202,8 +202,8 @@ const CRITERES: Critere[] = [
       const n = m.stats.parRole.preneur.donnes + m.stats.parRole.appele.donnes;
       return n >= 15 ? (m.stats.parRole.preneur.victoires + m.stats.parRole.appele.victoires) / n : null;
     },
-    seuil: 0.6,
-    ecart: 0.05,
+    seuil: 0,
+    ecart: 0.02,
     detail: (m) =>
       `contrat réussi ${m.stats.parRole.preneur.victoires + m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.preneur.donnes + m.stats.parRole.appele.donnes} en attaque`,
   },
