@@ -4,6 +4,7 @@
  * @module
  */
 
+import { tableDeLaDonne } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
 import type { Annulation, Partie } from "@/domain/types";
 
@@ -35,7 +36,6 @@ export function permuterSieges(t: TablePermutable, ordre: number[]): TablePermut
       joueursId: ordre.map((a) => t.partie.joueursId[a]),
       joueursNomFige: ordre.map((a) => t.partie.joueursNomFige[a]),
       depart,
-      ordreModifie: true,
     },
     donnes: t.donnes.map((d) => ({
       ...d,
@@ -56,23 +56,29 @@ export function permuterSieges(t: TablePermutable, ordre: number[]): TablePermut
 }
 
 /**
- * Table de la prochaine donne après un changement d'ordre : le donneur (fixé par `depart`) joue,
- * et les joueurs au repos sont ceux qui ont déjà le plus joué, de sorte que chacun finisse le cycle
- * avec le même nombre de donnes (5 chacun à 7 joueurs, 5 par donne). À nombre égal, on épargne
- * celui qui s'est reposé à la donne précédente. Rendue dans l'ordre de jeu, le donneur en premier.
+ * Table de la prochaine donne quand des joueurs sont au repos, calculée d'après l'historique :
+ * le donneur (fixé par `depart`) joue toujours, et les joueurs au repos sont ceux qui ont déjà le
+ * plus joué, de sorte que chacun finisse le cycle avec le même nombre de donnes (5 chacun à
+ * 7 joueurs, 5 par donne). Contrairement à `tableDeLaDonne` (purement positionnelle), elle se
+ * rattrape après un changement d'ordre ou une table modifiée à la main. À nombre égal on épargne
+ * celui qui s'est reposé à la donne précédente, puis on suit les repos positionnels. Rendue dans
+ * l'ordre de jeu, le donneur en premier.
  */
 export function tableEquilibree(donnes: Donne[], total: number, parDonne: number, depart: number): number[] {
   const n = Math.min(parDonne, total);
   const donneur = (depart + donnes.length) % total;
   const dernier = donnes[donnes.length - 1]?.table ?? [];
   const jouees = Array.from({ length: total }, (_, i) => donnes.filter((d) => d.table.includes(i)).length);
+  const positionnelle = tableDeLaDonne(donnes.length, total, parDonne, depart);
+  const dejaRepose = (i: number) => (dernier.length > 0 && !dernier.includes(i) ? 1 : 0);
+  const reposPositionnel = (i: number) => (positionnelle.includes(i) ? 1 : 0);
   const auRepos = new Set(
     Array.from({ length: total }, (_, i) => i)
       .filter((i) => i !== donneur)
       .sort((a, b) => {
         if (jouees[b] !== jouees[a]) return jouees[b] - jouees[a];
-        const dejaRepose = (i: number) => (dernier.length > 0 && !dernier.includes(i) ? 1 : 0);
         if (dejaRepose(a) !== dejaRepose(b)) return dejaRepose(a) - dejaRepose(b);
+        if (reposPositionnel(a) !== reposPositionnel(b)) return reposPositionnel(a) - reposPositionnel(b);
         return ((a - donneur + total) % total) - ((b - donneur + total) % total);
       })
       .slice(0, total - n)

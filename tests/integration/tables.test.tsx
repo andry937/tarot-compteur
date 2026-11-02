@@ -204,6 +204,24 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     expect(screen.getAllByTestId("classement-row").map((r) => r.textContent)).toEqual(classementAvant);
   }, 15000);
 
+  it("la saisie annonce qui sera au repos à la donne suivante", async () => {
+    const sept = ["Andry", "Bob", "Chloé", "Denis", "Eva", "Fara", "Gina"];
+    const ids = ["a", "b", "c", "d", "e", "f", "g"];
+    preseeder([
+      {
+        entree: { id: "t7", date: "2026-02-03T00:00:00.000Z", joueurs: sept, joueursId: ids, parDonne: 5, nbDonnes: 0, totaux: new Array(7).fill(0) },
+        record: { joueursId: ids, joueursNomFige: sept, parDonne: 5, depart: 0, donnes: [], annulations: [] },
+      },
+    ]);
+
+    const u = userEvent.setup();
+    renderApp(["/partie/t7"]);
+    await u.click(await screen.findByRole("button", { name: /Noter la donne 1/ }));
+
+    // Donne 1 : Bob et Fara au repos ; donne 2 (donneur Bob) : Chloé et Gina.
+    expect(screen.getByTestId("repos-suivants")).toHaveTextContent("Donne suivante, au repos : Chloé, Gina");
+  }, 15000);
+
   it("Accueil laisse la table A ouverte sans toucher la table B", async () => {
     preseeder([tableA, tableB]);
 

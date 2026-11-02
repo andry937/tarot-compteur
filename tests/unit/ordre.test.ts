@@ -47,7 +47,7 @@ describe("permuterSieges", () => {
   });
 });
 
-describe("repos équilibré après un changement d'ordre", () => {
+describe("repos équilibré d'après l'historique", () => {
   const TOTAL = 7;
   const PAR_DONNE = 5;
   const vide = (table: number[]) => ({ table, preneur: table[0], appele: null, miseres: [] } as unknown as Donne);
@@ -61,9 +61,7 @@ describe("repos équilibré après un changement d'ordre", () => {
     };
     for (let k = 0; k < TOTAL; k++) {
       if (k === apres) t = permuterSieges(t, ordre);
-      const table = t.partie.ordreModifie
-        ? tableEquilibree(t.donnes, TOTAL, PAR_DONNE, t.partie.depart)
-        : tableDeLaDonne(k, TOTAL, PAR_DONNE, t.partie.depart);
+      const table = tableEquilibree(t.donnes, TOTAL, PAR_DONNE, t.partie.depart);
       t = { ...t, donnes: [...t.donnes, vide(table)] };
     }
     const jouees: Record<string, number> = {};
@@ -92,5 +90,54 @@ describe("repos équilibré après un changement d'ordre", () => {
   it("ne met jamais le donneur au repos", () => {
     const donnes = [vide([0, 1, 2, 3, 4]), vide([1, 2, 3, 4, 5])];
     expect(tableEquilibree(donnes, TOTAL, PAR_DONNE, 0)[0]).toBe(2);
+  });
+});
+
+describe("repos équilibré : parties réelles", () => {
+  const tableSans = (repos: number[], total: number) =>
+    ({ table: Array.from({ length: total }, (_, i) => i).filter((i) => !repos.includes(i)) } as unknown as Donne);
+  const comptes = (donnes: Donne[], total: number) =>
+    Array.from({ length: total }, (_, i) => donnes.filter((d) => d.table.includes(i)).length);
+
+  it("part d'un historique déséquilibré (8 joueurs) : fait jouer les moins servis", () => {
+    // Julie, Fabrice, Fara, Xander, Liantsoa, Koto, Andry, Cedric : Cedric n'a joué que 3 donnes sur 7.
+    const repos = [[5, 6, 7], [2, 5, 7], [0, 3, 6], [1, 4, 7], [0, 2, 5], [1, 3, 6], [2, 4, 7]];
+    const donnes = repos.map((r) => tableSans(r, 8));
+    expect(comptes(donnes, 8)).toEqual([5, 5, 4, 5, 5, 4, 4, 3]);
+    const table = tableEquilibree(donnes, 8, 5, 0);
+    expect(table[0]).toBe(7); // Cedric distribue, donc joue
+    // Les trois moins servis (Fara, Koto, Andry) jouent tous.
+    expect(table).toEqual(expect.arrayContaining([2, 5, 6, 7]));
+    expect(table).toHaveLength(5);
+  });
+
+  it("rattrape un historique déséquilibré : écart d'au plus 1 après quelques cycles", () => {
+    const repos = [[5, 6, 7], [2, 5, 7], [0, 3, 6], [1, 4, 7], [0, 2, 5], [1, 3, 6], [2, 4, 7]];
+    let donnes = repos.map((r) => tableSans(r, 8));
+    for (let k = 7; k < 16; k++) donnes = [...donnes, { table: tableEquilibree(donnes, 8, 5, 0) } as unknown as Donne];
+    expect(comptes(donnes, 8)).toEqual(new Array(8).fill(10));
+  });
+
+  it.each([6, 7, 8, 9, 10])("%i joueurs, depuis zéro : tout le monde joue autant (écart d'au plus 1 en cours de route)", (total) => {
+    let donnes: Donne[] = [];
+    for (let k = 0; k < total * 2; k++) {
+      donnes = [...donnes, { table: tableEquilibree(donnes, total, 5, 0) } as unknown as Donne];
+      const c = comptes(donnes, total);
+      expect(Math.max(...c) - Math.min(...c)).toBeLessThanOrEqual(1);
+    }
+    expect(comptes(donnes, total)).toEqual(new Array(total).fill(10));
+  });
+
+  it("personne ne se repose deux donnes de suite quand on peut l'éviter (7 joueurs)", () => {
+    let donnes: Donne[] = [];
+    for (let k = 0; k < 14; k++) {
+      const table = tableEquilibree(donnes, 7, 5, 0);
+      const dernier = donnes[donnes.length - 1]?.table;
+      if (dernier) {
+        const reposes = [...Array(7).keys()].filter((i) => !table.includes(i));
+        expect(reposes.some((i) => !dernier.includes(i))).toBe(false);
+      }
+      donnes = [...donnes, { table } as unknown as Donne];
+    }
   });
 });
