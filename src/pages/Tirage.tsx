@@ -5,10 +5,14 @@
 
 import { useState } from "react";
 import type { ChoixDonneur } from "@/domain/types";
+import type { BadgeAttribue } from "@/domain/stats/badges";
+import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import { Page, Header, GhostButton, Field, Label, Chip, Cta, Bar } from "@/components/ui";
 
 interface TirageProps {
   joueurs: string[];
+  joueursId: string[];
+  badges?: BadgeAttribue[];
   parDonne: number;
   onValider: (choix: ChoixDonneur) => void;
   onRetour: () => void;
@@ -20,7 +24,7 @@ const btnFleche =
 /**
  * Permet de réordonner les joueurs, de désigner le donneur et, au-delà de `parDonne`, les joueurs au repos pour la première donne.
  */
-export default function Tirage({ joueurs, parDonne, onValider, onRetour }: TirageProps) {
+export default function Tirage({ joueurs, joueursId, badges, parDonne, onValider, onRetour }: TirageProps) {
   const [ordre, setOrdre] = useState<number[]>(() => joueurs.map((_, i) => i));
   const [auRepos, setAuRepos] = useState<number[]>([]);
   const [donneur, setDonneur] = useState(0);
@@ -108,6 +112,8 @@ export default function Tirage({ joueurs, parDonne, onValider, onRetour }: Tirag
           })}
         </div>
       </Field>
+
+      <BadgesJoueurs noms={joueurs} ids={joueursId} badges={badges} enCours />
 
       <div className="mt-5 border-t border-slate-800 pt-4">
         <p className="mb-2 text-sm leading-relaxed text-slate-400">Touchez un joueur pour le désigner donneur.</p>

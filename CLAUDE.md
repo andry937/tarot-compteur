@@ -674,6 +674,18 @@ en deux clics.
   avec cette intégration sur une vraie table (tests : `tests/unit/vision/`, repris de
   `tarot-vision`, et `tests/integration/suivi.test.tsx` avec une fausse caméra).
 
+**Badges de début de partie** (`domain/stats/badges.ts`, `components/badges/BadgesJoueurs.tsx`,
+`RootStore.calculerBadges`/`completerBadgesTable`, `Partie.badges`) : chaque joueur à table peut
+recevoir un titre (Patron, Meneur, Kamikaze, Sniper, Maudit, Pigeon, Solitaire, Parrain, Petit Malin,
+Mur, Mouton, ou Recrue sous 20 donnes) d'après tout l'historique archivé, avec sa preuve en chiffres.
+Calculés **une fois** (`attribuerBadges`, fonction pure, fusions résolues via le roster) puis figés dans
+`Partie.badges` (donc dans `tarot:table:{id}` et dans l'archive). Chaque badge va au meilleur de la table
+seulement s'il passe un seuil et se détache nettement du deuxième ; 2 badges au plus par joueur, dans
+l'ordre de priorité de `CRITERES`. Calcul lancé en arrière-plan par `validerComposition` (affiché sur
+l'écran du donneur dès qu'il arrive), `validerTirage` l'attend. Une table ouverte avant cette
+fonctionnalité (`badges === undefined`) les reçoit à l'ouverture de `/partie/:id`
+(`completerBadgesTable`) ; `[]` signifie « calculés, aucun badge », pas recalculé ensuite.
+
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
 imposant Recharts (de loin la plus grosse dépendance) à *tous* les écrans,

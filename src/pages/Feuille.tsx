@@ -19,6 +19,7 @@ import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";
+import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import ChangerOrdre from "@/components/feuille/ChangerOrdre";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
@@ -109,6 +110,15 @@ export default observer(function Feuille({ partie }: {
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
         )}
       </dl>
+
+      {partie.badges && partie.badges.length > 0 && (
+        <details className="mb-4 rounded-xl border border-slate-800 bg-black/20 px-3.5 py-2.5">
+          <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">
+            Badges de la partie
+          </summary>
+          <BadgesJoueurs noms={partie.joueursNomFige.map((n, i) => joueurs[i] ?? n)} ids={partie.joueursId} badges={partie.badges} />
+        </details>
+      )}
 
       <div className="mb-4">
         <ChangerOrdre

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -267,5 +267,18 @@ describe("Plusieurs tables ouvertes en même temps", () => {
 
     const dump = window.storage.__dump!();
     expect(Object.keys(dump)).not.toContain(CLE_PARTIE);
+  });
+});
+
+describe("Badges d'une table déjà ouverte", () => {
+  it("ajoute les badges (Recrue sans historique) à une table qui n'en a pas, et les conserve ensuite", async () => {
+    preseeder([tableA]);
+    renderApp(["/partie/tA"]);
+    await screen.findByText("Badges de la partie");
+    expect(await screen.findAllByTestId("badge")).toHaveLength(5);
+    await vi.waitFor(() => {
+      const enregistre = JSON.parse(window.storage.__dump!()[cleTable("tA")]) as ArchiveRecord;
+      expect(enregistre.badges).toHaveLength(5);
+    });
   });
 });
