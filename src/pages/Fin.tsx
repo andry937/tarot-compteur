@@ -126,7 +126,7 @@ export default observer(function Fin() {
       )}
 
       {saisons.length > 0 && (
-        <Section title="Saisons en cours">
+        <Section title="Saisons">
           <div className="flex flex-col gap-1 px-1 text-sm text-slate-300" data-testid="annonce-saisons">
             {saisons.map((s) => (
               <span key={s.type}>

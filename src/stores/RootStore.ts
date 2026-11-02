@@ -279,6 +279,11 @@ export class RootStore {
    * retire des tables ouvertes. `false` si l'archivage a échoué — la table
    * reste alors ouverte et active (on ne quitte pas l'écran).
    */
+  /** Prépare l'annonce de fin de partie d'une partie déjà archivée (« Revoir l'annonce »). */
+  afficherAnnonce(annonce: AnnonceFin) {
+    this.annonceFin = annonce;
+  }
+
   /** Oublie l'annonce de fin de partie une fois affichée. */
   effacerAnnonceFin() {
     this.annonceFin = null;
