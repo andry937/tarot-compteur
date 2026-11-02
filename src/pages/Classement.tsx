@@ -9,7 +9,10 @@ import { useStore } from "@/stores/contexte";
 import { useNavigate } from "react-router-dom";
 import { calculerClassementElo, calculerEvolutionElo } from "@/domain/stats/elo";
 import type { ClassementElo, PointEvolution } from "@/domain/stats/elo";
+import { attribuerBadges, BADGES } from "@/domain/stats/badges";
+import type { BadgeAttribue } from "@/domain/stats/badges";
 import { chargerParties } from "@/lib/storage/archives";
+import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import { Page, Header, GhostLink, GhostButton, Section, RankRow, Empty } from "@/components/ui";
 import { GraphiqueClassement } from "@/components/graphiques/paresseux";
 import ExplicationElo from "@/components/stats/ExplicationElo";
@@ -25,6 +28,7 @@ export default observer(function Classement() {
   const navigate = useNavigate();
   const [classement, setClassement] = useState<ClassementElo[] | null>(null);
   const [evolution, setEvolution] = useState<PointEvolution[]>([]);
+  const [badges, setBadges] = useState<BadgeAttribue[]>([]);
   const [chargement, setChargement] = useState(true);
   const [export_, setExport] = useState<string | null>(null);
   const [copie, setCopie] = useState(false);
@@ -52,11 +56,12 @@ export default observer(function Classement() {
       // mais tous pèsent dans le calcul des notes.
       // Les joueurs sans nom (« ∅ », anciens joueurs importés) pèsent dans le calcul
       // des notes des autres mais n'ont pas leur place dans l'affichage du classement.
-      setClassement(
-        calculerClassementElo(parties, roster).filter(
-          (c) => c.nom.trim() !== "" && c.nom.trim() !== "∅" && c.matchs >= DONNES_MIN
-        )
+      const affiches = calculerClassementElo(parties, roster).filter(
+        (c) => c.nom.trim() !== "" && c.nom.trim() !== "∅" && c.matchs >= DONNES_MIN
       );
+      setClassement(affiches);
+      // Badges décernés entre tous les joueurs du classement (et non entre ceux d'une table).
+      setBadges(attribuerBadges(affiches.map((c) => c.id), parties, roster));
       setEvolution(calculerEvolutionElo(parties, roster));
       setChargement(false);
     })();
@@ -79,12 +84,26 @@ export default observer(function Classement() {
             <RankRow
               key={c.id}
               rang={r + 1}
-              nom={c.nom}
+              nom={
+                <>
+                  {c.nom}
+                  <span className="ml-1.5" aria-hidden="true">
+                    {badges.filter((b) => b.joueurId === c.id).map((b) => BADGES[b.badge].emoji).join("")}
+                  </span>
+                </>
+              }
               meta={`${c.matchs} donne${c.matchs > 1 ? "s" : ""}`}
               valeur={c.note}
               onClick={() => navigate(`/joueurs/${c.id}`)}
+              testId="classement-row"
             />
           ))}
+        </Section>
+      )}
+
+      {!chargement && classement && classement.length > 0 && badges.length > 0 && (
+        <Section title="Badges (entre tous les joueurs)">
+          <BadgesJoueurs noms={classement.map((c) => c.nom)} ids={classement.map((c) => c.id)} badges={badges} />
         </Section>
       )}
 
