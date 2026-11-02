@@ -15,6 +15,7 @@ import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
+import RecapSoiree from "@/components/stats/RecapSoiree";
 import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
@@ -268,6 +269,7 @@ export default observer(function Feuille({ partie }: {
       )}
 
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
+      <RecapSoiree donnes={donnes} joueurs={joueurs} joueursId={partie.joueursId} nbTotal={nbTotal} badges={partie.badges} />
       <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
       

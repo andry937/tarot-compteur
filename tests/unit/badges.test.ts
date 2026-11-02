@@ -125,3 +125,15 @@ describe("Meilleur Attaquant", () => {
     expect(r.find((b) => b.badge === "attaquant")?.joueurId).toBe("a");
   });
 });
+
+describe("Seuils sur des données réalistes", () => {
+  it("décerne Meilleur Défenseur même si personne ne fait chuter l'attaque plus d'une fois sur deux", () => {
+    const idsSix = ["a", "b", "c", "d", "e", "f"];
+    const rosterSix: Fiche[] = idsSix.map((id) => ({ id, nom: id, creee: "", actif: true, redirigeVers: null }));
+    // L'attaque réussit en général : f défend et fait chuter 18 fois sur 40 (45 %), e 10 fois sur 40 (25 %), c et d 28 sur 80 (35 %).
+    const avecF = [...donnes(18, { points: 30, table: [0, 1, 2, 3, 5] }), ...donnes(22, { points: 70, table: [0, 1, 2, 3, 5] })];
+    const avecE = [...donnes(10, { points: 30, table: [0, 1, 2, 3, 4] }), ...donnes(30, { points: 70, table: [0, 1, 2, 3, 4] })];
+    const p: PartieAnalysee = { archiveId: "p1", date: "2026-01-01T00:00:00.000Z", joueursId: idsSix, donnes: [...avecF, ...avecE] };
+    expect(attribuerBadges(idsSix, [p], rosterSix).find((b) => b.badge === "mur")?.joueurId).toBe("f");
+  });
+});
