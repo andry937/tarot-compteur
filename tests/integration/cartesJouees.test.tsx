@@ -35,7 +35,8 @@ const lire = () => JSON.parse(window.storage.__dump!()[cleTable("tA")]) as Archi
 
 /** Feuille → « Noter la donne N » → bouton « Cartes jouées » du formulaire. */
 async function ouvrirCartes(u: ReturnType<typeof userEvent.setup>, n = 1) {
-  await u.click(await screen.findByRole("button", { name: new RegExp(`Noter la donne ${n}`) }));
+  // Le 1er rendu charge l'écran de la feuille à la demande (React.lazy) : plus d'une seconde sous charge.
+  await u.click(await screen.findByRole("button", { name: new RegExp(`Noter la donne ${n}`) }, { timeout: 5000 }));
   await u.click(screen.getByTestId("ouvrir-cartes"));
   await screen.findByText("Cartes jouées", { selector: "h1" });
 }

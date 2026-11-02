@@ -687,6 +687,10 @@ deuxième ; un joueur peut cumuler plusieurs badges (Recrue excepté, exclusif).
 arrière-plan par `validerComposition` (affiché sur l'écran du donneur dès qu'il arrive), `validerTirage`
 l'attend. Une table créée avant cette fonctionnalité reçoit les siens à sa prochaine ouverture ; `[]`
 signifie « calculés, aucun badge ».
+**Au classement général** (`pages/Classement.tsx`) : les mêmes `attribuerBadges`, mais décernés entre
+**tous les joueurs du classement** (ceux qui ont au moins `DONNES_MIN` donnes) et non entre ceux d'une table,
+recalculés à chaque affichage ; pictogrammes à côté du nom sur chaque ligne et section « Badges (entre tous
+les joueurs) » avec la preuve en chiffres.
 
 **Roi au chien** (`Donne.roiAuChien`, `Saisie.tsx`, `domain/stats/elo.ts::FACTEUR_ROI_AU_CHIEN`) : case
 « Le roi était dans le chien » sous le sélecteur « Roi appelé » (5 joueurs, une fois le roi choisi).
