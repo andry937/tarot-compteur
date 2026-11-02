@@ -16,6 +16,7 @@ import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
 import RecapSoiree from "@/components/stats/RecapSoiree";
+import PourRemonter from "@/components/stats/PourRemonter";
 import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
@@ -271,6 +272,7 @@ export default observer(function Feuille({ partie }: {
         </Section>
       )}
 
+      <PourRemonter donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} prochaineTable={prochaine} />
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
       <RecapSoiree donnes={donnes} joueurs={joueurs} joueursId={partie.joueursId} nbTotal={nbTotal} badges={partie.badges} />
       <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />

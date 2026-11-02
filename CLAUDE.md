@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (321 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (330 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -68,6 +68,7 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     stats/stats.ts          statistiques par joueur (+ `trajectoire`)
     stats/statsPartie.ts    statistiques sur les donnes d'une seule partie
     stats/elo.ts            classement général (Weng-Lin/OpenSkill), recalculé à la volée
+    stats/remontee.ts       « Pour remonter » : écart et contrat à tenter à la dernière donne (4 jouées sur 5)
     stats/periodes.ts       saisons : classements mensuel/annuel, champions par période
   lib/
     firebase.ts             initialisation Firebase (`auth` = null sans VITE_FIREBASE_API_KEY)
@@ -721,6 +722,14 @@ palmarès « Champions des mois/années » (`championsParPeriode`). Rien n'est s
 « Clôturer »/« Rejouer » naviguent vers `/fin` (podium animé — keyframes `apparition` de `tailwind.config.js`,
 récap partageable, leaders du mois et de l'année) ; « Continuer » efface l'annonce puis va à `/` ou, après
 « Rejouer », à la composition (état passé via `location.state.suite`). Sans annonce, `/fin` redirige vers `/`.
+
+**Pour remonter** (`domain/stats/remontee.ts`, `components/stats/PourRemonter.tsx`, sous « Classement » de `Feuille`) :
+une partie = 5 donnes par joueur (`DONNES_PAR_JOUEUR`). Dès qu'un joueur non leader en a joué 4, la section donne
+son écart avec le joueur juste devant et avec le leader, et le contrat le plus modeste qui le ferait passer
+devant à sa dernière donne, avec les points à réaliser. Simulé via `resumerDonnees` (donc `calculer()`, aucun
+barème recopié) : preneur, 2 bouts, sans prime, cible en défense, appelé = un autre joueur ; contrat raisonnable
+= au plus 15 points au-dessus du seuil, sinon le moins exigeant (marqué « audacieux »), sinon « hors de portée ».
+Joueur au repos à la prochaine donne : écart seulement. Rien n'est stocké.
 
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
