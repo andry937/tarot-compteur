@@ -54,14 +54,17 @@ export default observer(function Feuille({ partie }: {
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
   const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {
-    if (await store.cloturerPartie()) navigate("/");
+    if (await store.cloturerPartie()) navigate(store.annonceFin ? "/fin" : "/");
   });
 
   // « Rejouer » : clôture cette table (les joueurs ne peuvent pas être assis à deux
   // tables) puis ouvre la composition d'une nouvelle table avec les mêmes joueurs.
   const { enAttente: confirmerRejouer, declencher: surRejouer } = useConfirmation(async () => {
     const composition = { noms: joueurs, parDonne };
-    if (await store.cloturerPartie()) navigate("/composition", { state: composition });
+    if (!(await store.cloturerPartie())) return;
+    // L'annonce de fin de partie s'affiche d'abord ; « Continuer » mène ensuite à la composition.
+    if (store.annonceFin) navigate("/fin", { state: { suite: { vers: "/composition", etat: composition } } });
+    else navigate("/composition", { state: composition });
   });
 
   const classement = joueurs

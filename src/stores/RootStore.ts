@@ -11,7 +11,7 @@ import { sansDoublons, chargerParties } from "@/lib/storage/archives";
 import { attribuerBadges } from "@/domain/stats/badges";
 import type { BadgeAttribue } from "@/domain/stats/badges";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleTable, lireJson } from "@/lib/storage/stockage";
-import type { Partie, ChoixDonneur, TirageEnCours, HistoriqueEntree, ArchiveRecord } from "@/domain/types";
+import type { Partie, ChoixDonneur, TirageEnCours, HistoriqueEntree, ArchiveRecord, AnnonceFin } from "@/domain/types";
 import { RegistreStore } from "@/stores/RegistreStore";
 import { HistoriqueStore } from "@/stores/HistoriqueStore";
 import { TableStore } from "@/stores/TableStore";
@@ -73,6 +73,8 @@ export class RootStore {
   tablesIndex: HistoriqueEntree[] = [];
   /** Tirage du donneur en cours — jamais persisté. */
   tirage: TirageEnCours | null = null;
+  /** Dernière partie clôturée, pour l'écran d'annonce de fin de partie — jamais persistée. */
+  annonceFin: AnnonceFin | null = null;
 
   private chargementLance = false;
   private badgesEnAttente: Promise<void> | null = null;
@@ -90,6 +92,7 @@ export class RootStore {
         badgesEnAttente: false,
         tablesIndex: observable.ref,
         tirage: observable.ref,
+        annonceFin: observable.ref,
       },
       { autoBind: true }
     );
@@ -276,6 +279,11 @@ export class RootStore {
    * retire des tables ouvertes. `false` si l'archivage a échoué — la table
    * reste alors ouverte et active (on ne quitte pas l'écran).
    */
+  /** Oublie l'annonce de fin de partie une fois affichée. */
+  effacerAnnonceFin() {
+    this.annonceFin = null;
+  }
+
   async cloturerPartie(): Promise<boolean> {
     const t = this.table;
     const id = t.id;
@@ -303,6 +311,15 @@ export class RootStore {
           );
           return false;
         }
+        const annonce: AnnonceFin = {
+          donnes: t.donnes,
+          joueurs: t.joueurs,
+          joueursId: t.partie.joueursId,
+          nbTotal: t.nbTotal,
+          badges: t.partie.badges,
+          date: resume.date,
+        };
+        runInAction(() => (this.annonceFin = annonce));
       }
       try {
         await window.storage.delete(cleTable(id));

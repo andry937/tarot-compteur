@@ -149,6 +149,10 @@ describe("Plusieurs tables ouvertes en même temps", () => {
     await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
+    // L'annonce de fin de partie s'affiche d'abord ; « Continuer » ramène à la liste.
+    await screen.findByTestId("annonce-vainqueur");
+    await u.click(screen.getByRole("button", { name: "Continuer" }));
+
     // De retour à la liste : table A archivée et disparue, table B toujours ouverte.
     await screen.findByText("Feuille de marque");
     expect(screen.queryByText("Andry, Bob, Chloé, Denis, Eva")).not.toBeInTheDocument();
@@ -170,6 +174,9 @@ describe("Plusieurs tables ouvertes en même temps", () => {
 
     await u.click(screen.getByRole("button", { name: "Rejouer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
+
+    await screen.findByTestId("annonce-vainqueur");
+    await u.click(screen.getByRole("button", { name: "Continuer" }));
 
     await screen.findByText("Composer la table");
     const champs = screen.getAllByTestId("champ-nom").map((c) => c.querySelector("input")!.value);

@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (261 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (321 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -68,6 +68,7 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     stats/stats.ts          statistiques par joueur (+ `trajectoire`)
     stats/statsPartie.ts    statistiques sur les donnes d'une seule partie
     stats/elo.ts            classement général (Weng-Lin/OpenSkill), recalculé à la volée
+    stats/periodes.ts       saisons : classements mensuel/annuel, champions par période
   lib/
     firebase.ts             initialisation Firebase (`auth` = null sans VITE_FIREBASE_API_KEY)
     storage/stockage.ts     clés de persistance, CleIntrouvable, lireJson
@@ -709,6 +710,17 @@ sous/au-dessus de 50 %. *Récap* : podium, dernier, plus grosse donne, pire chut
 (plus fort multiplicateur réussi), « le plus de chutes » (≥ 2), réussis/chutés ; bouton « Partager le
 récap » (`navigator.share`, sinon presse-papier, sinon zone de texte à sélectionner), avec les badges de
 la table. Affiché sur la feuille en cours et dans l'archive (titre daté).
+
+**Saisons et annonce de fin de partie** (`domain/stats/periodes.ts`, `pages/Classement.tsx`, `pages/Fin.tsx`,
+`RootStore.annonceFin`) : `/classement` a trois onglets, Général (inchangé, seuil `DONNES_MIN` = 50), Mensuel
+(seuil 10) et Annuel (seuil 30, `DONNES_MIN_PERIODE`). Une saison **repart de zéro** : on ne rejoue que les
+parties archivées de la période (`partiesDeLaPeriode`, date de clôture en heure locale), badges et graphique
+suivent la période affichée ; flèches ←/→ pour parcourir les périodes (la courante est toujours proposée) et
+palmarès « Champions des mois/années » (`championsParPeriode`). Rien n'est stocké. **Annonce de fin de partie** :
+`cloturerPartie` fige les donnes dans `RootStore.annonceFin` (jamais persisté) avant de supprimer la table, et
+« Clôturer »/« Rejouer » naviguent vers `/fin` (podium animé — keyframes `apparition` de `tailwind.config.js`,
+récap partageable, leaders du mois et de l'année) ; « Continuer » efface l'annonce puis va à `/` ou, après
+« Rejouer », à la composition (état passé via `location.state.suite`). Sans annonce, `/fin` redirige vers `/`.
 
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
