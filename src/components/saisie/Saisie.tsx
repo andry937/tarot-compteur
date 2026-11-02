@@ -114,7 +114,7 @@ export default function Saisie({
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/80 sm:items-center sm:p-4" onClick={onFermer}>
       <div
-        className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl border-t-2 border-amber-400 bg-slate-900 p-4 pb-56 sm:max-w-lg sm:rounded-2xl sm:border sm:border-slate-800 sm:border-t-2 sm:pb-8"
+        className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl border-t-2 border-amber-400 bg-slate-900 p-4 sm:max-w-lg sm:rounded-2xl sm:border sm:border-slate-800 sm:border-t-2"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
@@ -310,7 +310,7 @@ export default function Saisie({
 
         <DeclarationsMiseres miseres={miseres} table={table} joueurs={joueurs} onChange={setMiseres} />
 
-        <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur sm:absolute sm:rounded-b-2xl">
+        <div className="sticky bottom-0 -mx-4 -mb-4 mt-4 border-t border-slate-800 bg-slate-900/95 px-4 py-3 backdrop-blur sm:rounded-b-2xl">
           <div className="mx-auto max-w-lg">
             {complete ? (
               <>
