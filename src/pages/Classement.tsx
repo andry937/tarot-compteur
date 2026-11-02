@@ -90,7 +90,7 @@ export default observer(function Classement() {
 
       {!chargement && classement && classement.length > 0 && (
         <GraphiqueClassement
-          joueurs={classement.slice(0, 8).map((c) => ({ id: c.id, nom: c.nom }))}
+          joueurs={classement.map((c) => ({ id: c.id, nom: c.nom }))}
           evolution={evolution}
         />
       )}

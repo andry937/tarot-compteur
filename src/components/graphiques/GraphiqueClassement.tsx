@@ -3,9 +3,10 @@
  * @module
  */
 
+import { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import type { PointEvolution } from "@/domain/stats/elo";
-import { Section } from "@/components/ui";
+import { Section, Chip } from "@/components/ui";
 
 interface GraphiqueClassementProps {
   /** Joueurs à tracer (ceux du classement), dans l'ordre du classement. */
@@ -22,7 +23,14 @@ const COULEURS = [
 /** Note de chaque joueur du classement après chaque partie archivée. Un joueur
  * n'a pas de point tant qu'il n'a pas joué. */
 export default function GraphiqueClassement({ joueurs, evolution }: GraphiqueClassementProps) {
+  const [masques, setMasques] = useState<Set<string>>(new Set());
   if (joueurs.length === 0 || evolution.length < 2) return null;
+  const basculer = (id: string) =>
+    setMasques((m) => {
+      const n = new Set(m);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
   const data = evolution.map((p) => {
     const point: Record<string, number> = { partie: p.partie };
     joueurs.forEach((j) => {
@@ -33,6 +41,20 @@ export default function GraphiqueClassement({ joueurs, evolution }: GraphiqueCla
 
   return (
     <Section title="Évolution des notes">
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {joueurs.map((j, i) => (
+          <Chip
+            key={j.id}
+            on={!masques.has(j.id)}
+            onClick={() => basculer(j.id)}
+            className="!py-1 !text-xs"
+            data-testid="graphique-classement-joueur"
+          >
+            <span className="mr-1.5 inline-block h-2 w-2 rounded-full" style={{ background: COULEURS[i % COULEURS.length] }} />
+            {j.nom}
+          </Chip>
+        ))}
+      </div>
       <div className="h-64 w-full sm:h-72" data-testid="graphique-classement">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
@@ -49,7 +71,7 @@ export default function GraphiqueClassement({ joueurs, evolution }: GraphiqueCla
               labelFormatter={(v) => `Partie ${v}`}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            {joueurs.map((j, i) => (
+            {joueurs.map((j, i) => masques.has(j.id) ? null : (
               <Line
                 key={j.id}
                 type="monotone"

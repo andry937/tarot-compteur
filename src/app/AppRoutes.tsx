@@ -7,14 +7,13 @@ import { lazy, Suspense, useEffect } from "react";
 import { Routes, Route, Navigate, useParams, useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
-import Tirage from "@/pages/Tirage";
-import Configuration from "@/pages/Configuration";
-import CompositionTable from "@/pages/CompositionTable";
 import Tables from "@/pages/Tables";
 
-// Chargées à la demande : ces trois écrans importent Recharts (via
-// GraphiqueComparatif/GraphiquePersonnel), la plus grosse dépendance du
-// bundle — inutile de l'imposer aux écrans qui n'affichent aucun graphique.
+// Chargées à la demande : tout sauf l'accueil (`Tables`). Les écrans à graphiques
+// importent Recharts, la plus grosse dépendance du bundle.
+const Tirage = lazy(() => import("@/pages/Tirage"));
+const Configuration = lazy(() => import("@/pages/Configuration"));
+const CompositionTable = lazy(() => import("@/pages/CompositionTable"));
 const Historique = lazy(() => import("@/pages/Historique"));
 const Classement = lazy(() => import("@/pages/Classement"));
 const Feuille = lazy(() => import("@/pages/Feuille"));
