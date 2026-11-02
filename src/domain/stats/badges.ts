@@ -155,7 +155,7 @@ const CRITERES: Critere[] = [
       return n >= 5 ? m.stats.parRole.appele.victoires / n : null;
     },
     seuil: 0,
-    ecart: 0.05,
+    ecart: 0.03,
     detail: (m) =>
       `contrat réussi ${m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.appele.donnes} en étant appelé`,
   },
@@ -191,7 +191,7 @@ const CRITERES: Critere[] = [
       return n >= 15 ? m.stats.parRole.defense.victoires / n : null;
     },
     seuil: 0,
-    ecart: 0.02,
+    ecart: 0.01,
     detail: (m) =>
       `a fait chuter l'attaque ${m.stats.parRole.defense.victoires} fois sur ${m.stats.parRole.defense.donnes} en défense`,
   },

@@ -137,3 +137,13 @@ describe("Seuils sur des données réalistes", () => {
     expect(attribuerBadges(idsSix, [p], rosterSix).find((b) => b.badge === "mur")?.joueurId).toBe("f");
   });
 });
+
+describe("Écarts réalistes (taux voisins sur beaucoup de donnes)", () => {
+  it("décerne Meilleur Ami avec 4 points d'avance (76 % contre 72 %)", () => {
+    // a prend toujours ; b est appelé 25 fois (19 réussites), c 25 fois (18 réussites).
+    const avecB = [...donnes(19, { preneur: 0, appele: 1, points: 70 }), ...donnes(6, { preneur: 0, appele: 1, points: 30 })];
+    const avecC = [...donnes(18, { preneur: 0, appele: 2, points: 70 }), ...donnes(7, { preneur: 0, appele: 2, points: 30 })];
+    const r = attribuerBadges(ids, [partie(1, [...avecB, ...avecC])], roster);
+    expect(r.find((b) => b.badge === "meilleur_ami")?.joueurId).toBe("b");
+  });
+});
