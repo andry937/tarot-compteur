@@ -21,6 +21,22 @@ export interface Partie {
   badges?: BadgeAttribue[];
 }
 
+/** Données figées d'une partie qui vient d'être clôturée, pour l'écran d'annonce de fin de partie (`/fin`). */
+export interface AnnonceFin {
+  /** Donnes de la partie. */
+  donnes: Donne[];
+  /** Noms par siège. */
+  joueurs: string[];
+  /** Identifiants par siège. */
+  joueursId: string[];
+  /** Joueurs de la table, repos compris. */
+  nbTotal: number;
+  /** Badges de la partie, s'ils étaient calculés. */
+  badges?: BadgeAttribue[];
+  /** Date de clôture (ISO). */
+  date: string;
+}
+
 /** Table en cours de composition, avant l'ouverture de la feuille (jamais persistée). */
 export interface TirageEnCours {
   /** Identifiant de la future table. */

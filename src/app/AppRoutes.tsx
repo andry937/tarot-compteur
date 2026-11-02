@@ -16,6 +16,7 @@ const Configuration = lazy(() => import("@/pages/Configuration"));
 const CompositionTable = lazy(() => import("@/pages/CompositionTable"));
 const Historique = lazy(() => import("@/pages/Historique"));
 const Classement = lazy(() => import("@/pages/Classement"));
+const Fin = lazy(() => import("@/pages/Fin"));
 const Feuille = lazy(() => import("@/pages/Feuille"));
 const FicheJoueur = lazy(() => import("@/pages/FicheJoueur"));
 // Le suivi caméra embarque le moteur de reconnaissance (onnxruntime) : chargé seulement à l'ouverture de l'écran.
@@ -87,7 +88,7 @@ const RouteSuivi = observer(function RouteSuivi() {
 });
 
 /**
- * Routes : `/` (tables ouvertes), `/composition`, `/tirage/:id`, `/partie/:id`, `/partie/:id/suivi`, `/joueurs`, `/joueurs/:id`, `/historique`, `/historique/:id`, `/classement`. Toute autre adresse redirige vers `/`.
+ * Routes : `/` (tables ouvertes), `/composition`, `/tirage/:id`, `/partie/:id`, `/partie/:id/suivi`, `/joueurs`, `/joueurs/:id`, `/historique`, `/historique/:id`, `/classement`, `/fin`. Toute autre adresse redirige vers `/`.
  */
 export default function AppRoutes() {
   return (
@@ -101,6 +102,7 @@ export default function AppRoutes() {
         <Route path="/composition" element={<CompositionTable />} />
         <Route path="/tirage/:id" element={<RouteTirage />} />
         <Route path="/partie/:id" element={<RoutePartie />} />
+        <Route path="/fin" element={<Fin />} />
         <Route path="/partie/:id/suivi" element={<RouteSuivi />} />
         <Route path="/" element={<Tables />} />
         <Route path="*" element={<Navigate to="/" replace />} />

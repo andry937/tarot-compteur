@@ -203,7 +203,9 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
-    // De retour à la liste des tables, l'historique affiche 1 partie
+    // Annonce de fin de partie, puis retour à la liste des tables : l'historique affiche 1 partie
+    await screen.findByTestId("annonce-vainqueur");
+    await u.click(screen.getByRole("button", { name: "Continuer" }));
     await screen.findByRole("link", { name: /Historique \(1\)/ });
     await u.click(screen.getByRole("link", { name: /Historique \(1\)/ }));
 
@@ -288,6 +290,7 @@ describe("Parcours d'une partie de bout en bout", () => {
     await u.click(screen.getByRole("button", { name: "Clôturer" }));
     await u.click(screen.getByRole("button", { name: "Confirmer ?" }));
 
+    await u.click(await screen.findByRole("button", { name: "Continuer" }));
     await u.click(await screen.findByRole("link", { name: /Historique \(1\)/ }));
     await u.click(await screen.findByTestId("archive-row"));
 

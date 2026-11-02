@@ -16,6 +16,7 @@ import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
 import RecapSoiree from "@/components/stats/RecapSoiree";
+import PourRemonter from "@/components/stats/PourRemonter";
 import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import { entameDeLaDonne } from "@/domain/cartes/cartes";
 import JournalPlis from "@/components/cartes/JournalPlis";
@@ -54,14 +55,17 @@ export default observer(function Feuille({ partie }: {
   const auRepos = joueurs.map((_, i) => i).filter((i) => !prochaine.includes(i));
 
   const { enAttente: confirmerCloture, declencher: surCloturer } = useConfirmation(async () => {
-    if (await store.cloturerPartie()) navigate("/");
+    if (await store.cloturerPartie()) navigate(store.annonceFin ? "/fin" : "/");
   });
 
   // « Rejouer » : clôture cette table (les joueurs ne peuvent pas être assis à deux
   // tables) puis ouvre la composition d'une nouvelle table avec les mêmes joueurs.
   const { enAttente: confirmerRejouer, declencher: surRejouer } = useConfirmation(async () => {
     const composition = { noms: joueurs, parDonne };
-    if (await store.cloturerPartie()) navigate("/composition", { state: composition });
+    if (!(await store.cloturerPartie())) return;
+    // L'annonce de fin de partie s'affiche d'abord ; « Continuer » mène ensuite à la composition.
+    if (store.annonceFin) navigate("/fin", { state: { suite: { vers: "/composition", etat: composition } } });
+    else navigate("/composition", { state: composition });
   });
 
   const classement = joueurs
@@ -268,6 +272,7 @@ export default observer(function Feuille({ partie }: {
         </Section>
       )}
 
+      <PourRemonter donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} prochaineTable={prochaine} />
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
       <RecapSoiree donnes={donnes} joueurs={joueurs} joueursId={partie.joueursId} nbTotal={nbTotal} badges={partie.badges} />
       <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
