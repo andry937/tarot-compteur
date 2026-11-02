@@ -103,7 +103,7 @@ describe("Classement par soirée", () => {
     monter("/classement");
     const u = userEvent.setup();
     await u.click(await screen.findByRole("button", { name: "Soirée" }));
-    await u.click(await screen.findByRole("button", { name: /Voir l'animation de la soirée/ }));
+    await u.click(await screen.findByRole("button", { name: /Remise des prix de la soirée/ }));
 
     const soiree = await screen.findByTestId("annonce-soiree");
     expect(soiree).toHaveTextContent("Andry gagne la soirée");
@@ -113,5 +113,38 @@ describe("Classement par soirée", () => {
 
     await u.click(screen.getByRole("button", { name: "Continuer" }));
     expect(await screen.findByTestId("soiree-courante")).toBeInTheDocument();
+  }, 15000);
+
+  it("ajoute les badges de la soirée à la cérémonie, sans « Recrue »", async () => {
+    // Andry prend 40 Garde contre réussies, Bob 20 Petites qui chutent, répartis sur deux parties de la même soirée.
+    const gc = (): Donne => ({ ...donne(0), appele: 2, contrat: "garde_contre", points: 70 });
+    const pc = (): Donne => ({ ...donne(1), appele: 3, contrat: "petite", points: 30 });
+    const moitie = [...Array.from({ length: 20 }, gc), ...Array.from({ length: 10 }, pc)];
+    const specs = [
+      { id: "b1", date: new Date(maintenant - 3 * heure).toISOString(), donnes: moitie },
+      { id: "b2", date: new Date(maintenant).toISOString(), donnes: moitie },
+    ];
+    const index: HistoriqueEntree[] = specs.map((sp) => ({
+      id: sp.id, date: sp.date, joueurs: noms, joueursId: ids, parDonne: 5, nbDonnes: sp.donnes.length, totaux: [0, 0, 0, 0, 0],
+    }));
+    window.storage.__seed!("tarot:joueurs:v2", roster);
+    window.storage.__seed!("tarot:historique", index);
+    for (const sp of specs) {
+      const record: ArchiveRecord = { joueursId: ids, joueursNomFige: noms, parDonne: 5, depart: 0, donnes: sp.donnes, annulations: [] };
+      window.storage.__seed!(cleArchive(sp.id), record);
+    }
+    render(
+      <MemoryRouter initialEntries={["/historique/b2"]}>
+        <App />
+      </MemoryRouter>
+    );
+    const u = userEvent.setup();
+    await screen.findByText("Classement final");
+    await u.click(screen.getByRole("button", { name: "Revoir l'annonce" }));
+
+    const bloc = await screen.findByTestId("annonce-soiree-badges");
+    expect(bloc).toHaveTextContent("Badges de la soirée");
+    expect(bloc.querySelectorAll('[data-testid="badge"]').length).toBeGreaterThan(0);
+    expect(bloc).not.toHaveTextContent("Recrue");
   }, 15000);
 });

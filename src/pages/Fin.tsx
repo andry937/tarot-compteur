@@ -13,6 +13,9 @@ import { calculerRecap } from "@/domain/stats/recap";
 import { classementPeriode, clePeriode, libellePeriode } from "@/domain/stats/periodes";
 import type { TypePeriode } from "@/domain/stats/periodes";
 import type { ClassementElo } from "@/domain/stats/elo";
+import { attribuerBadges } from "@/domain/stats/badges";
+import type { BadgeAttribue } from "@/domain/stats/badges";
+import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import { classementSoiree, grouperSoirees, libelleSoiree, soireeDeLaPartie } from "@/domain/stats/soirees";
 import type { LigneSoiree } from "@/domain/stats/soirees";
 import { chargerParties } from "@/lib/storage/archives";
@@ -45,7 +48,7 @@ export default observer(function Fin() {
   const soireeSeule = !!etatNav?.soireeSeule;
   const [saisons, setSaisons] = useState<LeaderSaison[]>([]);
   /** Soirée de la partie, seulement si elle compte au moins deux parties (sinon elle ferait doublon). */
-  const [soiree, setSoiree] = useState<{ libelle: string; nbParties: number; lignes: LigneSoiree[] } | null>(null);
+  const [soiree, setSoiree] = useState<{ libelle: string; nbParties: number; lignes: LigneSoiree[]; badges: BadgeAttribue[] } | null>(null);
 
   useEffect(() => {
     if (!annonce) return;
@@ -64,11 +67,14 @@ export default observer(function Fin() {
         const s = soireeDeLaPartie(grouperSoirees(parties), annonce.date);
         if (actif) {
           setSaisons(trouves);
-          setSoiree(
-            s && (s.parties.length > 1 || soireeSeule)
-              ? { libelle: libelleSoiree(s), nbParties: s.parties.length, lignes: classementSoiree(s, roster) }
-              : null
-          );
+          if (s && (s.parties.length > 1 || soireeSeule)) {
+            const lignes = classementSoiree(s, roster);
+            // Badges décernés entre les joueurs de la soirée d'après ses seules parties ; « Recrue » n'aurait pas de sens ici.
+            const badges = attribuerBadges(lignes.map((l) => l.id), s.parties, roster).filter((b) => b.badge !== "recrue");
+            setSoiree({ libelle: libelleSoiree(s), nbParties: s.parties.length, lignes, badges });
+          } else {
+            setSoiree(null);
+          }
         }
       } catch (e) {
         console.error("Saisons indisponibles", e); // l'annonce reste complète sans elles
@@ -128,6 +134,12 @@ export default observer(function Fin() {
             🌙 <span className="text-amber-400">{soiree.lignes[0].nom}</span> gagne la soirée
           </p>
           <PodiumAnime lignes={soiree.lignes} delai={d0 + 0.8} testId="annonce-soiree-podium" />
+          {soiree.badges.length > 0 && (
+            <div className="animate-apparition mt-6 text-left" style={{ animationDelay: `${d0 + 2.6}s` }} data-testid="annonce-soiree-badges">
+              <p className="text-center font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400">Badges de la soirée</p>
+              <BadgesJoueurs noms={soiree.lignes.map((l) => l.nom)} ids={soiree.lignes.map((l) => l.id)} badges={soiree.badges} />
+            </div>
+          )}
         </div>
       )}
 
