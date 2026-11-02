@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculerClassementElo, calculerEvolutionElo, MU_DEPART, SIGMA_DEPART, noteAffichee, niveauDeNote } from "@/domain/stats/elo";
+import { calculerClassementElo, calculerEvolutionElo, FACTEUR_ROI_AU_CHIEN, MU_DEPART, SIGMA_DEPART, noteAffichee, niveauDeNote } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
 import type { Donne } from "@/domain/score/regles";
 import type { PartieAnalysee } from "@/domain/stats/stats";
@@ -230,5 +230,29 @@ describe("calculerEvolutionElo", () => {
     expect(evo.map((e) => e.partie)).toEqual([1, 2]);
     const final = calculerClassementElo([p2, p1], rosterDe(4));
     for (const c of final) expect(evo[1].notes[c.id]).toBe(c.note);
+  });
+});
+
+describe("Roi au chien", () => {
+  const gain = (roiAuChien: boolean) => {
+    const d: Donne = { ...donneBase, table: [0, 1, 2, 3, 4], appele: null, roiAppele: "coeur", points: 70, roiAuChien: roiAuChien ? true : undefined };
+    return calculerClassementElo([partie(ids(5), [d])], rosterDe(5)).find((c) => c.id === "a")!.mu - MU_DEPART;
+  };
+
+  it("réduit de moitié le gain de note du preneur sans changer son signe", () => {
+    const normal = gain(false);
+    const auChien = gain(true);
+    expect(normal).toBeGreaterThan(0);
+    expect(auChien).toBeGreaterThan(0);
+    expect(auChien).toBeCloseTo(normal * FACTEUR_ROI_AU_CHIEN, 6);
+  });
+
+  it("atténue aussi la perte quand le preneur chute", () => {
+    const perte = (roiAuChien: boolean) => {
+      const d: Donne = { ...donneBase, table: [0, 1, 2, 3, 4], appele: null, roiAppele: "coeur", points: 30, roiAuChien: roiAuChien ? true : undefined };
+      return calculerClassementElo([partie(ids(5), [d])], rosterDe(5)).find((c) => c.id === "a")!.mu - MU_DEPART;
+    };
+    expect(perte(false)).toBeLessThan(0);
+    expect(perte(true)).toBeCloseTo(perte(false) * FACTEUR_ROI_AU_CHIEN, 6);
   });
 });

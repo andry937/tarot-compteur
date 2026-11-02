@@ -34,6 +34,12 @@ export default function ExplicationElo() {
         en moyenne. Côté attaque, le preneur, qui annonce le contrat, bouge deux
         fois plus que l'appelé — même ratio que les points réels de la donne.
       </p>
+      <p className="mt-3 text-[12.5px] leading-relaxed text-slate-400">
+        <strong className="text-slate-100">Roi au chien :</strong> quand le roi
+        appelé était dans le chien, le preneur joue seul par chance plus que par
+        talent. La donne compte alors <strong className="text-slate-100">deux fois moins</strong>{" "}
+        dans les notes, en gain comme en perte (le score de la feuille, lui, ne change pas).
+      </p>
     </details>
   );
 }

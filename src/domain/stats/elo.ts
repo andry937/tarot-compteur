@@ -53,6 +53,10 @@ const KAPPA = 1e-4;
  * résultat dans ]0,1[ : une victoire typique (base ≈ 60) donne ≈ 0.75. */
 const ECHELLE_RESULTAT = 125;
 
+/** Poids d'une donne dont le roi appelé était au chien : le preneur y joue seul par hasard, le résultat
+ * dit moins de choses sur le niveau des joueurs, la note bouge deux fois moins. */
+export const FACTEUR_ROI_AU_CHIEN = 0.5;
+
 /** Ligne du classement général pour un joueur. */
 export interface ClassementElo {
   /** Identifiant de la fiche (après résolution des fusions). */
@@ -181,6 +185,7 @@ function rejouer(
       const c = Math.sqrt(campA.sigma2 + campD.sigma2 + 2 * BETA * BETA);
       const espere = 1 / (1 + Math.exp((campD.mu - campA.mu) / c));
       const reel = resultatContinu(res.base);
+      const poids = donne.roiAuChien ? FACTEUR_ROI_AU_CHIEN : 1;
 
       // Répartition 2 parts (preneur) / 1 part (appelé), moyenne des facteurs = 1.
       const poidsAttaque = res.avecAppele ? [2, 1] : [1];
@@ -199,8 +204,8 @@ function rejouer(
           const { mu, sigma } = joueurs[idx];
           const s2 = sigma * sigma;
           niveaux.set(id, {
-            mu: mu + (signe * facteur(idx) * s2 * (reel - espere)) / (n * c),
-            sigma: Math.sqrt(s2 * Math.max(1 - (s2 / camp.somme2) * delta, KAPPA)),
+            mu: mu + (poids * signe * facteur(idx) * s2 * (reel - espere)) / (n * c),
+            sigma: Math.sqrt(s2 * Math.max(1 - poids * (s2 / camp.somme2) * delta, KAPPA)),
           });
           matchs.set(id, (matchs.get(id) || 0) + 1);
         });

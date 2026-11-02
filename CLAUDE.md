@@ -688,6 +688,14 @@ arrière-plan par `validerComposition` (affiché sur l'écran du donneur dès qu
 l'attend. Une table créée avant cette fonctionnalité reçoit les siens à sa prochaine ouverture ; `[]`
 signifie « calculés, aucun badge ».
 
+**Roi au chien** (`Donne.roiAuChien`, `Saisie.tsx`, `domain/stats/elo.ts::FACTEUR_ROI_AU_CHIEN`) : case
+« Le roi était dans le chien » sous le sélecteur « Roi appelé » (5 joueurs, une fois le roi choisi).
+Cochée d'office si le chien noté contient le roi appelé (`"{couleur}-14"`), tant que l'utilisateur n'a pas
+tranché ; décochable. Purement informatif pour `calculer()` (le score de la feuille ne change pas) mais la
+note de classement bouge deux fois moins (`FACTEUR_ROI_AU_CHIEN = 0.5`, appliqué au `mu` et à la baisse de
+`sigma` de tous les joueurs de la donne, donc la somme reste nulle). Détail de la donne : « · roi au chien ».
+Absent sur les donnes plus anciennes (comptées normalement).
+
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
 imposant Recharts (de loin la plus grosse dépendance) à *tous* les écrans,

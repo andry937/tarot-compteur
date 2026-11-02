@@ -126,6 +126,7 @@ export default function ScoreGrid({
             {CONTRATS.find((c) => c.id === d0.contrat)!.nom} · {d0.bouts} bout
             {d0.bouts > 1 ? "s" : ""} · {d0.points} pts
             {detail.avecAppele ? ` · appelé ${joueurs[d0.appele as number]}` : ""}
+            {d0.roiAuChien ? " · roi au chien" : ""}
           </div>
           <div className="font-mono text-[11px] leading-relaxed text-slate-600">
             {detail.reussi ? "Contrat réussi de" : "Chute de"} {detail.ecart} pt

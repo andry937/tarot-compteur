@@ -118,6 +118,10 @@ export interface Donne {
   miseres: Misere[];
   /** Couleur du roi appelé, obligatoire à 5 joueurs. */
   roiAppele?: Roi;
+  /** Le roi appelé était dans le chien : le preneur le trouve sans partenaire, par chance plus que par
+   * jeu. N'intervient pas dans `calculer()` (score inchangé) mais atténue l'effet de la donne sur la
+   * note de classement (`FACTEUR_ROI_AU_CHIEN`, `elo.ts`). Absent sur les donnes plus anciennes. */
+  roiAuChien?: boolean;
   /** Cartes jouées pendant la main, dans l'ordre de jeu (identifiants de `utils/cartes.ts`).
    * Purement informatif — n'intervient pas dans `calculer()`. */
   cartesJouees?: string[];
