@@ -686,6 +686,10 @@ routes enveloppé dans un unique `<Suspense fallback={...}>` (fallback
 minimal, cohérent avec l'écran vide affiché par `App.tsx` pendant le
 chargement initial). Résultat : le chunk d'entrée tombe à 534 kB
 (148 kB gzip), Recharts isolé dans son propre chunk chargé à la demande.
+Les graphiques eux-mêmes sont aussi paresseux (`components/graphiques/paresseux.tsx`,
+`Suspense fallback={null}` autour de chacun) : sans ça, `Feuille` (écran le plus utilisé)
+restait vide tant que Recharts (~107 kB gzip) n'était pas téléchargé, alors que le
+graphique est en bas de page. Importer les graphiques depuis `paresseux`, pas directement.
 Les autres écrans (`CompositionTable`, `Tirage`, `Configuration`,
 `Classement`) restent importés normalement — inutile de les rendre
 paresseux, ils ne tirent pas Recharts. Impact sur les tests : les
