@@ -688,6 +688,16 @@ arrière-plan par `validerComposition` (affiché sur l'écran du donneur dès qu
 l'attend. Une table créée avant cette fonctionnalité reçoit les siens à sa prochaine ouverture ; `[]`
 signifie « calculés, aucun badge ».
 
+**Rivalités et récap de la soirée** (`domain/stats/rivalites.ts`, `domain/stats/recap.ts`,
+`components/stats/RecapSoiree.tsx`, section « Rivalités » de `FicheJoueur.tsx`) : calculés à la volée,
+rien n'est stocké. *Rivalités* : bilan d'un joueur contre chaque adversaire sur les donnes où ils étaient
+en camps opposés (attaque = preneur + appelé, défense = les autres, repos ignorés, fusions résolues) ;
+« bête noire » et « victime favorite » exigent `DONNES_RIVALITE_MIN` (20) donnes opposées et un taux
+sous/au-dessus de 50 %. *Récap* : podium, dernier, plus grosse donne, pire chute, plus beau contrat
+(plus fort multiplicateur réussi), « le plus de chutes » (≥ 2), réussis/chutés ; bouton « Partager le
+récap » (`navigator.share`, sinon presse-papier, sinon zone de texte à sélectionner), avec les badges de
+la table. Affiché sur la feuille en cours et dans l'archive (titre daté).
+
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
 imposant Recharts (de loin la plus grosse dépendance) à *tous* les écrans,

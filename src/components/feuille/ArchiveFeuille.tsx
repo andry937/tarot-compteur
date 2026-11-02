@@ -12,6 +12,7 @@ import type { ArchiveRecord } from "@/domain/types";
 import { Section, RankRow } from "@/components/ui";
 import ScoreGrid from "./ScoreGrid";
 import StatsPartie from "@/components/stats/StatsPartie";
+import RecapSoiree from "@/components/stats/RecapSoiree";
 import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
 import Saisie from "@/components/saisie/Saisie";
 import JournalPlis from "@/components/cartes/JournalPlis";
@@ -22,10 +23,12 @@ interface ArchiveFeuilleProps {
   record: ArchiveRecord & { joueurs?: string[] };
   roster: Fiche[];
   onModifierDonne: (index: number, d: Donne) => void;
+  /** Date de la partie déjà formatée, pour le titre du récap partagé. */
+  date?: string;
 }
 
 /** Affiche une partie archivée en lecture ; `onModifierDonne` permet de corriger une donne. */
-export default function ArchiveFeuille({ record, roster, onModifierDonne }: ArchiveFeuilleProps) {
+export default function ArchiveFeuille({ record, roster, onModifierDonne, date }: ArchiveFeuilleProps) {
   const joueursId = record.joueursId || [];
   const joueurs = joueursId.length
     ? joueursId.map((id, i) => resoudreNom(id, roster || [], (record.joueursNomFige || [])[i]))
@@ -95,6 +98,7 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne }: Arch
       />
 
       <StatsPartie donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
+      <RecapSoiree donnes={donnes} joueurs={joueurs} joueursId={joueursId} nbTotal={nbTotal} badges={record.badges} date={date} />
       <GraphiqueComparatif donnes={donnes} joueurs={joueurs} nbTotal={nbTotal} />
 
       <Section title="Classement final">
