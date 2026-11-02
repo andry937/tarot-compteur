@@ -73,8 +73,6 @@ interface Mesures {
   grosContrats: number;
   autoAppels: number;
   petitsAuBout: number;
-  ptsDefense: number;
-  donnesDefense: number;
   partiesGagnees: number;
   partiesEligibles: number;
   note: number;
@@ -188,10 +186,14 @@ const CRITERES: Critere[] = [
   {
     badge: "mur",
     sens: "max",
-    valeur: (m) => (m.donnesDefense >= 15 ? m.ptsDefense / m.donnesDefense : null),
-    seuil: 1,
-    ecart: 2,
-    detail: (m) => `${Math.round(m.ptsDefense / m.donnesDefense)} points en moyenne en défense`,
+    valeur: (m) => {
+      const n = m.stats.parRole.defense.donnes;
+      return n >= 15 ? m.stats.parRole.defense.victoires / n : null;
+    },
+    seuil: 0.5,
+    ecart: 0.05,
+    detail: (m) =>
+      `a fait chuter l'attaque ${m.stats.parRole.defense.victoires} fois sur ${m.stats.parRole.defense.donnes} en défense`,
   },
   {
     badge: "mouton",
@@ -214,8 +216,6 @@ function mesurer(id: string, parties: PartieAnalysee[], note: number): Mesures {
     ).length,
     autoAppels: 0,
     petitsAuBout: 0,
-    ptsDefense: 0,
-    donnesDefense: 0,
     partiesGagnees: 0,
     partiesEligibles: 0,
     note,
@@ -230,10 +230,6 @@ function mesurer(id: string, parties: PartieAnalysee[], note: number): Mesures {
       if (role === "repos") return;
       const camp = role === "defense" ? "defense" : "attaque";
       if (d.petitAuBout === camp) m.petitsAuBout += 1;
-      if (role === "defense") {
-        m.donnesDefense += 1;
-        m.ptsDefense += res.scores[idx] as number;
-      }
       if (role === "preneur" && res.table.length === 5 && d.appele === d.preneur) m.autoAppels += 1;
     });
     if (p.donnes.length >= 5) {

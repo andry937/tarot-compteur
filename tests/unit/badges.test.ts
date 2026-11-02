@@ -89,3 +89,22 @@ describe("Meilleur Ami", () => {
     expect(r.find((b) => b.badge === "pigeon")?.joueurId).toBe("c");
   });
 });
+
+describe("Meilleur Défenseur", () => {
+  it("n'attribue rien quand les défenseurs ont le même bilan", () => {
+    const donnesJouees = [...donnes(10, { points: 30 }), ...donnes(10, { points: 70 })];
+    const r = attribuerBadges(ids, [partie(1, donnesJouees)], roster);
+    expect(r.find((b) => b.badge === "mur")).toBeUndefined();
+  });
+
+  it("attribue le badge quand un défenseur se détache", () => {
+    // Table de 5 avec rotation : f (siège 5) ne défend que quand l'attaque chute.
+    const idsSix = ["a", "b", "c", "d", "e", "f"];
+    const rosterSix: Fiche[] = idsSix.map((id) => ({ id, nom: id, creee: "", actif: true, redirigeVers: null }));
+    const avecF = donnes(20, { preneur: 0, appele: 1, points: 30, table: [0, 1, 2, 3, 5] }); // f défend, contrat chute
+    const sansF = donnes(20, { preneur: 0, appele: 1, points: 70, table: [0, 1, 2, 3, 4] }); // e défend, contrat réussit
+    const p: PartieAnalysee = { archiveId: "p1", date: "2026-01-01T00:00:00.000Z", joueursId: idsSix, donnes: [...avecF, ...sansF] };
+    const r = attribuerBadges(idsSix, [p], rosterSix);
+    expect(r.find((b) => b.badge === "mur")?.joueurId).toBe("f");
+  });
+});
