@@ -677,14 +677,16 @@ en deux clics.
 **Badges de début de partie** (`domain/stats/badges.ts`, `components/badges/BadgesJoueurs.tsx`,
 `RootStore.calculerBadges`/`completerBadgesTable`, `Partie.badges`) : chaque joueur à table peut
 recevoir un titre (Patron, Meneur, Kamikaze, Sniper, Maudit, Pigeon, Solitaire, Parrain, Petit Malin,
-Mur, Mouton, ou Recrue sous 20 donnes) d'après tout l'historique archivé, avec sa preuve en chiffres.
-Calculés **une fois** (`attribuerBadges`, fonction pure, fusions résolues via le roster) puis figés dans
-`Partie.badges` (donc dans `tarot:table:{id}` et dans l'archive). Chaque badge va au meilleur de la table
-seulement s'il passe un seuil et se détache nettement du deuxième ; 2 badges au plus par joueur, dans
-l'ordre de priorité de `CRITERES`. Calcul lancé en arrière-plan par `validerComposition` (affiché sur
-l'écran du donneur dès qu'il arrive), `validerTirage` l'attend. Une table ouverte avant cette
-fonctionnalité (`badges === undefined`) les reçoit à l'ouverture de `/partie/:id`
-(`completerBadgesTable`) ; `[]` signifie « calculés, aucun badge », pas recalculé ensuite.
+Meilleur Défenseur (id `mur`, celui qui fait le plus souvent chuter l’attaque en défense), Meilleur Ami, Meilleur Attaquant (id `attaquant`, réussite du camp attaquant, preneur ou appelé), Mouton, ou Recrue sous 20 donnes) d'après tout l'historique archivé, avec sa preuve en chiffres.
+Calculés par `attribuerBadges` (fonction pure, fusions résolues via le roster) et stockés dans
+`Partie.badges` (donc dans `tarot:table:{id}` et dans l'archive). **Recalculés à chaque ouverture de
+`/partie/:id` tant que la table n'est pas clôturée** (`recalculerBadgesTable`) : ils suivent l'historique
+(une autre table clôturée dans la soirée peut les faire évoluer) ; la clôture les fige dans l'archive.
+Chaque badge va au meilleur de la table seulement s'il passe un seuil et se détache nettement du
+deuxième ; un joueur peut cumuler plusieurs badges (Recrue excepté, exclusif). Premier calcul lancé en
+arrière-plan par `validerComposition` (affiché sur l'écran du donneur dès qu'il arrive), `validerTirage`
+l'attend. Une table créée avant cette fonctionnalité reçoit les siens à sa prochaine ouverture ; `[]`
+signifie « calculés, aucun badge ».
 
 **Code-splitting des écrans à Recharts** (`app/AppRoutes.tsx`) : le
 bundle de prod ne faisait qu'un seul chunk de 943 kB (267 kB gzip),
