@@ -59,6 +59,8 @@ export default function Saisie({
   const [preneur, setPreneur] = useState(donneInitiale?.preneur ?? tableProposee[0]);
   const [appele, setAppele] = useState<number | null>(donneInitiale?.appele ?? null);
   const [roiAppele, setRoiAppele] = useState<Roi | null>(donneInitiale?.roiAppele ?? null);
+  // `null` tant que l'utilisateur n'a pas tranché : on suit alors le chien noté (roi présent ou non).
+  const [roiAuChienManuel, setRoiAuChienManuel] = useState<boolean | null>(donneInitiale?.roiAuChien ?? null);
   const [contrat, setContrat] = useState(donneInitiale?.contrat ?? "garde");
   const [bouts, setBouts] = useState<0 | 1 | 2 | 3>(donneInitiale?.bouts ?? 1);
   const [boutsPrecis, setBoutsPrecis] = useState<Bout[]>(donneInitiale?.boutsPrecis ?? []);
@@ -76,11 +78,14 @@ export default function Saisie({
   const setChien = brouillon ? brouillon.onChien : setChienLocal;
 
   const roiRequis = table.length === 5;
+  const roiDansLeChienNote = roiAppele !== null && chien.includes(`${roiAppele}-14`);
+  const roiAuChien = roiRequis && roiAppele !== null && (roiAuChienManuel ?? roiDansLeChienNote);
   const complete =
     table.length === parDonne && table.includes(preneur) && (!roiRequis || roiAppele !== null);
   const donne: Donne = {
     table, donneur, preneur, appele, contrat, bouts, boutsPrecis, points, petitAuBout, poignees, chelem,
     miseres, roiAppele: roiAppele ?? undefined,
+    roiAuChien: roiAuChien ? true : undefined,
     cartesJouees: cartes.length ? cartes : undefined,
     chien: chien.length ? chien : undefined,
   };
@@ -200,6 +205,25 @@ export default function Saisie({
                 </Chip>
               ))}
             </div>
+            {roiAppele !== null && (
+              <label className="mt-2 flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={roiAuChien}
+                  onChange={(e) => setRoiAuChienManuel(e.target.checked)}
+                  data-testid="roi-au-chien"
+                />
+                <span>
+                  Le roi était dans le chien
+                  <small className="block font-mono text-[10px] text-slate-500">
+                    {roiDansLeChienNote && roiAuChienManuel === null
+                      ? "repéré dans le chien noté · "
+                      : ""}
+                    l'effet sur la note du classement est réduit
+                  </small>
+                </span>
+              </label>
+            )}
           </Field>
         )}
 
