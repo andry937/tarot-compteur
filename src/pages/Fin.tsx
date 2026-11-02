@@ -13,8 +13,11 @@ import { calculerRecap } from "@/domain/stats/recap";
 import { classementPeriode, clePeriode, libellePeriode } from "@/domain/stats/periodes";
 import type { TypePeriode } from "@/domain/stats/periodes";
 import type { ClassementElo } from "@/domain/stats/elo";
+import { classementSoiree, grouperSoirees, libelleSoiree, soireeDeLaPartie } from "@/domain/stats/soirees";
+import type { LigneSoiree } from "@/domain/stats/soirees";
 import { chargerParties } from "@/lib/storage/archives";
 import RecapSoiree from "@/components/stats/RecapSoiree";
+import PodiumAnime from "@/components/stats/PodiumAnime";
 import { Page, Header, Section, Cta } from "@/components/ui";
 
 /** Où aller après l'annonce (« Rejouer » passe la composition en état de navigation). */
@@ -30,13 +33,6 @@ interface LeaderSaison {
   leader: ClassementElo;
 }
 
-/** Hauteur, médaille et délai d'apparition de chaque marche (le vainqueur arrive en dernier). */
-const MARCHES = [
-  { medaille: "🥇", hauteur: "h-28", delai: "1.6s" },
-  { medaille: "🥈", hauteur: "h-20", delai: "1.0s" },
-  { medaille: "🥉", hauteur: "h-14", delai: "0.4s" },
-];
-
 /** Écran d'annonce de fin de partie ; redirige vers l'accueil s'il n'y a rien à annoncer. */
 export default observer(function Fin() {
   const store = useStore();
@@ -45,6 +41,8 @@ export default observer(function Fin() {
   const annonce = store.annonceFin;
   const suite = (location.state as { suite?: Suite } | null)?.suite;
   const [saisons, setSaisons] = useState<LeaderSaison[]>([]);
+  /** Soirée de la partie, seulement si elle compte au moins deux parties (sinon elle ferait doublon). */
+  const [soiree, setSoiree] = useState<{ libelle: string; nbParties: number; lignes: LigneSoiree[] } | null>(null);
 
   useEffect(() => {
     if (!annonce) return;
@@ -60,7 +58,15 @@ export default observer(function Fin() {
           const [leader] = classementPeriode(parties, roster, type, cle);
           if (leader) trouves.push({ type, libelle: libellePeriode(cle, type), leader });
         }
-        if (actif) setSaisons(trouves);
+        const s = soireeDeLaPartie(grouperSoirees(parties), annonce.date);
+        if (actif) {
+          setSaisons(trouves);
+          setSoiree(
+            s && s.parties.length > 1
+              ? { libelle: libelleSoiree(s), nbParties: s.parties.length, lignes: classementSoiree(s, roster) }
+              : null
+          );
+        }
       } catch (e) {
         console.error("Saisons indisponibles", e); // l'annonce reste complète sans elles
       }
@@ -100,29 +106,24 @@ export default observer(function Fin() {
         </div>
       )}
 
-      {podium.length > 1 && (
-        <div className="mt-6 flex items-end justify-center gap-2" data-testid="annonce-podium">
-          {/* Ordre visuel : 2e, 1er, 3e. */}
-          {[1, 0, 2].map((rang) => {
-            const l = podium[rang];
-            if (!l) return null;
-            const m = MARCHES[rang];
-            return (
-              <div key={l.nom} className="animate-apparition flex w-1/3 max-w-[9rem] flex-col items-center" style={{ animationDelay: m.delai }}>
-                <span className="text-2xl" aria-hidden="true">{m.medaille}</span>
-                <span className="mt-1 max-w-full truncate text-sm font-semibold text-slate-100">{l.nom}</span>
-                <span className={`font-mono text-xs ${l.pts < 0 ? "text-rose-400" : "text-slate-400"}`}>{fmt(l.pts)}</span>
-                <div className={`mt-1 w-full rounded-t-lg border border-b-0 border-slate-700 bg-slate-800 ${m.hauteur} ${rang === 0 ? "border-amber-400/60" : ""}`} />
-              </div>
-            );
-          })}
-        </div>
-      )}
+      <PodiumAnime lignes={podium} testId="annonce-podium" />
 
       {dernier && (
         <p className="animate-apparition mt-4 text-center text-sm text-slate-400" style={{ animationDelay: "2.4s" }} data-testid="annonce-dernier">
           💀 {dernier.nom} ferme la marche ({fmt(dernier.pts)})
         </p>
+      )}
+
+      {soiree && soiree.lignes.length > 0 && (
+        <div className="mt-8 text-center" data-testid="annonce-soiree">
+          <p className="animate-apparition font-mono text-[10px] uppercase tracking-[0.2em] text-slate-400" style={{ animationDelay: "3.2s" }}>
+            Soirée du {soiree.libelle} · {soiree.nbParties} parties
+          </p>
+          <p className="animate-apparition mt-2 text-lg font-semibold text-slate-100" style={{ animationDelay: "3.6s" }}>
+            🌙 <span className="text-amber-400">{soiree.lignes[0].nom}</span> gagne la soirée
+          </p>
+          <PodiumAnime lignes={soiree.lignes} delai={4} testId="annonce-soiree-podium" />
+        </div>
       )}
 
       {saisons.length > 0 && (
