@@ -677,7 +677,7 @@ en deux clics.
 **Badges de début de partie** (`domain/stats/badges.ts`, `components/badges/BadgesJoueurs.tsx`,
 `RootStore.calculerBadges`/`completerBadgesTable`, `Partie.badges`) : chaque joueur à table peut
 recevoir un titre (Patron, Meneur, Kamikaze, Sniper, Maudit, Pigeon, Solitaire, Parrain, Petit Malin,
-Mur, Mouton, ou Recrue sous 20 donnes) d'après tout l'historique archivé, avec sa preuve en chiffres.
+Meilleur Défenseur (id `mur`), Meilleur Ami, Mouton, ou Recrue sous 20 donnes) d'après tout l'historique archivé, avec sa preuve en chiffres.
 Calculés **une fois** (`attribuerBadges`, fonction pure, fusions résolues via le roster) puis figés dans
 `Partie.badges` (donc dans `tarot:table:{id}` et dans l'archive). Chaque badge va au meilleur de la table
 seulement s'il passe un seuil et se détache nettement du deuxième ; 2 badges au plus par joueur, dans

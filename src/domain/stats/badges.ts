@@ -18,6 +18,7 @@ export type BadgeId =
   | "sniper"
   | "maudit"
   | "pigeon"
+  | "meilleur_ami"
   | "solitaire"
   | "parrain"
   | "petit_malin"
@@ -41,10 +42,11 @@ export const BADGES: Record<BadgeId, BadgeDef> = {
   sniper: { emoji: "🎯", nom: "Le Sniper" },
   maudit: { emoji: "💀", nom: "Le Maudit" },
   pigeon: { emoji: "🕊️", nom: "Le Pigeon" },
+  meilleur_ami: { emoji: "🤗", nom: "Le Meilleur Ami" },
   solitaire: { emoji: "🃏", nom: "Le Solitaire" },
   parrain: { emoji: "🤝", nom: "Le Parrain" },
   petit_malin: { emoji: "🐣", nom: "Petit Malin" },
-  mur: { emoji: "🛡️", nom: "Le Mur" },
+  mur: { emoji: "🛡️", nom: "Le Meilleur Défenseur" },
   mouton: { emoji: "🐑", nom: "Le Mouton" },
   recrue: { emoji: "🌱", nom: "Recrue" },
 };
@@ -146,6 +148,18 @@ const CRITERES: Critere[] = [
     ecart: 0.1,
     detail: (m) =>
       `contrat chuté ${m.stats.parRole.appele.donnes - m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.appele.donnes} en étant appelé`,
+  },
+  {
+    badge: "meilleur_ami",
+    sens: "max",
+    valeur: (m) => {
+      const n = m.stats.parRole.appele.donnes;
+      return n >= 5 ? m.stats.parRole.appele.victoires / n : null;
+    },
+    seuil: 0.7,
+    ecart: 0.1,
+    detail: (m) =>
+      `contrat réussi ${m.stats.parRole.appele.victoires} fois sur ${m.stats.parRole.appele.donnes} en étant appelé`,
   },
   {
     badge: "solitaire",

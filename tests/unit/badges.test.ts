@@ -74,3 +74,18 @@ describe("attribuerBadges", () => {
     expect(r.find((b) => b.joueurId === "a")?.badge).not.toBe("recrue");
   });
 });
+
+describe("Meilleur Ami", () => {
+  it("va au joueur dont les contrats réussissent le plus souvent quand il est appelé", () => {
+    // b est appelé 10 fois et le contrat réussit à chaque fois ; c est appelé 10 fois et il chute à chaque fois.
+    const parties = [
+      partie(1, [
+        ...donnes(10, { preneur: 0, appele: 1, contrat: "garde", points: 60 }),
+        ...donnes(10, { preneur: 0, appele: 2, contrat: "garde", points: 30 }),
+      ]),
+    ];
+    const r = attribuerBadges(ids, parties, roster);
+    expect(r.find((b) => b.badge === "meilleur_ami")?.joueurId).toBe("b");
+    expect(r.find((b) => b.badge === "pigeon")?.joueurId).toBe("c");
+  });
+});
