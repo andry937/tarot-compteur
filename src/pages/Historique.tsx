@@ -15,7 +15,7 @@ import { resoudreNom } from "@/domain/joueurs/identite";
 import type { Donne } from "@/domain/score/regles";
 import type { ArchiveRecord } from "@/domain/types";
 import ArchiveFeuille from "@/components/feuille/ArchiveFeuille";
-import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow } from "@/components/ui";
+import { Page, Header, GhostButton, GhostLink, Empty, ArchiveRow, ListePaginee } from "@/components/ui";
 
 /**
  * Liste les parties archivées ; avec un `:id`, affiche l'archive correspondante (correction d'une donne, suppression).
@@ -123,9 +123,7 @@ export default observer(function Historique() {
               )}
               {record && <GhostButton onClick={() => rejouer(record)}>Rejouer</GhostButton>}
               <GhostButton onClick={() => navigate("/historique")}>Retour</GhostButton>
-              <GhostButton onClick={surSupprimer}>
-                {confirmerSuppression ? "Confirmer ?" : "Supprimer"}
-              </GhostButton>
+              <GhostButton onClick={surSupprimer}>{confirmerSuppression ? "Confirmer ?" : "Supprimer"}</GhostButton>
             </>
           }
         />
@@ -136,7 +134,14 @@ export default observer(function Historique() {
             <GhostButton onClick={() => setTentative((t) => t + 1)}>Réessayer</GhostButton>
           </div>
         )}
-        {record && <ArchiveFeuille record={record} roster={roster} onModifierDonne={surModifierDonne} date={resume ? fmtDate(resume.date) : undefined} />}
+        {record && (
+          <ArchiveFeuille
+            record={record}
+            roster={roster}
+            onModifierDonne={surModifierDonne}
+            date={resume ? fmtDate(resume.date) : undefined}
+          />
+        )}
       </Page>
     );
   }
@@ -153,37 +158,40 @@ export default observer(function Historique() {
         <Empty title="Aucune partie archivée." hint="Elle apparaîtra ici dès qu'une feuille sera close" />
       ) : (
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
-          {index.map((p) => {
-            const meneur = (p.joueurs || [])
-              .map((nom, i) => ({ nom, pts: p.totaux ? p.totaux[i] : 0 }))
-              .sort((a, b) => b.pts - a.pts)[0];
-            return (
-              <ArchiveRow
-                key={p.id}
-                testId="archive-row"
-                onClick={() => navigate(`/historique/${p.id}`)}
-                gauche={
-                  <div className="min-w-0">
-                    <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
-                      {fmtDate(p.date)}
-                    </span>
-                    <span className="mt-0.5 block truncate text-[13.5px]">{(p.joueurs || []).join(", ")}</span>
-                  </div>
-                }
-                droite={
-                  <div className="shrink-0 text-right">
-                    <span className="block font-mono text-[10px] text-slate-400">{p.nbDonnes} donnes</span>
-                    {meneur && (
-                      <span className="mt-0.5 block font-serif text-[15px] font-bold text-amber-400">
-                        {meneur.nom} {meneur.pts > 0 ? "+" : ""}
-                        {meneur.pts}
+          <ListePaginee
+            elements={index}
+            rendu={(p) => {
+              const meneur = (p.joueurs || [])
+                .map((nom, i) => ({ nom, pts: p.totaux ? p.totaux[i] : 0 }))
+                .sort((a, b) => b.pts - a.pts)[0];
+              return (
+                <ArchiveRow
+                  key={p.id}
+                  testId="archive-row"
+                  onClick={() => navigate(`/historique/${p.id}`)}
+                  gauche={
+                    <div className="min-w-0">
+                      <span className="block font-mono text-[10px] uppercase tracking-wide text-slate-400">
+                        {fmtDate(p.date)}
                       </span>
-                    )}
-                  </div>
-                }
-              />
-            );
-          })}
+                      <span className="mt-0.5 block truncate text-[13.5px]">{(p.joueurs || []).join(", ")}</span>
+                    </div>
+                  }
+                  droite={
+                    <div className="shrink-0 text-right">
+                      <span className="block font-mono text-[10px] text-slate-400">{p.nbDonnes} donnes</span>
+                      {meneur && (
+                        <span className="mt-0.5 block font-serif text-[15px] font-bold text-amber-400">
+                          {meneur.nom} {meneur.pts > 0 ? "+" : ""}
+                          {meneur.pts}
+                        </span>
+                      )}
+                    </div>
+                  }
+                />
+              );
+            }}
+          />
         </div>
       )}
     </Page>

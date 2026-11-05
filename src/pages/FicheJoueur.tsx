@@ -17,7 +17,7 @@ import { CONTRATS, NOM_BOUT, fmt, NOM_ROI } from "@/domain/score/regles";
 import type { Bout } from "@/domain/score/regles";
 import { calculerClassementElo, niveauDeNote, NIVEAU_MAX } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
-import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty } from "@/components/ui";
+import { Page, Header, GhostLink, Section, RankRow, ArchiveRow, Empty, ListePaginee } from "@/components/ui";
 import { GraphiquePersonnel } from "@/components/graphiques/paresseux";
 import ExplicationElo from "@/components/stats/ExplicationElo";
 
@@ -210,7 +210,7 @@ export default observer(function FicheJoueur() {
 
           {stats.appelsReussis.length > 0 && (
             <Section title="Appels réussis (en tant que preneur)">
-              {stats.appelsReussis.map((a) => (
+              <ListePaginee elements={stats.appelsReussis} rendu={(a) => (
                 <ArchiveRow
                   key={`${a.archiveId}-${a.indexDonne}`}
                   onClick={() => navigate(`/historique/${a.archiveId}`)}
@@ -227,13 +227,13 @@ export default observer(function FicheJoueur() {
                   }
                   droite={<span className="shrink-0 font-serif text-lg font-bold">{a.points} pts</span>}
                 />
-              ))}
+              )} />
             </Section>
           )}
 
           {stats.appelsEchoues.length > 0 && (
             <Section title="Appels échoués (en tant que preneur)">
-              {stats.appelsEchoues.map((a) => (
+              <ListePaginee elements={stats.appelsEchoues} rendu={(a) => (
                 <ArchiveRow
                   key={`${a.archiveId}-${a.indexDonne}`}
                   onClick={() => navigate(`/historique/${a.archiveId}`)}
@@ -252,7 +252,7 @@ export default observer(function FicheJoueur() {
                     <span className="shrink-0 font-serif text-lg font-bold text-rose-400">{a.points} pts</span>
                   }
                 />
-              ))}
+              )} />
             </Section>
           )}
 
@@ -285,7 +285,7 @@ export default observer(function FicheJoueur() {
           )}
 
           <Section title="Parties jouées">
-            {stats.parties.map((p) => (
+            <ListePaginee elements={stats.parties} rendu={(p) => (
               <ArchiveRow
                 key={p.archiveId}
                 onClick={() => navigate(`/historique/${p.archiveId}`)}
@@ -303,7 +303,7 @@ export default observer(function FicheJoueur() {
                   </span>
                 }
               />
-            ))}
+            )} />
           </Section>
 
           <ExplicationElo />
