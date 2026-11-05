@@ -6,6 +6,7 @@
  */
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link, type LinkProps } from "react-router-dom";
+import { usePagination } from "@/hooks/usePagination";
 
 const ghostClasses =
   "whitespace-nowrap rounded-full border border-slate-700 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 transition-colors hover:border-slate-500 hover:text-white";
@@ -211,5 +212,54 @@ export function Lien({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButto
       className={`inline-block font-mono text-[10px] uppercase tracking-[0.14em] text-slate-400 underline decoration-dotted underline-offset-4 hover:text-slate-200 ${className}`}
       {...rest}
     />
+  );
+}
+
+/** Pied de liste paginée « Précédent · page 2 / 5 · Suivant » ; absent s'il n'y a qu'une page. */
+export function Pagination({
+  page,
+  nbPages,
+  onChange,
+}: {
+  page: number;
+  nbPages: number;
+  onChange: (page: number) => void;
+}) {
+  if (nbPages <= 1) return null;
+  return (
+    <nav aria-label="Pagination" className="flex items-center justify-between gap-2 px-1 pb-1 pt-3">
+      <GhostButton disabled={page === 0} onClick={() => onChange(page - 1)} className="disabled:opacity-40">
+        Précédent
+      </GhostButton>
+      <span className="font-mono text-[11px] text-slate-400">
+        Page {page + 1} / {nbPages}
+      </span>
+      <GhostButton
+        disabled={page >= nbPages - 1}
+        onClick={() => onChange(page + 1)}
+        className="disabled:opacity-40"
+      >
+        Suivant
+      </GhostButton>
+    </nav>
+  );
+}
+
+/** Liste découpée en pages : affiche `rendu` pour chaque élément de la page courante, puis la pagination. */
+export function ListePaginee<T>({
+  elements,
+  rendu,
+  taille,
+}: {
+  elements: T[];
+  rendu: (element: T) => ReactNode;
+  taille?: number;
+}) {
+  const { visibles, page, nbPages, setPage } = usePagination(elements, taille);
+  return (
+    <>
+      {visibles.map(rendu)}
+      <Pagination page={page} nbPages={nbPages} onChange={setPage} />
+    </>
   );
 }
