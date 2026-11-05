@@ -9,7 +9,7 @@ import { useStore } from "@/stores/contexte";
 import { Link, useNavigate } from "react-router-dom";
 import { resoudreNom, ontDejaJoueEnsemble } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
-import { Page, Header, GhostButton, Label, Chip, Cta, Lien } from "@/components/ui";
+import { Page, Header, GhostButton, Label, Chip, Cta, Lien, ListePaginee } from "@/components/ui";
 
 /**
  * Liste les joueurs actifs et désactivés, avec un menu d'actions par joueur (renommer, fusionner, désactiver).
@@ -95,7 +95,7 @@ export default observer(function Configuration() {
       )}
 
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
-        {actifs.map((f) => (
+        <ListePaginee elements={actifs} rendu={(f) => (
           <div
             key={f.id}
             data-testid="roster-row"
@@ -212,7 +212,7 @@ export default observer(function Configuration() {
               </>
             )}
           </div>
-        ))}
+        )} />
       </div>
 
       {desactives.length > 0 && (
@@ -226,7 +226,7 @@ export default observer(function Configuration() {
           </button>
           {voirDesactives && (
             <div className="mt-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-3">
-              {desactives.map((f) => (
+              <ListePaginee elements={desactives} rendu={(f) => (
                 <div key={f.id} className="flex items-center justify-between gap-2.5 border-b border-slate-800 py-3.5 last:border-0">
                   <div className="flex flex-col gap-0.5">
                     <span className="text-[15px]">{f.nom}</span>
@@ -246,7 +246,7 @@ export default observer(function Configuration() {
                     </button>
                   )}
                 </div>
-              ))}
+              )} />
             </div>
           )}
         </div>
