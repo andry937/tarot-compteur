@@ -12,7 +12,9 @@ import { fmt } from "@/domain/score/regles";
 import { calculerRecap } from "@/domain/stats/recap";
 import { classementPeriode, clePeriode, libellePeriode } from "@/domain/stats/periodes";
 import type { TypePeriode } from "@/domain/stats/periodes";
+import { calculerClassementElo, niveauDeNote } from "@/domain/stats/elo";
 import type { ClassementElo } from "@/domain/stats/elo";
+import { resoudreFiche } from "@/domain/joueurs/identite";
 import { attribuerBadges } from "@/domain/stats/badges";
 import type { BadgeAttribue } from "@/domain/stats/badges";
 import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
@@ -21,7 +23,7 @@ import type { LigneSoiree } from "@/domain/stats/soirees";
 import { chargerParties } from "@/lib/storage/archives";
 import RecapSoiree from "@/components/stats/RecapSoiree";
 import PodiumAnime from "@/components/stats/PodiumAnime";
-import { Page, Header, Section, Cta } from "@/components/ui";
+import { Page, Header, Section, RankRow, Cta } from "@/components/ui";
 
 /** Où aller après l'annonce (« Rejouer » passe la composition en état de navigation). */
 interface Suite {
@@ -47,6 +49,8 @@ export default observer(function Fin() {
   /** Venu du classement des soirées : seule la cérémonie de la soirée est jouée, sans celle de la partie. */
   const soireeSeule = !!etatNav?.soireeSeule;
   const [saisons, setSaisons] = useState<LeaderSaison[]>([]);
+  /** Classement général (note Weng-Lin) des seuls joueurs de la table, du mieux classé au moins bien classé. */
+  const [generalTable, setGeneralTable] = useState<ClassementElo[]>([]);
   /** Soirée de la partie, seulement si elle compte au moins deux parties (sinon elle ferait doublon). */
   const [soiree, setSoiree] = useState<{ libelle: string; nbParties: number; lignes: LigneSoiree[]; badges: BadgeAttribue[] } | null>(null);
 
@@ -64,9 +68,16 @@ export default observer(function Fin() {
           const [leader] = classementPeriode(parties, roster, type, cle);
           if (leader) trouves.push({ type, libelle: libellePeriode(cle, type), leader });
         }
+        const idsTable = new Set(
+          annonce.joueursId.map((jid) => resoudreFiche(jid, roster)?.id).filter((id): id is string => !!id)
+        );
+        const generalJoueurs = calculerClassementElo(parties, roster)
+          .filter((c) => idsTable.has(c.id))
+          .sort((a, b) => b.note - a.note);
         const s = soireeDeLaPartie(grouperSoirees(parties), annonce.date);
         if (actif) {
           setSaisons(trouves);
+          setGeneralTable(generalJoueurs);
           if (s && (s.parties.length > 1 || soireeSeule)) {
             const lignes = classementSoiree(s, roster);
             // Badges décernés entre les joueurs de la soirée d'après ses seules parties ; « Recrue » n'aurait pas de sens ici.
@@ -140,6 +151,24 @@ export default observer(function Fin() {
               <BadgesJoueurs noms={soiree.lignes.map((l) => l.nom)} ids={soiree.lignes.map((l) => l.id)} badges={soiree.badges} />
             </div>
           )}
+        </div>
+      )}
+
+      {!soireeSeule && generalTable.length > 0 && (
+        <div className="animate-apparition" style={{ animationDelay: `${d0 + 0.2}s` }} data-testid="annonce-general">
+          <Section title="Classement général de la table">
+            {generalTable.map((c, i) => (
+              <RankRow
+                key={c.id}
+                rang={i + 1}
+                nom={c.nom}
+                meta={`niveau ${niveauDeNote(c.note)}`}
+                valeur={c.note}
+                negatif={c.note < 0}
+                testId="annonce-general-row"
+              />
+            ))}
+          </Section>
         </div>
       )}
 
