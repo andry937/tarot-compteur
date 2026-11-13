@@ -21,6 +21,8 @@ export interface Partie {
   reposInitial?: number[];
   /** Badges d'après l'historique archivé : recalculés à chaque ouverture tant que la table est ouverte, figés à la clôture ; `undefined` tant qu'ils n'ont pas été calculés. */
   badges?: BadgeAttribue[];
+  /** Instant (ms depuis 1970) du début de la partie (tirage validé) ; absent sur les anciennes tables. */
+  debut?: number;
 }
 
 /** Données figées d'une partie qui vient d'être clôturée, pour l'écran d'annonce de fin de partie (`/fin`). */

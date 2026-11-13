@@ -119,6 +119,7 @@ export class TableStore {
             depart: rec.depart || 0,
             reposInitial: rec.reposInitial,
             badges: rec.badges,
+            debut: rec.debut,
           },
           rec
         )
@@ -151,6 +152,7 @@ export class TableStore {
       ...this.donnes,
       {
         ...d,
+        finA: d.finA ?? Date.now(),
         ...(this.cartesEnCours.length ? { cartesJouees: this.cartesEnCours } : {}),
         ...(this.chienEnCours.length ? { chien: this.chienEnCours } : {}),
       },
@@ -161,7 +163,7 @@ export class TableStore {
 
   /** Remplace la donne `i` sur place, sans changer sa position. */
   modifierDonne(i: number, d: Donne) {
-    this.donnes = this.donnes.map((old, k) => (k === i ? d : old));
+    this.donnes = this.donnes.map((old, k) => (k === i ? { ...d, ...(old.finA !== undefined ? { finA: old.finA } : {}) } : old));
   }
 
   /** Supprime la donne `i`. */

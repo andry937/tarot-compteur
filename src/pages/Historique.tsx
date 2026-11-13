@@ -41,7 +41,7 @@ export default observer(function Historique() {
     if (!id || !record) return;
     const nouveau: ArchiveRecord = {
       ...record,
-      donnes: record.donnes.map((old, k) => (k === donneIndex ? d : old)),
+      donnes: record.donnes.map((old, k) => (k === donneIndex ? { ...d, ...(old.finA !== undefined ? { finA: old.finA } : {}) } : old)),
     };
     setRecord(nouveau); // affichage immédiat
     try {

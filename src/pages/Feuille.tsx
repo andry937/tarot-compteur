@@ -23,6 +23,8 @@ import JournalPlis from "@/components/cartes/JournalPlis";
 import EcranMains from "@/components/cartes/EcranMains";
 import BadgesJoueurs from "@/components/badges/BadgesJoueurs";
 import ChangerOrdre from "@/components/feuille/ChangerOrdre";
+import { dureesDonnes, formaterDuree } from "@/domain/stats/durees";
+import Chrono from "@/components/feuille/Chrono";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
 /** La table active vient du store ; `partie` est passée par RoutePartie, qui a déjà vérifié qu'elle est chargée. */
@@ -113,6 +115,7 @@ export default observer(function Feuille({ partie }: {
           </dd>
         )}
         <dd className="mt-1.5 text-xs text-slate-400">À la table : {prochaine.map((i) => joueurs[i]).join(", ")}</dd>
+        <Chrono debut={partie.debut} donnes={donnes} />
         {auRepos.length > 0 && (
           <dd className="mt-1 text-xs text-slate-400">Au repos : {auRepos.map((i) => joueurs[i]).join(", ")}</dd>
         )}
@@ -209,6 +212,9 @@ export default observer(function Feuille({ partie }: {
         }
         detailExtra={
           <>
+            {ouverte !== null && dureesDonnes(partie.debut, donnes)[ouverte] != null && (
+              <div className="mt-2 font-mono text-[11px] text-slate-500">⏱ Durée de la donne : {formaterDuree(dureesDonnes(partie.debut, donnes)[ouverte] as number)}</div>
+            )}
             {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length) ? (
               <details className="mt-2.5">
                 <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">

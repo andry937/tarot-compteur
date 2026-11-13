@@ -127,6 +127,8 @@ export interface Donne {
   cartesJouees?: string[];
   /** Cartes retournées au chien (Petite ou Garde), identifiants de `utils/cartes.ts`. Informatif. */
   chien?: string[];
+  /** Instant (ms depuis 1970) où la donne a été inscrite : sert à mesurer sa durée (`durees.ts`). Absent sur les anciennes donnes. */
+  finA?: number;
 }
 
 /** Résultat calculé d'une donne par `calculer()`. */
