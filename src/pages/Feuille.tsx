@@ -10,7 +10,7 @@ import { useStore } from "@/stores/contexte";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { tableDeLaDonne, fmt } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
-import { tableEquilibree } from "@/domain/score/ordre";
+import { tableEquilibree, tableInitiale } from "@/domain/score/ordre";
 import type { Partie } from "@/domain/types";
 import Saisie from "@/components/saisie/Saisie";
 import ScoreGrid from "@/components/feuille/ScoreGrid";
@@ -48,7 +48,9 @@ export default observer(function Feuille({ partie }: {
   const rotation = nbTotal > parDonne;
   /** Table de la donne qui suit `avant` (les donnes déjà jouées). */
   const tableApres = (avant: Donne[]) =>
-    rotation
+    rotation && avant.length === 0 && partie.reposInitial?.length === nbTotal - parDonne
+      ? tableInitiale(nbTotal, depart, partie.reposInitial)
+      : rotation
       ? tableEquilibree(avant, nbTotal, parDonne, depart)
       : tableDeLaDonne(avant.length, nbTotal, parDonne, depart);
   const prochaine = tableApres(donnes);

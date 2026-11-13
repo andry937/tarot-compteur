@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { permuterSieges, tableEquilibree } from "@/domain/score/ordre";
+import { permuterSieges, tableEquilibree, tableInitiale } from "@/domain/score/ordre";
 import type { TablePermutable } from "@/domain/score/ordre";
 import { calculer, tableDeLaDonne } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
@@ -139,5 +139,11 @@ describe("repos équilibré : parties réelles", () => {
       }
       donnes = [...donnes, { table } as unknown as Donne];
     }
+  });
+});
+
+describe("tableInitiale", () => {
+  it("garde l'ordre des sièges à partir du donneur et écarte exactement les repos choisis", () => {
+    expect(tableInitiale(8, 2, [3, 5, 7])).toEqual([2, 4, 6, 0, 1]);
   });
 });

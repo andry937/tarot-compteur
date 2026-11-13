@@ -17,6 +17,8 @@ export interface Partie {
   parDonne: number;
   /** Index du siège du donneur de la première donne. */
   depart: number;
+  /** Sièges au repos à la première donne, tels que choisis au tirage (seule la 1re donne les utilise). */
+  reposInitial?: number[];
   /** Badges d'après l'historique archivé : recalculés à chaque ouverture tant que la table est ouverte, figés à la clôture ; `undefined` tant qu'ils n'ont pas été calculés. */
   badges?: BadgeAttribue[];
 }

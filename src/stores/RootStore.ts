@@ -242,16 +242,13 @@ export class RootStore {
     if (!tirage) return null;
     const id = tirage.id;
     const { ordre, auRepos, donneur } = choix;
-    const jouant = ordre.filter((i) => !auRepos.includes(i));
-    const reposOrdonne = ordre.filter((i) => auRepos.includes(i));
-    const p = Math.max(0, jouant.indexOf(donneur));
-    const sieges =
-      auRepos.length > 0 ? [...jouant.slice(p), ...jouant.slice(0, p), ...reposOrdonne] : ordre;
     const nouvelle: Partie = {
-      joueursId: sieges.map((i) => tirage.joueursId[i]),
-      joueursNomFige: sieges.map((i) => tirage.joueurs[i]),
+      joueursId: ordre.map((i) => tirage.joueursId[i]),
+      joueursNomFige: ordre.map((i) => tirage.joueurs[i]),
       parDonne: tirage.parDonne,
-      depart: auRepos.length > 0 ? 0 : Math.max(0, ordre.indexOf(donneur)),
+      depart: Math.max(0, ordre.indexOf(donneur)),
+      // Sièges (dans l'ordre choisi) des joueurs au repos à la première donne.
+      ...(auRepos.length > 0 ? { reposInitial: ordre.map((j, k) => (auRepos.includes(j) ? k : -1)).filter((k) => k >= 0) } : {}),
       ...(tirage.badges ? { badges: tirage.badges } : {}),
     };
     this.table.activer(id, nouvelle);
