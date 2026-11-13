@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { observer } from "mobx-react-lite";
 import { useStore } from "@/stores/contexte";
 import { tableDeLaDonne } from "@/domain/score/regles";
+import { tableInitiale } from "@/domain/score/ordre";
 import { useConfirmation } from "@/hooks/useConfirmation";
 import { Page, Header, GhostButton, Cta, Bar } from "@/components/ui";
 import type { Annonce } from "@/vision/domain/annonce";
@@ -35,7 +36,11 @@ export default observer(function Suivi() {
   const idTable = t.id!;
   const { parDonne } = t.partie!;
   const depart = t.partie!.depart || 0;
-  const prochaine = tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
+  const reposInitial = t.partie!.reposInitial;
+  const prochaine =
+    donnes.length === 0 && reposInitial?.length === nbTotal - parDonne
+      ? tableInitiale(nbTotal, depart, reposInitial)
+      : tableDeLaDonne(donnes.length, nbTotal, parDonne, depart);
 
   // Une sauvegarde par table et par donne : une manche déjà inscrite, ou annulée par un Petit sec (la donne est
   // redonnée sous le même numéro), ne se propose plus à la reprise.

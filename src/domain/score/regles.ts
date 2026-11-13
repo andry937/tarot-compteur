@@ -188,18 +188,6 @@ export const CHELEMS: Chelem[] = [
 ];
 
 /**
- * Décalages (par rapport au donneur) des joueurs au repos dans la fenêtre de la table :
- * régulièrement espacés, jamais voisins ni égaux à 0 ; ou les derniers sièges quand la
- * table est une simple fenêtre contiguë.
- */
-export function decalagesRepos(total: number, parDonne: number): number[] {
-  const n = Math.min(parDonne, total);
-  const repos = total - n;
-  if (repos <= 1 || total < 2 * repos) return Array.from({ length: repos }, (_, j) => n + j);
-  return Array.from({ length: repos }, (_, j) => Math.floor(((j + 0.5) * total) / repos));
-}
-
-/**
  * Qui est à la table pour la donne n° k : le donneur ouvre (il joue toujours),
  * le donneur avance d'un siège à chaque donne.
  *
@@ -217,7 +205,11 @@ export function tableDeLaDonne(k: number, total: number, parDonne: number, depar
   if (repos <= 1 || total < 2 * repos) {
     return Array.from({ length: n }, (_, i) => (donneur + i) % total);
   }
-  const auRepos = new Set(decalagesRepos(total, parDonne));
+  // Décalages (par rapport au donneur) des joueurs au repos, régulièrement espacés,
+  // jamais voisins ni égaux à 0.
+  const auRepos = new Set(
+    Array.from({ length: repos }, (_, j) => Math.floor(((j + 0.5) * total) / repos))
+  );
   const table: number[] = [];
   for (let o = 0; o < total; o++) if (!auRepos.has(o)) table.push((donneur + o) % total);
   return table;

@@ -36,6 +36,7 @@ export function permuterSieges(t: TablePermutable, ordre: number[]): TablePermut
       joueursId: ordre.map((a) => t.partie.joueursId[a]),
       joueursNomFige: ordre.map((a) => t.partie.joueursNomFige[a]),
       depart,
+      ...(t.partie.reposInitial ? { reposInitial: t.partie.reposInitial.map(m) } : {}),
     },
     donnes: t.donnes.map((d) => ({
       ...d,
@@ -89,4 +90,9 @@ export function tableEquilibree(donnes: Donne[], total: number, parDonne: number
     if (!auRepos.has(siege)) table.push(siege);
   }
   return table;
+}
+
+/** Table de la première donne quand les joueurs au repos ont été choisis : l'ordre des sièges, à partir du donneur. */
+export function tableInitiale(total: number, depart: number, repos: number[]): number[] {
+  return Array.from({ length: total }, (_, o) => (depart + o) % total).filter((s) => !repos.includes(s));
 }

@@ -117,6 +117,7 @@ export class TableStore {
             joueursNomFige: rec.joueursNomFige,
             parDonne: rec.parDonne,
             depart: rec.depart || 0,
+            reposInitial: rec.reposInitial,
             badges: rec.badges,
           },
           rec
