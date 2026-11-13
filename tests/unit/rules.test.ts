@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   tableDeLaDonne,
+  decalagesRepos,
   calculer,
   resumerDonnees,
 } from "@/domain/score/regles";
@@ -340,5 +341,15 @@ describe("ontDejaJoueEnsemble", () => {
   it("tolère une entrée d'historique sans joueursId (anciens formats)", () => {
     const historiqueIncomplet = [{ id: "vieux" }, ...historique];
     expect(() => ontDejaJoueEnsemble("a", "b", historiqueIncomplet)).not.toThrow();
+  });
+});
+
+describe("decalagesRepos", () => {
+  it("à 8 joueurs et 3 repos, ce sont les sièges que tableDeLaDonne laisse au repos", () => {
+    const decalages = decalagesRepos(8, 5);
+    const table = tableDeLaDonne(0, 8, 5, 0);
+    expect(decalages).toHaveLength(3);
+    for (const o of decalages) expect(table).not.toContain(o);
+    expect(table).toHaveLength(5);
   });
 });

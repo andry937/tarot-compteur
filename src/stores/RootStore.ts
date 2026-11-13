@@ -4,7 +4,7 @@
  */
 
 import { comparer, makeAutoObservable, observable, reaction, runInAction, type IReactionDisposer } from "mobx";
-import { resumerDonnees } from "@/domain/score/regles";
+import { decalagesRepos, resumerDonnees } from "@/domain/score/regles";
 import { resoudreNom, genId, joueursActuellementAssis } from "@/domain/joueurs/identite";
 import type { Fiche } from "@/domain/joueurs/identite";
 import { sansDoublons, chargerParties } from "@/lib/storage/archives";
@@ -245,8 +245,16 @@ export class RootStore {
     const jouant = ordre.filter((i) => !auRepos.includes(i));
     const reposOrdonne = ordre.filter((i) => auRepos.includes(i));
     const p = Math.max(0, jouant.indexOf(donneur));
-    const sieges =
-      auRepos.length > 0 ? [...jouant.slice(p), ...jouant.slice(0, p), ...reposOrdonne] : ordre;
+    // Les repos choisis prennent les décalages que `tableDeLaDonne` laisse au repos à la première
+    // donne (espacés autour de la table), sinon elle les remplacerait par d'autres joueurs.
+    const sieges: number[] = [];
+    if (auRepos.length > 0) {
+      const decalages = decalagesRepos(ordre.length, tirage.parDonne);
+      const jouantDepuisDonneur = [...jouant.slice(p), ...jouant.slice(0, p)];
+      for (let o = 0, r = 0, j = 0; o < ordre.length; o++) {
+        sieges.push(decalages.includes(o) ? reposOrdonne[r++] : jouantDepuisDonneur[j++]);
+      }
+    } else sieges.push(...ordre);
     const nouvelle: Partie = {
       joueursId: sieges.map((i) => tirage.joueursId[i]),
       joueursNomFige: sieges.map((i) => tirage.joueurs[i]),
