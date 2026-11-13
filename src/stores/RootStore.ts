@@ -247,6 +247,7 @@ export class RootStore {
       joueursNomFige: ordre.map((i) => tirage.joueurs[i]),
       parDonne: tirage.parDonne,
       depart: Math.max(0, ordre.indexOf(donneur)),
+      debut: Date.now(),
       // Sièges (dans l'ordre choisi) des joueurs au repos à la première donne.
       ...(auRepos.length > 0 ? { reposInitial: ordre.map((j, k) => (auRepos.includes(j) ? k : -1)).filter((k) => k >= 0) } : {}),
       ...(tirage.badges ? { badges: tirage.badges } : {}),

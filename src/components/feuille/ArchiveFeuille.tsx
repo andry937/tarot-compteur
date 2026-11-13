@@ -11,6 +11,7 @@ import type { Fiche } from "@/domain/joueurs/identite";
 import type { ArchiveRecord } from "@/domain/types";
 import { Section, RankRow } from "@/components/ui";
 import ScoreGrid from "./ScoreGrid";
+import { dureesDonnes, dureePartie, formaterDuree } from "@/domain/stats/durees";
 import StatsPartie from "@/components/stats/StatsPartie";
 import RecapSoiree from "@/components/stats/RecapSoiree";
 import { GraphiqueComparatif } from "@/components/graphiques/paresseux";
@@ -41,6 +42,8 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne, date }
   const [saisie, setSaisie] = useState<number | null>(null);
   const [mainsOuvert, setMainsOuvert] = useState<number | null>(null);
 
+  const durees = dureesDonnes(record.debut, donnes);
+  const dureeTotale = dureePartie(record.debut, donnes);
   const { totaux, jouees } = resumerDonnees(donnes, nbTotal);
   const classement = joueurs
     .map((nom, i) => ({ nom, i, pts: totaux[i], n: jouees[i] }))
@@ -48,6 +51,11 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne, date }
 
   return (
     <>
+      {dureeTotale !== null && (
+        <p className="mb-2 font-mono text-xs text-slate-400" data-testid="duree-partie">
+          ⏱ Durée de la partie : {formaterDuree(dureeTotale)}
+        </p>
+      )}
       <ScoreGrid
         joueurs={joueurs}
         nbTotal={nbTotal}
@@ -58,6 +66,9 @@ export default function ArchiveFeuille({ record, roster, onModifierDonne, date }
         onOuvrir={setOuverte}
         detailExtra={
           <>
+          {ouverte !== null && durees[ouverte] != null && (
+            <div className="mt-2 font-mono text-[11px] text-slate-500">⏱ Durée de la donne : {formaterDuree(durees[ouverte] as number)}</div>
+          )}
           {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length) ? (
             <details className="mt-2.5">
               <summary className="cursor-pointer font-mono text-[10px] uppercase tracking-wider text-slate-500">
