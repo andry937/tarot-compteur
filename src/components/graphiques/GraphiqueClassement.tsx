@@ -4,7 +4,7 @@
  */
 
 import { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { PointEvolution } from "@/domain/stats/elo";
 import { Section, Chip } from "@/components/ui";
 
@@ -70,7 +70,6 @@ export default function GraphiqueClassement({ joueurs, evolution }: GraphiqueCla
               contentStyle={{ background: "#0f172a", border: "1px solid #1e293b", fontSize: 12, borderRadius: 8 }}
               labelFormatter={(v) => `Partie ${v}`}
             />
-            <Legend wrapperStyle={{ fontSize: 11 }} />
             {joueurs.map((j, i) => masques.has(j.id) ? null : (
               <Line
                 key={j.id}

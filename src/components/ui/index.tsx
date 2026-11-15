@@ -8,12 +8,18 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { Link, type LinkProps } from "react-router-dom";
 import { usePagination } from "@/hooks/usePagination";
 
-const ghostClasses =
-  "whitespace-nowrap rounded-full border border-slate-700 px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider text-slate-300 transition-colors hover:border-slate-500 hover:text-white";
+const ghostBase =
+  "whitespace-nowrap rounded-full border px-3 py-1.5 font-mono text-[11px] uppercase tracking-wider transition-colors";
+const ghostClasses = `${ghostBase} border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white`;
+const ghostDanger = `${ghostBase} border-rose-900 text-rose-300 hover:border-rose-500 hover:text-rose-200`;
 
-/** Bouton discret à contour (actions secondaires des en-têtes). */
-export function GhostButton({ className = "", ...rest }: ButtonHTMLAttributes<HTMLButtonElement>) {
-  return <button type="button" className={`${ghostClasses} ${className}`} {...rest} />;
+/** Bouton discret à contour (actions secondaires des en-têtes). `danger` : action qui ferme ou détruit (teinte rose). */
+export function GhostButton({
+  className = "",
+  danger,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { danger?: boolean }) {
+  return <button type="button" className={`${danger ? ghostDanger : ghostClasses} ${className}`} {...rest} />;
 }
 
 /** Lien de navigation au style du bouton discret. */
@@ -107,7 +113,7 @@ export function Page({ children }: { children: ReactNode }) {
 /** Barre d'action fixée en bas de l'écran. */
 export function Bar({ children }: { children: ReactNode }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6">
+    <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:px-6">
       <div className="mx-auto max-w-xl sm:max-w-2xl lg:max-w-3xl">{children}</div>
     </div>
   );
@@ -155,7 +161,7 @@ export function RankRow({
     <>
       {rang !== undefined && <span className="w-5 shrink-0 font-mono text-[10px] text-slate-500">{rang}</span>}
       <span className="flex-1 truncate text-sm">{nom}</span>
-      {meta && <span className="shrink-0 font-mono text-[10px] text-slate-500">{meta}</span>}
+      {meta && <span className="shrink-0 font-mono text-[11px] text-slate-400">{meta}</span>}
       <span
         className={`min-w-[3.5rem] shrink-0 text-right font-serif text-lg font-bold ${negatif ? "text-rose-400" : ""}`}
       >

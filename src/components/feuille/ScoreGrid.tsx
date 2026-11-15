@@ -3,6 +3,7 @@
  * @module
  */
 
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { CONTRATS, POIGNEES, calculer, resumerDonnees, fmt } from "@/domain/score/regles";
 import type { Donne } from "@/domain/score/regles";
@@ -32,9 +33,10 @@ export default function ScoreGrid({
   vide,
   detailExtra,
 }: ScoreGridProps) {
-  const { totaux, cumuls } = resumerDonnees(donnes, nbTotal);
+  const { totaux, cumuls } = useMemo(() => resumerDonnees(donnes, nbTotal), [donnes, nbTotal]);
+  const resultats = useMemo(() => donnes.map((d) => calculer(d, nbTotal)), [donnes, nbTotal]);
   const d0 = ouverte !== null ? donnes[ouverte] : null;
-  const detail = d0 ? calculer(d0, nbTotal) : null;
+  const detail = d0 && ouverte !== null ? resultats[ouverte] : null;
 
   return (
     <div className="mt-4 overflow-hidden rounded-2xl bg-slate-50 text-slate-900 shadow-xl">
@@ -78,7 +80,7 @@ export default function ScoreGrid({
           </thead>
           <tbody>
             {donnes.map((d, r) => {
-              const res = calculer(d, nbTotal);
+              const res = resultats[r];
               return (
                 <tr
                   key={r}

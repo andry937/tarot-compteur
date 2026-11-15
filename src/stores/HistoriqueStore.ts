@@ -6,15 +6,18 @@
 import { makeAutoObservable, observable, runInAction } from "mobx";
 import { invaliderArchive } from "@/lib/storage/archives";
 import { CLE_HISTORIQUE, cleArchive } from "@/lib/storage/stockage";
+import { ecrireFiable } from "@/lib/storage/ecriture";
 import type { HistoriqueEntree, ArchiveRecord } from "@/domain/types";
 
 /** Index des parties closes (`tarot:historique`) ; les archives complètes sont lues à la demande. */
 export class HistoriqueStore {
   /** Index léger des parties archivées, remplacé en entier à chaque modification. */
   index: HistoriqueEntree[] = [];
+  /** Appelé avec le résultat de chaque écriture (branché par `RootStore` sur le bandeau d'avertissement). */
+  surEtatSauvegarde?: (ok: boolean) => void;
 
   constructor() {
-    makeAutoObservable(this, { index: observable.ref }, { autoBind: true });
+    makeAutoObservable(this, { index: observable.ref, surEtatSauvegarde: false }, { autoBind: true });
   }
 
   /** Remplace l'index en mémoire, sans l'écrire (chargement initial). */
@@ -50,8 +53,6 @@ export class HistoriqueStore {
    * — le reste (stats, Elo) se recalcule déjà à la volée depuis `donnes`. */
   modifierTotaux(id: string, totaux: number[]) {
     this.index = this.index.map((h) => (h.id === id ? { ...h, totaux } : h));
-    window.storage
-      .set(CLE_HISTORIQUE, JSON.stringify(this.index))
-      .catch((e) => console.error("Sauvegarde de l'historique impossible", e));
+    void ecrireFiable(CLE_HISTORIQUE, JSON.stringify(this.index), this.surEtatSauvegarde);
   }
 }

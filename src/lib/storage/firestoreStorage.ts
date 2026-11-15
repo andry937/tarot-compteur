@@ -27,7 +27,7 @@ import {
   query,
   setDoc,
   where,
-} from "firebase/firestore";
+} from "firebase/firestore/lite";
 import { db } from "@/lib/firebase";
 import { CleIntrouvable } from "./stockage";
 import type { WindowStorage } from "./window-storage";
@@ -73,7 +73,7 @@ export function creerStorageFirestore(): WindowStorage {
       // document : le caractère de borne haute est un point de code très
       // élevé, supérieur à tout caractère normal.
       const q = prefix
-        ? query(col, where(documentId(), ">=", prefix), where(documentId(), "<", prefix + ""))
+        ? query(col, where(documentId(), ">=", prefix), where(documentId(), "<", prefix + "\uf8ff"))
         : query(col);
       const snap = await avecDelai(getDocs(q), DELAI_MS);
       return { keys: snap.docs.map((d) => d.id), prefix, shared: true };

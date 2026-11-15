@@ -59,10 +59,17 @@ const RoutePartie = observer(function RoutePartie() {
   const { id } = useParams();
   useEffect(() => {
     if (!id) return;
-    table.charger(id).then((trouvee) => {
-      if (!trouvee) navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
-      else void store.recalculerBadgesTable(); // tant que la table est ouverte, ses badges suivent l'historique
-    });
+    table
+      .charger(id)
+      .then((trouvee) => {
+        if (!trouvee) navigate("/"); // id inconnu (lien mort, table déjà fermée ailleurs)
+        else void store.recalculerBadgesTable(); // tant que la table est ouverte, ses badges suivent l'historique
+      })
+      .catch((e) => {
+        console.error("Lecture de la table impossible", e);
+        store.signaler("Table illisible : connexion coupée ou trop lente. Réessayez dans un instant.");
+        navigate("/");
+      });
   }, [id, table, store, navigate]);
 
   if (table.id !== id || !table.partie) return <div className="min-h-screen bg-slate-950" />;
@@ -73,15 +80,23 @@ const RoutePartie = observer(function RoutePartie() {
  * Route `/partie/:id/suivi` : suivi caméra de la donne en cours ; charge la table comme `/partie/:id`.
  */
 const RouteSuivi = observer(function RouteSuivi() {
-  const { table } = useStore();
+  const store = useStore();
+  const { table } = store;
   const navigate = useNavigate();
   const { id } = useParams();
   useEffect(() => {
     if (!id) return;
-    table.charger(id).then((trouvee) => {
-      if (!trouvee) navigate("/");
-    });
-  }, [id, table, navigate]);
+    table
+      .charger(id)
+      .then((trouvee) => {
+        if (!trouvee) navigate("/");
+      })
+      .catch((e) => {
+        console.error("Lecture de la table impossible", e);
+        store.signaler("Table illisible : connexion coupée ou trop lente. Réessayez dans un instant.");
+        navigate("/");
+      });
+  }, [id, table, store, navigate]);
 
   if (table.id !== id || !table.partie) return <div className="min-h-screen bg-slate-950" />;
   return <Suivi />;

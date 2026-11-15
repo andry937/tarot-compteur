@@ -27,6 +27,20 @@ import { dureesDonnes, formaterDuree } from "@/domain/stats/durees";
 import Chrono from "@/components/feuille/Chrono";
 import { Page, Header, GhostButton, GhostLink, Chip, Cta, Bar, Section, RankRow, Lien } from "@/components/ui";
 
+/** « Effacer cette donne » en deux clics ; la clé (numéro de la donne) réarme le bouton quand on ouvre une autre donne. */
+function BoutonEffacer({ onConfirme }: { onConfirme: () => void }) {
+  const { enAttente, declencher } = useConfirmation(onConfirme);
+  return (
+    <button
+      type="button"
+      className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
+      onClick={declencher}
+    >
+      {enAttente ? "Confirmer ?" : "Effacer cette donne"}
+    </button>
+  );
+}
+
 /** La table active vient du store ; `partie` est passée par RoutePartie, qui a déjà vérifié qu'elle est chargée. */
 export default observer(function Feuille({ partie }: {
   /** Composition de la table active, déjà chargée par la route. */
@@ -72,6 +86,7 @@ export default observer(function Feuille({ partie }: {
     else navigate("/composition", { state: composition });
   });
 
+  const durees = dureesDonnes(partie.debut, donnes);
   const classement = joueurs
     .map((nom, i) => ({ nom, i, pts: totaux[i], n: jouees[i] }))
     .sort((a, b) => b.pts - a.pts);
@@ -94,7 +109,7 @@ export default observer(function Feuille({ partie }: {
             >
               Accueil
             </GhostButton>
-            <GhostButton onClick={surCloturer}>{confirmerCloture ? "Confirmer ?" : "Clôturer"}</GhostButton>
+            <GhostButton danger onClick={surCloturer}>{confirmerCloture ? "Confirmer ?" : "Clôturer"}</GhostButton>
             <GhostButton onClick={surRejouer}>{confirmerRejouer ? "Confirmer ?" : "Rejouer"}</GhostButton>
           </>
         }
@@ -212,8 +227,8 @@ export default observer(function Feuille({ partie }: {
         }
         detailExtra={
           <>
-            {ouverte !== null && dureesDonnes(partie.debut, donnes)[ouverte] != null && (
-              <div className="mt-2 font-mono text-[11px] text-slate-500">⏱ Durée de la donne : {formaterDuree(dureesDonnes(partie.debut, donnes)[ouverte] as number)}</div>
+            {ouverte !== null && durees[ouverte] != null && (
+              <div className="mt-2 font-mono text-[11px] text-slate-500">⏱ Durée de la donne : {formaterDuree(durees[ouverte] as number)}</div>
             )}
             {ouverte !== null && (donnes[ouverte]?.cartesJouees?.length || donnes[ouverte]?.chien?.length) ? (
               <details className="mt-2.5">
@@ -249,16 +264,13 @@ export default observer(function Feuille({ partie }: {
               >
                 Modifier cette donne
               </button>
-              <button
-                type="button"
-                className="rounded-full border border-rose-300 px-3 py-1.5 font-mono text-[10px] uppercase tracking-wider text-rose-600 hover:bg-rose-100"
-                onClick={() => {
+              <BoutonEffacer
+                key={ouverte as number}
+                onConfirme={() => {
                   t.effacerDonne(ouverte as number);
                   setOuverte(null);
                 }}
-              >
-                Effacer cette donne
-              </button>
+              />
             </div>
           </>
         }
@@ -308,7 +320,7 @@ export default observer(function Feuille({ partie }: {
           Le preneur doit réunir <code className="font-mono text-amber-400">56 / 51 / 41 / 36</code> points selon
           qu'il possède 0, 1, 2 ou 3 bouts. Le score d'une donne vaut{" "}
           <code className="font-mono text-amber-400">(25 + écart) × contrat</code>, auquel s'ajoutent le petit au
-          bout (10 × contrat, pour le camp qui le réalise), la poignée (20 / 30 / 40, pour le camp gagnant) et le
+          bout (10 × contrat, pour le camp qui le réalise), la poignée (20 / 30 / 40, pour le camp du joueur qui la montre, que le contrat réussisse ou chute) et le
           chelem (200 non annoncé, 400 annoncé, −200 s'il chute). Le preneur gagne ou perd ce score autant de fois
           qu'il y a de défenseurs ; à cinq, l'appelé en prend une part et le preneur deux.
         </p>
@@ -323,7 +335,7 @@ export default observer(function Feuille({ partie }: {
           Chaque autre joueur à table lui paie alors 10 points, même dans son propre camp — annoncée à tort, c'est
           l'inverse. L'Excuse annule toute misère.
           {rotation &&
-            ` Les joueurs au repos marquent 0 : la table tourne d'un cran à chaque donne, donc au bout de ${nbTotal} donnes chacun aura joué ${parDonne} fois.`}
+            ` Les joueurs au repos marquent 0 : le repos est réparti d'après les donnes déjà jouées (le donneur joue toujours, ceux qui ont le plus joué se reposent), pour que chacun joue à peu près autant.`}
         </p>
       </details>
 

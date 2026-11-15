@@ -43,6 +43,7 @@ export default observer(function Historique() {
       ...record,
       donnes: record.donnes.map((old, k) => (k === donneIndex ? { ...d, ...(old.finA !== undefined ? { finA: old.finA } : {}) } : old)),
     };
+    const avant = record;
     setRecord(nouveau); // affichage immédiat
     try {
       invaliderArchive(id);
@@ -51,6 +52,9 @@ export default observer(function Historique() {
       store.historique.modifierTotaux(id, totaux);
     } catch (e) {
       console.error("Modification de la donne archivée impossible", e);
+      invaliderArchive(id);
+      setRecord(avant); // l'écran ne doit pas montrer une correction qui n'est pas enregistrée
+      store.signaler("Correction non enregistrée : la donne est revenue à sa valeur précédente. Réessayez une fois la connexion rétablie.");
     }
   };
 
