@@ -14,22 +14,22 @@ const derniere = new Map<string, number>();
 let compteur = 0;
 
 /**
- * Écrit `valeur` sous `cle`, avec jusqu'à 3 essais. `surEtat(false)` est appelé si tous échouent,
- * `surEtat(true)` dès qu'une écriture aboutit. Ne lève jamais ; renvoie `true` si l'écriture a abouti.
+ * Écrit `valeur` sous `cle`, avec jusqu'à 3 essais. `surEtat(false, cle)` est appelé si tous échouent,
+ * `surEtat(true, cle)` dès qu'une écriture aboutit. Ne lève jamais ; renvoie `true` si l'écriture a abouti.
  * Si une écriture plus récente de la même clé a démarré entre-temps, les nouvelles tentatives
  * s'arrêtent (la valeur la plus récente est celle qui compte).
  */
 export async function ecrireFiable(
   cle: string,
   valeur: string,
-  surEtat?: (ok: boolean) => void
+  surEtat?: (ok: boolean, cle: string) => void
 ): Promise<boolean> {
   const numero = ++compteur;
   derniere.set(cle, numero);
   for (let essai = 1; essai <= ESSAIS; essai++) {
     try {
       await window.storage.set(cle, valeur);
-      surEtat?.(true);
+      surEtat?.(true, cle);
       return true;
     } catch (e) {
       console.error(`Écriture impossible (${cle}), essai ${essai}/${ESSAIS}`, e);
@@ -38,6 +38,6 @@ export async function ecrireFiable(
       if (derniere.get(cle) !== numero) return false;
     }
   }
-  surEtat?.(false);
+  surEtat?.(false, cle);
   return false;
 }

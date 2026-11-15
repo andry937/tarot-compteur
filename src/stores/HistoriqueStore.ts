@@ -14,7 +14,7 @@ export class HistoriqueStore {
   /** Index léger des parties archivées, remplacé en entier à chaque modification. */
   index: HistoriqueEntree[] = [];
   /** Appelé avec le résultat de chaque écriture (branché par `RootStore` sur le bandeau d'avertissement). */
-  surEtatSauvegarde?: (ok: boolean) => void;
+  surEtatSauvegarde?: (ok: boolean, cle: string) => void;
 
   constructor() {
     makeAutoObservable(this, { index: observable.ref, surEtatSauvegarde: false }, { autoBind: true });

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { ecrireFiable } from "@/lib/storage/ecriture";
 import { TableStore } from "@/stores/TableStore";
 import { RegistreStore } from "@/stores/RegistreStore";
+import { RootStore } from "@/stores/RootStore";
 
 afterEach(() => vi.useRealTimers());
 
@@ -15,8 +16,8 @@ describe("ecrireFiable", () => {
     await vi.runAllTimersAsync();
     expect(await p).toBe(true);
     expect(set).toHaveBeenCalledTimes(2);
-    expect(etat).toHaveBeenCalledWith(true);
-    expect(etat).not.toHaveBeenCalledWith(false);
+    expect(etat).toHaveBeenCalledWith(true, "k1");
+    expect(etat).not.toHaveBeenCalledWith(false, "k1");
   });
 
   it("signale l'échec après trois essais", async () => {
@@ -29,7 +30,7 @@ describe("ecrireFiable", () => {
     await vi.runAllTimersAsync();
     expect(await p).toBe(false);
     expect(set).toHaveBeenCalledTimes(3);
-    expect(etat).toHaveBeenCalledWith(false);
+    expect(etat).toHaveBeenCalledWith(false, "k2");
   });
 
   it("n'écrase pas une valeur plus récente avec une tentative périmée", async () => {
@@ -55,5 +56,17 @@ describe("TableStore.charger", () => {
       get: () => Promise.reject(new Error("délai Firestore dépassé")),
     } as typeof window.storage;
     await expect(t.charger("x")).rejects.toThrow("délai");
+  });
+});
+
+describe("RootStore.signalerSauvegarde", () => {
+  it("garde le bandeau tant qu'une clé reste en échec, même si une autre écriture réussit", () => {
+    const store = new RootStore();
+    store.signalerSauvegarde(false, "tarot:table:t1");
+    expect(store.avertissement).toMatch(/Sauvegarde impossible/);
+    store.signalerSauvegarde(true, "tarot:tables");
+    expect(store.avertissement).toMatch(/Sauvegarde impossible/);
+    store.signalerSauvegarde(true, "tarot:table:t1");
+    expect(store.avertissement).toBeNull();
   });
 });

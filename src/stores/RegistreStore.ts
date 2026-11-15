@@ -14,7 +14,7 @@ export class RegistreStore {
   /** Fiches des joueurs (actives, désactivées et fusionnées), remplacées en entier à chaque modification. */
   roster: Fiche[] = [];
   /** Appelé avec le résultat de chaque écriture (branché par `RootStore` sur le bandeau d'avertissement). */
-  surEtatSauvegarde?: (ok: boolean) => void;
+  surEtatSauvegarde?: (ok: boolean, cle: string) => void;
 
   constructor() {
     // observable.ref : le registre reste un tableau JS ordinaire, remplacé en

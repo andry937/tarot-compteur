@@ -84,9 +84,11 @@ export class RootStore {
   private chargementLance = false;
   private badgesEnAttente: Promise<void> | null = null;
   private reactions: IReactionDisposer[] = [];
+  /** Clés dont la dernière écriture a échoué malgré les nouvelles tentatives. */
+  private clesEnEchec = new Set<string>();
 
   constructor() {
-    makeAutoObservable<this, "chargementLance" | "reactions" | "badgesEnAttente">(
+    makeAutoObservable<this, "chargementLance" | "reactions" | "badgesEnAttente" | "clesEnEchec">(
       this,
       {
         registre: false,
@@ -95,6 +97,7 @@ export class RootStore {
         chargementLance: false,
         reactions: false,
         badgesEnAttente: false,
+        clesEnEchec: false,
         tablesIndex: observable.ref,
         tirage: observable.ref,
         annonceFin: observable.ref,
@@ -106,9 +109,16 @@ export class RootStore {
   }
 
   /** Affiche ou retire le bandeau « Sauvegarde impossible » selon le résultat d'une écriture. */
-  signalerSauvegarde(ok: boolean) {
-    if (!ok) this.avertissement = MSG_SAUVEGARDE;
-    else if (this.avertissement === MSG_SAUVEGARDE) this.avertissement = null;
+  signalerSauvegarde(ok: boolean, cle: string) {
+    if (!ok) {
+      this.clesEnEchec.add(cle);
+      this.avertissement = MSG_SAUVEGARDE;
+      return;
+    }
+    // Le bandeau ne disparaît que lorsque plus aucune clé n'est en échec : la réussite d'une autre
+    // écriture (ex. l'index) ne doit pas masquer une table toujours non enregistrée.
+    this.clesEnEchec.delete(cle);
+    if (this.clesEnEchec.size === 0 && this.avertissement === MSG_SAUVEGARDE) this.avertissement = null;
   }
 
   /** Affiche un message d'avertissement en bandeau. */
