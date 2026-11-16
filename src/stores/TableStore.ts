@@ -10,7 +10,7 @@ import { permuterSieges } from "@/domain/score/ordre";
 import { resoudreNom } from "@/domain/joueurs/identite";
 import type { Partie, Annulation, ArchiveRecord } from "@/domain/types";
 import type { BadgeAttribue } from "@/domain/stats/badges";
-import { cleTable } from "@/lib/storage/stockage";
+import { cleTable, CleIntrouvable } from "@/lib/storage/stockage";
 import type { RegistreStore } from "@/stores/RegistreStore";
 
 /**
@@ -103,7 +103,8 @@ export class TableStore {
   }
 
   /** Charge à la demande la table `id` (route /partie/:id) si elle n'est pas déjà active.
-   * `false` si elle est introuvable (lien mort, table déjà fermée ailleurs). */
+   * `false` si elle est introuvable (lien mort, table déjà fermée ailleurs) ; lève sur toute autre
+   * panne (réseau, délai, données illisibles), à ne pas confondre avec une table absente. */
   async charger(id: string): Promise<boolean> {
     if (this.id === id) return true;
     try {
@@ -126,7 +127,8 @@ export class TableStore {
       );
       return true;
     } catch (e) {
-      return false;
+      if (e instanceof CleIntrouvable) return false;
+      throw e;
     }
   }
 

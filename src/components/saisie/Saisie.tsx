@@ -117,10 +117,9 @@ export default function Saisie({
   const reposSuivants = reposApres && table.length === parDonne ? reposApres(table) : [];
 
   return (
-    <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/80 sm:items-center sm:p-4" onClick={onFermer}>
+    <div className="fixed inset-0 z-40 flex items-end justify-center bg-slate-950/80 sm:items-center sm:p-4">
       <div
         className="max-h-[94vh] w-full overflow-y-auto rounded-t-2xl border-t-2 border-amber-400 bg-slate-900 p-4 sm:max-w-lg sm:rounded-2xl sm:border sm:border-slate-800 sm:border-t-2"
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">
           <span className="font-serif text-xl font-bold sm:text-2xl">Donne {numero}</span>

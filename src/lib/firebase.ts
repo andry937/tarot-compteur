@@ -8,7 +8,9 @@
  * @module
  */
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+// Version « lite » : l'app ne fait que des lectures/écritures simples (pas de temps réel ni de cache hors ligne),
+// ce qui allège nettement le bundle.
+import { getFirestore } from "firebase/firestore/lite";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {

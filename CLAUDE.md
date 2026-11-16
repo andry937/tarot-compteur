@@ -16,7 +16,7 @@ fichier remplace le besoin de la relire.
 ## Démarrer
 
 Voir le [README](README.md) (installation, scripts, configuration Firebase, déploiement).
-Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (344 tests,
+Raccourcis : `npm run dev`, `npm run typecheck`, `npm run lint`, `npm test` (354 tests,
 doit passer à 100 % — n'a pas besoin de `.env`), `npm run build`.
 
 ## CI
@@ -76,6 +76,7 @@ src/                        alias `@/` -> src/ (tsconfig.app.json + vite.config.
     storage/stockage.ts     clés de persistance, CleIntrouvable, lireJson
     storage/firestoreStorage.ts  adaptateur Firestore -> WindowStorage (exporte DELAI_MS)
     storage/archives.ts     chargement groupé + cache des archives
+    storage/ecriture.ts     `ecrireFiable` : 3 essais espacés puis bandeau « Sauvegarde impossible » (stores, via `signalerSauvegarde`)
     storage/window-storage.d.ts  typage global de window.storage
   pages/                    un écran par route : Tables (/), CompositionTable, Tirage, Feuille,
                             Configuration, Historique, FicheJoueur, Classement, Suivi (/partie/:id/suivi)
@@ -960,6 +961,16 @@ effet de chargement charge désormais **tout** `historiqueIndex` (pas
 seulement les parties de ce joueur, comme avant) puisque l'Elo est global
 et dépend de toutes les donnes archivées — même fetch non filtré que fait
 déjà `Classement.tsx`, pas un nouveau souci de perf à l'échelle actuelle.
+
+**Revue du code (qualité/perf)** : (1) toute écriture automatique passe par `ecrireFiable` (3 essais, une
+tentative périmée n'écrase jamais une valeur plus récente) et un échec final affiche un bandeau au lieu d'un
+simple `console.error` ; (2) `TableStore.charger` ne renvoie `false` que pour une table absente
+(`CleIntrouvable`) et **lève** sur une panne réseau — les routes affichent alors un bandeau au lieu de
+rediriger en silence ; (3) une correction d'archive qui échoue est annulée à l'écran ; (4) « Effacer cette donne »
+demande une confirmation en deux clics ; (5) `lib/firebase.ts` utilise `firebase/firestore/lite` (pas de temps
+réel ni de cache hors ligne dans l'app) : chunk d'entrée 671 → 487 kB. `Bar` a `z-20` (au-dessus de la colonne
+collante de `ScoreGrid`). Limites connues restantes : deux appareils sur la même table s'écrasent (dernier
+écrit gagne) ; pas de limite d'essais du passphrase côté appli (celle de Firebase Auth s'applique).
 
 ## Conventions
 

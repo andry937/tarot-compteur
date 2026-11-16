@@ -10,11 +10,16 @@ import type { Fiche } from "@/domain/joueurs/identite";
 import { sansDoublons, chargerParties } from "@/lib/storage/archives";
 import { attribuerBadges } from "@/domain/stats/badges";
 import type { BadgeAttribue } from "@/domain/stats/badges";
+import { ecrireFiable } from "@/lib/storage/ecriture";
 import { CLE_PARTIE, CLE_ROSTER, CLE_HISTORIQUE, CLE_TABLES, cleTable, lireJson } from "@/lib/storage/stockage";
 import type { Partie, ChoixDonneur, TirageEnCours, HistoriqueEntree, ArchiveRecord, AnnonceFin } from "@/domain/types";
 import { RegistreStore } from "@/stores/RegistreStore";
 import { HistoriqueStore } from "@/stores/HistoriqueStore";
 import { TableStore } from "@/stores/TableStore";
+
+/** Bandeau affiché quand une sauvegarde échoue malgré les nouvelles tentatives. */
+const MSG_SAUVEGARDE =
+  "Sauvegarde impossible : les dernières modifications ne sont pas enregistrées. Vérifiez la connexion, elles seront réessayées à la prochaine modification.";
 
 /** Migration unique : l'ancien emplacement à une seule table active
  * devient une table ouverte parmi d'autres, puis est abandonné. */
@@ -79,9 +84,11 @@ export class RootStore {
   private chargementLance = false;
   private badgesEnAttente: Promise<void> | null = null;
   private reactions: IReactionDisposer[] = [];
+  /** Clés dont la dernière écriture a échoué malgré les nouvelles tentatives. */
+  private clesEnEchec = new Set<string>();
 
   constructor() {
-    makeAutoObservable<this, "chargementLance" | "reactions" | "badgesEnAttente">(
+    makeAutoObservable<this, "chargementLance" | "reactions" | "badgesEnAttente" | "clesEnEchec">(
       this,
       {
         registre: false,
@@ -90,12 +97,33 @@ export class RootStore {
         chargementLance: false,
         reactions: false,
         badgesEnAttente: false,
+        clesEnEchec: false,
         tablesIndex: observable.ref,
         tirage: observable.ref,
         annonceFin: observable.ref,
       },
       { autoBind: true }
     );
+    this.registre.surEtatSauvegarde = this.signalerSauvegarde;
+    this.historique.surEtatSauvegarde = this.signalerSauvegarde;
+  }
+
+  /** Affiche ou retire le bandeau « Sauvegarde impossible » selon le résultat d'une écriture. */
+  signalerSauvegarde(ok: boolean, cle: string) {
+    if (!ok) {
+      this.clesEnEchec.add(cle);
+      this.avertissement = MSG_SAUVEGARDE;
+      return;
+    }
+    // Le bandeau ne disparaît que lorsque plus aucune clé n'est en échec : la réussite d'une autre
+    // écriture (ex. l'index) ne doit pas masquer une table toujours non enregistrée.
+    this.clesEnEchec.delete(cle);
+    if (this.clesEnEchec.size === 0 && this.avertissement === MSG_SAUVEGARDE) this.avertissement = null;
+  }
+
+  /** Affiche un message d'avertissement en bandeau. */
+  signaler(message: string) {
+    this.avertissement = message;
   }
 
   /** Branche les sauvegardes automatiques et lance le chargement initial (une seule fois). */
@@ -107,9 +135,7 @@ export class RootStore {
         () => (this.pret ? this.tablesIndex : null),
         (idx) => {
           if (!idx) return;
-          window.storage
-            .set(CLE_TABLES, JSON.stringify(idx))
-            .catch((e) => console.error("Sauvegarde de l'index des tables impossible", e));
+          void ecrireFiable(CLE_TABLES, JSON.stringify(idx), this.signalerSauvegarde);
         }
       ),
       // Table active.
@@ -117,7 +143,7 @@ export class RootStore {
         () => (this.pret && t.id && t.enregistrement ? [t.id, JSON.stringify(t.enregistrement)] : null),
         (v) => {
           if (!v) return;
-          window.storage.set(cleTable(v[0]), v[1]).catch((e) => console.error("Sauvegarde impossible", e));
+          void ecrireFiable(cleTable(v[0]), v[1], this.signalerSauvegarde);
         },
         { equals: comparer.structural }
       ),
